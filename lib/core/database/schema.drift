@@ -230,3 +230,103 @@ CREATE TRIGGER entry_details_no_update BEFORE UPDATE ON entry_details
 BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
 CREATE TRIGGER entry_details_no_delete BEFORE DELETE ON entry_details
 BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+
+-- ===== Schema v5 (R3 Э3: зарплата и аванс — план, ожидание, факт) =====
+
+-- Where income comes from: an employer, a side job, other. Several sources
+-- are allowed; member_id is for the family later.
+CREATE TABLE income_sources (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  member_id TEXT REFERENCES members(id),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 60),
+  kind TEXT NOT NULL CHECK (kind IN ('salary', 'other')),
+  -- Default account the money comes to.
+  account_id TEXT REFERENCES accounts(id),
+  -- A pay date on a weekend or holiday moves to the previous working day
+  -- (art. 136 of the Labour Code), the next one, or stays.
+  holiday_rule TEXT NOT NULL CHECK (holiday_rule IN ('previous_workday', 'next_workday', 'none')),
+  -- The R2 plan this source was made from (makes the migration idempotent).
+  migrated_from_flow_id TEXT UNIQUE REFERENCES planned_flows(id),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  archived_at_utc INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer')
+) AS IncomeSourceRow;
+
+-- The schedule: «Аванс 20-го, 40 000», «Зарплата 5-го, 60 000». A change
+-- makes a new version from a date (valid_from); the old one gets valid_to.
+-- Past payments and their receipts never change with the schedule.
+CREATE TABLE income_schedule_parts (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  source_id TEXT NOT NULL REFERENCES income_sources(id),
+  label TEXT NOT NULL CHECK (length(trim(label)) BETWEEN 1 AND 40),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer' AND amount_minor > 0),
+  currency TEXT NOT NULL REFERENCES currencies(code),
+  cadence TEXT NOT NULL CHECK (cadence IN ('monthly', 'weekly', 'yearly', 'once')),
+  day INTEGER CHECK (day IS NULL OR typeof(day) = 'integer'),
+  month INTEGER CHECK (month IS NULL OR (typeof(month) = 'integer' AND month BETWEEN 1 AND 12)),
+  once_on TEXT CHECK (once_on IS NULL OR (length(once_on) = 10 AND date(once_on) = once_on)),
+  valid_from TEXT NOT NULL CHECK (length(valid_from) = 10 AND date(valid_from) = valid_from),
+  valid_to TEXT CHECK (valid_to IS NULL OR (length(valid_to) = 10 AND date(valid_to) = valid_to)),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  CHECK (valid_to IS NULL OR valid_to >= valid_from),
+  CHECK (
+    (cadence = 'monthly' AND day BETWEEN 1 AND 31 AND month IS NULL AND once_on IS NULL)
+    OR (cadence = 'weekly' AND day BETWEEN 1 AND 7 AND month IS NULL AND once_on IS NULL)
+    OR (cadence = 'yearly' AND day BETWEEN 1 AND 31 AND month IS NOT NULL AND once_on IS NULL)
+    OR (cadence = 'once' AND day IS NULL AND month IS NULL AND once_on IS NOT NULL)
+  )
+) AS IncomeSchedulePartRow;
+
+-- One payment by the schedule, written as soon as something happens to it.
+-- planned_on / planned_amount: by the schedule (the key; never changes).
+-- expected_on / expected_amount: the current expectation (NULL = as planned;
+-- date_unknown = 1: delayed with no date). A plan, not history: editable.
+-- state: open (waiting, however long), received (closed with receipts),
+-- legacy_mark (marked «получено» before R3, without an amount),
+-- cancelled («не будет»).
+CREATE TABLE income_occurrences (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  source_id TEXT NOT NULL REFERENCES income_sources(id),
+  part_id TEXT REFERENCES income_schedule_parts(id),
+  planned_on TEXT NOT NULL CHECK (length(planned_on) = 10 AND date(planned_on) = planned_on),
+  planned_amount_minor INTEGER NOT NULL CHECK (typeof(planned_amount_minor) = 'integer' AND planned_amount_minor > 0),
+  expected_on TEXT CHECK (expected_on IS NULL OR (length(expected_on) = 10 AND date(expected_on) = expected_on)),
+  date_unknown INTEGER NOT NULL CHECK (date_unknown IN (0, 1)),
+  expected_amount_minor INTEGER CHECK (expected_amount_minor IS NULL OR (typeof(expected_amount_minor) = 'integer' AND expected_amount_minor > 0)),
+  state TEXT NOT NULL CHECK (state IN ('open', 'received', 'legacy_mark', 'cancelled')),
+  note TEXT CHECK (note IS NULL OR length(note) <= 200),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  updated_at_utc INTEGER NOT NULL CHECK (typeof(updated_at_utc) = 'integer'),
+  UNIQUE (part_id, planned_on),
+  CHECK (date_unknown = 0 OR expected_on IS NULL)
+) AS IncomeOccurrenceRow;
+
+CREATE INDEX income_occurrences_by_source ON income_occurrences (source_id, planned_on);
+
+-- Money actually received for a payment (one or several), each booked as
+-- an income entry in the journal. History: append-only. A mistaken receipt
+-- is cancelled by reversing its entry; the row stays.
+CREATE TABLE income_receipts (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  occurrence_id TEXT NOT NULL REFERENCES income_occurrences(id),
+  entry_id TEXT NOT NULL UNIQUE REFERENCES journal_entries(id),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer' AND amount_minor > 0),
+  received_on TEXT NOT NULL CHECK (length(received_on) = 10 AND date(received_on) = received_on),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer')
+) AS IncomeReceiptRow;
+
+CREATE INDEX income_receipts_by_occurrence ON income_receipts (occurrence_id);
+
+CREATE TRIGGER income_receipts_no_update BEFORE UPDATE ON income_receipts
+BEGIN SELECT RAISE(ABORT, 'receipts are append-only'); END;
+CREATE TRIGGER income_receipts_no_delete BEFORE DELETE ON income_receipts
+BEGIN SELECT RAISE(ABORT, 'receipts are append-only'); END;
+
+-- The forecast period when the next income date is unknown (7 / 14 / 30
+-- days or a date). One row per household; absent = 14 days.
+CREATE TABLE forecast_settings (
+  household_id TEXT NOT NULL PRIMARY KEY REFERENCES households(id),
+  period_days INTEGER CHECK (period_days IS NULL OR (typeof(period_days) = 'integer' AND period_days BETWEEN 1 AND 366)),
+  period_until TEXT CHECK (period_until IS NULL OR (length(period_until) = 10 AND date(period_until) = period_until)),
+  CHECK ((period_days IS NULL) <> (period_until IS NULL))
+) AS ForecastSettingsRow;

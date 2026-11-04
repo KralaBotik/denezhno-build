@@ -92,11 +92,15 @@ class AppDatabase extends _$AppDatabase {
   static const schemaV3Checksum =
       '26e2a1bfbb16f4f5da74cb86edbf1710c08981e0e7f795ee138efa5544a50112';
 
-  /// SHA-256 of the current schema.drift (v4). A test recomputes it.
+  /// SHA-256 of schema.drift at v4 (R3 Э2). Historical.
   static const schemaV4Checksum =
       '436482421afc66175266e62d7bcabf77cdb1cefffcc0430a41261fd97efc26fd';
 
-  static const latestSchemaVersion = 4;
+  /// SHA-256 of the current schema.drift (v5). A test recomputes it.
+  static const schemaV5Checksum =
+      '22bd67bd03bca031625617bfc18627529e39b67d6217847d0e79634f17f56634';
+
+  static const latestSchemaVersion = 5;
 
   /// Checksum recorded for the current schema version.
   static String get latestChecksum => releasedChecksums[latestSchemaVersion]!;
@@ -108,6 +112,7 @@ class AppDatabase extends _$AppDatabase {
     2: schemaV2Checksum,
     3: schemaV3Checksum,
     4: schemaV4Checksum,
+    5: schemaV5Checksum,
   };
 
   /// Which schema entities each version introduced. Every entity belongs to
@@ -128,6 +133,17 @@ class AppDatabase extends _$AppDatabase {
       'entry_details_by_cause',
       'entry_details_no_update',
       'entry_details_no_delete',
+    },
+    5: {
+      'income_sources',
+      'income_schedule_parts',
+      'income_occurrences',
+      'income_occurrences_by_source',
+      'income_receipts',
+      'income_receipts_by_occurrence',
+      'income_receipts_no_update',
+      'income_receipts_no_delete',
+      'forecast_settings',
     },
   };
 
@@ -150,6 +166,7 @@ class AppDatabase extends _$AppDatabase {
       await _seedV2();
       await _seedV3();
       await _seedV4();
+      await _dataV5();
       await _recordVersion(
         latestSchemaVersion,
         releasedChecksums[latestSchemaVersion]!,
@@ -179,6 +196,7 @@ class AppDatabase extends _$AppDatabase {
           if (version == 2) await _seedV2();
           if (version == 3) await _seedV3();
           if (version == 4) await _seedV4();
+          if (version == 5) await _dataV5();
           await _recordVersion(version, releasedChecksums[version]!);
         }
         await customStatement('PRAGMA user_version = $to');
@@ -299,6 +317,74 @@ class AppDatabase extends _$AppDatabase {
       throw StateError('Unsupported backup schema');
     }
     if (from < 4) await _dataV4();
+    if (from < 5) await _dataV5();
+  }
+
+  /// R2 salary plans → the income model (one source and one schedule part
+  /// per plan; R2 «получено» marks → payments closed as «отмечено до
+  /// обновления», «не будет» → cancelled). No journal entries are created:
+  /// that money is already in the balances through «Обновить остатки». The
+  /// R2 plan is archived. Idempotent: a plan already migrated is skipped
+  /// (UNIQUE migrated_from_flow_id), and migrated plans are archived.
+  Future<void> _dataV5() async {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final flows = await (select(
+      plannedFlows,
+    )..where((f) => f.kind.equals('salary') & f.archivedAtUtc.isNull())).get();
+    for (final f in flows) {
+      final done = await (select(
+        incomeSources,
+      )..where((s) => s.migratedFromFlowId.equals(f.id))).getSingleOrNull();
+      if (done != null) continue;
+      final source = newUuid();
+      await into(incomeSources).insert(
+        IncomeSourcesCompanion.insert(
+          id: source,
+          householdId: f.householdId,
+          name: f.name,
+          kind: 'salary',
+          holidayRule: 'previous_workday',
+          migratedFromFlowId: Value(f.id),
+          createdAtUtc: now,
+        ),
+      );
+      final part = newUuid();
+      await into(incomeScheduleParts).insert(
+        IncomeSchedulePartsCompanion.insert(
+          id: part,
+          sourceId: source,
+          label: f.name,
+          amountMinor: f.amountMinor,
+          currency: f.currency,
+          cadence: f.cadence,
+          day: Value(f.day),
+          month: Value(f.month),
+          onceOn: Value(f.onceOn),
+          validFrom: f.startsOn,
+          createdAtUtc: now,
+        ),
+      );
+      for (final m in await (select(
+        flowMarks,
+      )..where((m) => m.flowId.equals(f.id))).get()) {
+        await into(incomeOccurrences).insert(
+          IncomeOccurrencesCompanion.insert(
+            id: newUuid(),
+            sourceId: source,
+            partId: Value(part),
+            plannedOn: m.dueOn,
+            plannedAmountMinor: f.amountMinor,
+            dateUnknown: 0,
+            state: m.status == 'done' ? 'legacy_mark' : 'cancelled',
+            createdAtUtc: now,
+            updatedAtUtc: now,
+          ),
+        );
+      }
+      await (update(plannedFlows)..where((x) => x.id.equals(f.id))).write(
+        PlannedFlowsCompanion(archivedAtUtc: Value(now)),
+      );
+    }
   }
 
   Future<void> _seedV3() async {

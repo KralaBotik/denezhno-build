@@ -150,13 +150,17 @@ void main() {
         await db.customSelect('SELECT 1').get();
         expect(await db.select(db.categories).get(), hasLength(14));
         expect(await db.select(db.journalEntries).get(), hasLength(4));
+        expect(await db.select(db.incomeSources).get(), hasLength(2));
         await db.close();
       }
       expect(rawUserVersion(file.path), AppDatabase.latestSchemaVersion);
       final after = rawDump(file.path);
-      for (final t in V3.userTables.where((t) => t != 'accounts')) {
+      for (final t in V3.userTables.where(
+        (t) => t != 'accounts' && t != 'planned_flows',
+      )) {
         expect(after[t], before[t], reason: t);
       }
+      expect(after['planned_flows']!.length, before['planned_flows']!.length);
     },
   );
 

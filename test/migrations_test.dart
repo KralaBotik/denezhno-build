@@ -50,7 +50,7 @@ void main() {
         expect(listed[i].intersection(listed[j]), isEmpty);
       }
     }
-    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3, 4]);
+    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3, 4, 5]);
   });
 
   test('v1 snapshot upgrades to latest without losing settings', () async {
@@ -68,7 +68,7 @@ void main() {
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
     expect((await db.select(db.appSettings).get()).single.valueJson, '"dark"');
-    expect(await history(db), [1, 2, 3, 4]);
+    expect(await history(db), [1, 2, 3, 4, 5]);
     expect(await db.select(db.households).get(), hasLength(1));
     final system = await db.select(db.accounts).get();
     expect(
@@ -113,7 +113,7 @@ void main() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
-    expect(await history(db), [2, 3, 4]);
+    expect(await history(db), [2, 3, 4, 5]);
     expect(
       (await db.select(db.accounts).get())
           .where((a) => a.kind == 'credit_card')
@@ -153,6 +153,9 @@ void main() {
     expect(ok([1, 2, 3, 4], 4), true);
     expect(ok([3, 4], 4), true);
     expect(ok([1, 2, 4], 4), false);
+    expect(ok([1, 2, 3, 4, 5], 5), true);
+    expect(ok([3, 4, 5], 5), true);
+    expect(ok([3, 5], 5), false);
     expect(AppDatabase.isReleasedHistory([(3, 'x' * 64)], 3), false);
   });
 
@@ -164,72 +167,108 @@ void main() {
         t: await query('SELECT * FROM "$t" ORDER BY rowid'),
     };
 
-    test(
-      'upgrades to v4: every row kept, categories added, no new entries',
-      () async {
-        final schema = await verifier.schemaAt(3);
-        V3.create(schema.rawDatabase);
-        final before = await dump(
-          (sql) async => [
-            for (final r in schema.rawDatabase.select(sql))
-              {for (final c in r.keys) c: r[c]},
-          ],
-        );
-        final db = AppDatabase(schema.newConnection());
-        addTearDown(db.close);
-        await verifier.migrateAndValidate(db, latest);
-        expect(await history(db), [1, 2, 3, 4]);
+    test('upgrades to v5: every row kept, categories and incomes added, '
+        'no new entries', () async {
+      final schema = await verifier.schemaAt(3);
+      V3.create(schema.rawDatabase);
+      final before = await dump(
+        (sql) async => [
+          for (final r in schema.rawDatabase.select(sql))
+            {for (final c in r.keys) c: r[c]},
+        ],
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, latest);
+      expect(await history(db), [1, 2, 3, 4, 5]);
 
-        final after = await dump(
-          (sql) async => [
-            for (final r in await db.customSelect(sql).get()) r.data,
-          ],
-        );
-        for (final t in V3.userTables) {
-          if (t == 'accounts') continue;
-          expect(after[t], before[t], reason: t);
-        }
-        // Accounts: the old ones untouched, plus one internal per category.
-        expect(after['accounts']!.take(5).toList(), before['accounts']);
-        final added = after['accounts']!.skip(5).toList();
-        expect(added, hasLength(14));
-        expect({for (final a in added) a['kind']}, {'income', 'expense'});
-
-        // Balances unchanged: the migration posts nothing.
-        final sums = {
-          for (final r
-              in await db
-                  .customSelect(
-                    'SELECT account_id, SUM(amount_minor) AS s FROM postings '
-                    'GROUP BY account_id',
-                  )
-                  .get())
-            r.read<String>('account_id'): r.read<int>('s'),
-        };
-        expect(sums, V3.balances);
-
-        final categories = await db.select(db.categories).get();
-        expect(categories, hasLength(14));
+      final after = await dump(
+        (sql) async => [
+          for (final r in await db.customSelect(sql).get()) r.data,
+        ],
+      );
+      for (final t in V3.userTables) {
+        if (t == 'accounts' || t == 'planned_flows') continue;
+        expect(after[t], before[t], reason: t);
+      }
+      // R2 plans: unchanged except that salary plans are archived (they
+      // live in the income model now); the rows stay in the database.
+      final plans = after['planned_flows']!;
+      expect(plans, hasLength(before['planned_flows']!.length));
+      for (var i = 0; i < plans.length; i++) {
+        final was = Map.of(before['planned_flows']![i])
+          ..remove('archived_at_utc');
+        final now = Map.of(plans[i])..remove('archived_at_utc');
+        expect(now, was);
         expect(
-          categories.where((c) => c.systemKey == 'salary').single.name,
-          'Зарплата',
+          plans[i]['archived_at_utc'] != null,
+          plans[i]['kind'] == 'salary',
+          reason: '${plans[i]['name']}',
         );
-        for (final c in categories) {
-          final a = added.singleWhere((a) => a['id'] == c.ledgerAccountId);
-          expect(a['kind'], c.direction);
-        }
-        // Category accounts never appear as the person's accounts.
-        expect(
-          [for (final a in await Ledger(db).accounts()) a.name],
-          ['Сбер', 'Кредитка Альфа', 'Подушка'],
-        );
+      }
+      // Accounts: the old ones untouched, plus one internal per category.
+      expect(after['accounts']!.take(5).toList(), before['accounts']);
+      final added = after['accounts']!.skip(5).toList();
+      expect(added, hasLength(14));
+      expect({for (final a in added) a['kind']}, {'income', 'expense'});
 
-        // Running the data step again (a retried migration or a restored
-        // backup that already has them) adds nothing.
-        await db.upgradeDataTo(3);
-        expect(await db.select(db.categories).get(), hasLength(14));
-        expect(await db.select(db.accounts).get(), hasLength(19));
-      },
-    );
+      // Balances unchanged: the migration posts nothing.
+      final sums = {
+        for (final r
+            in await db
+                .customSelect(
+                  'SELECT account_id, SUM(amount_minor) AS s FROM postings '
+                  'GROUP BY account_id',
+                )
+                .get())
+          r.read<String>('account_id'): r.read<int>('s'),
+      };
+      expect(sums, V3.balances);
+
+      final categories = await db.select(db.categories).get();
+      expect(categories, hasLength(14));
+      expect(
+        categories.where((c) => c.systemKey == 'salary').single.name,
+        'Зарплата',
+      );
+      for (final c in categories) {
+        final a = added.singleWhere((a) => a['id'] == c.ledgerAccountId);
+        expect(a['kind'], c.direction);
+      }
+      // Category accounts never appear as the person's accounts.
+      expect(
+        [for (final a in await Ledger(db).accounts()) a.name],
+        ['Сбер', 'Кредитка Альфа', 'Подушка'],
+      );
+
+      // Income model: one source + part per salary plan; R2 marks kept as
+      // payments «отмечено до обновления»; the bonus (other income) stays.
+      final sources = await db.select(db.incomeSources).get();
+      expect({for (final x in sources) x.name}, {'Зарплата', 'Аванс'});
+      expect(
+        {for (final x in sources) x.migratedFromFlowId},
+        {V3.salary, V3.advance},
+      );
+      expect({for (final x in sources) x.holidayRule}, {'previous_workday'});
+      final parts = await db.select(db.incomeScheduleParts).get();
+      expect(
+        {for (final x in parts) (x.label, x.amountMinor, x.day)},
+        {('Зарплата', 6000000, 5), ('Аванс', 4000000, 20)},
+      );
+      final occurrences = await db.select(db.incomeOccurrences).get();
+      expect(
+        {for (final x in occurrences) (x.plannedOn, x.state)},
+        {('2026-10-05', 'legacy_mark'), ('2026-10-20', 'legacy_mark')},
+      );
+      expect(await db.select(db.incomeReceipts).get(), isEmpty);
+
+      // Running the data steps again (a retried migration or a restored
+      // backup that already has them) adds nothing.
+      await db.upgradeDataTo(3);
+      expect(await db.select(db.categories).get(), hasLength(14));
+      expect(await db.select(db.accounts).get(), hasLength(19));
+      expect(await db.select(db.incomeSources).get(), hasLength(2));
+      expect(await db.select(db.incomeOccurrences).get(), hasLength(2));
+    });
   });
 }

@@ -13,13 +13,18 @@ const backupPayloadVersion = 1;
 /// from a newer schema is refused; an older one is inserted as is and then
 /// brought to the current version by the migration's own data steps
 /// ([AppDatabase.upgradeDataTo]).
-const restorableSchemaVersions = {3, 4};
+const restorableSchemaVersions = {3, 4, 5};
 
 /// Tables each payload version contains (older payloads lack newer tables).
 const _tablesSince = {
   'category_groups': 4,
   'categories': 4,
   'entry_details': 4,
+  'income_sources': 5,
+  'income_schedule_parts': 5,
+  'income_occurrences': 5,
+  'income_receipts': 5,
+  'forecast_settings': 5,
 };
 
 /// Every table with user data, in foreign-key order (parents first).
@@ -38,6 +43,11 @@ const backupTables = [
   'planned_flows',
   'flow_marks',
   'card_figures',
+  'income_sources',
+  'income_schedule_parts',
+  'income_occurrences',
+  'income_receipts',
+  'forecast_settings',
   'app_settings',
 ];
 
@@ -86,6 +96,7 @@ final class BackupRepo {
         (SELECT COUNT(*) FROM balance_assertions) +
         (SELECT COUNT(*) FROM planned_flows) +
         (SELECT COUNT(*) FROM card_figures) +
+        (SELECT COUNT(*) FROM income_sources) +
         (SELECT COUNT(*) FROM accounts a JOIN account_kinds k ON k.kind = a.kind
            WHERE k.nature IN ('asset', 'liability')) AS n
     ''').getSingle();
@@ -106,6 +117,7 @@ final class BackupRepo {
       // categories, settings); the backup brings its own with the same IDs.
       for (final name in [
         'app_settings',
+        'forecast_settings',
         'categories',
         'category_groups',
         'accounts',

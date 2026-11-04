@@ -241,9 +241,44 @@ void main() {
       await migrated.close();
       final restored = await b.dump();
       final want = expected['tables']! as Map<String, Object?>;
-      for (final t in v3Tables.where((t) => t != 'accounts')) {
+      for (final t in v3Tables.where(
+        (t) => t != 'accounts' && t != 'planned_flows',
+      )) {
         expect(restored[t], want[t], reason: t);
       }
+      // Plans: identical except the moment salary plans were archived.
+      List<Object?> plansWithFlag(Object? rows) => [
+        for (final r in rows! as List)
+          {
+            ...Map.of(r as Map)..remove('archived_at_utc'),
+            'archived': r['archived_at_utc'] != null,
+          },
+      ];
+      expect(
+        plansWithFlag(restored['planned_flows']),
+        plansWithFlag(want['planned_flows']),
+      );
+      // Income model built by the same data step as the migration.
+      List<Object?> pick(Object? rows, List<String> keys) => [
+        for (final r in rows! as List) [for (final k in keys) (r as Map)[k]],
+      ];
+      expect(
+        pick(restored['income_sources'], ['name', 'kind', 'holiday_rule']),
+        pick(want['income_sources'], ['name', 'kind', 'holiday_rule']),
+      );
+      expect(
+        pick(restored['income_schedule_parts'], [
+          'label',
+          'amount_minor',
+          'day',
+        ]),
+        pick(want['income_schedule_parts'], ['label', 'amount_minor', 'day']),
+      );
+      expect(
+        pick(restored['income_occurrences'], ['planned_on', 'state']),
+        pick(want['income_occurrences'], ['planned_on', 'state']),
+      );
+      expect((restored['income_sources']! as List).length, 2);
       // Same accounts; categories created once, as by the migration.
       List<Object?> people(Object? rows) => [
         for (final r in rows! as List)
