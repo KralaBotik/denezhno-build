@@ -5,6 +5,8 @@ import 'package:denezhno/features/forecast/safe_to_spend.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/legacy_salary.dart';
+
 /// R3 Э1: the financial position next to «можно потратить» (docs/r3-plan.md,
 /// invariants И7, И9, И10). Exact to the kopeck.
 CalendarDate d(String s) => CalendarDate.parse(s);
@@ -26,7 +28,8 @@ PlannedFlow flow(
   int rubles,
   Cadence c, {
   String? account,
-  String starts = '2026-01-01',
+  // Tracked from mid-October (like a source created or migrated then).
+  String starts = '2026-10-15',
 }) => PlannedFlow(
   id: id,
   kind: kind,
@@ -53,7 +56,7 @@ SafeToSpend calc(
   PaymentsSnapshot payments, {
   int reserve = 0,
   ForecastPeriod period = defaultForecastPeriod,
-}) => computeSafeToSpend(
+}) => computeWithSalary(
   accounts: accounts,
   payments: payments,
   reserve: rub(reserve),
@@ -89,7 +92,10 @@ void main() {
       expect(r.horizon, d('2026-11-18')); // 14 days, not 1 December
       expect(r.money, rub(14000)); // nothing added for the missing salary
       final w = r.warnings.whereType<SalaryOverdue>().single;
-      expect((w.name, w.dueOn, w.flowId), ('ЗП', d('2026-11-01'), 'ЗП'));
+      expect(
+        (w.name, w.dueOn, w.payment.key.sourceId),
+        ('ЗП', d('2026-11-01'), 'ЗП'),
+      );
       expect(r.warnings.whereType<NoSalary>(), isEmpty);
       expectIdentities(r);
     });
@@ -103,20 +109,17 @@ void main() {
       expect(r.warnings.whereType<SalaryOverdue>(), isEmpty);
     });
 
-    test(
-      'an older unmarked month does not count when the latest is marked',
-      () {
-        final r = calc(
-          [acc('Карта', AccountKind.debit, 100)],
-          snap(
-            flows: [flow('ЗП', FlowKind.salary, 1, const Monthly(4))],
-            done: {('ЗП', d('2026-11-04'))},
-          ),
-        );
-        expect(r.warnings.whereType<SalaryOverdue>(), isEmpty);
-        expect(r.horizon, d('2026-12-04'));
-      },
-    );
+    test('dates before tracking started are not waiting', () {
+      final r = calc(
+        [acc('Карта', AccountKind.debit, 100)],
+        snap(
+          flows: [flow('ЗП', FlowKind.salary, 1, const Monthly(4))],
+          done: {('ЗП', d('2026-11-04'))},
+        ),
+      );
+      expect(r.warnings.whereType<SalaryOverdue>(), isEmpty);
+      expect(r.horizon, d('2026-12-04'));
+    });
 
     test('salary due today is not overdue', () {
       final r = calc([
@@ -164,7 +167,17 @@ void main() {
       // Yearly bonus due in April, never marked: 200+ days later.
       final r = calc(
         [acc('Карта', AccountKind.debit, 100)],
-        snap(flows: [flow('Премия', FlowKind.salary, 1, const Yearly(4, 15))]),
+        snap(
+          flows: [
+            flow(
+              'Премия',
+              FlowKind.salary,
+              1,
+              const Yearly(4, 15),
+              starts: '2026-01-01',
+            ),
+          ],
+        ),
       );
       final w = r.warnings.whereType<SalaryOverdue>().single;
       expect(w.dueOn, d('2026-04-15'));
@@ -186,6 +199,29 @@ void main() {
     });
   });
 
+  test('every unresolved payment is waiting until resolved (Э3)', () {
+    // Salary on the 1st since January, nothing marked: every month waits.
+    final r = calc(
+      [acc('Карта', AccountKind.debit, 100)],
+      snap(
+        flows: [
+          flow(
+            'ЗП',
+            FlowKind.salary,
+            1,
+            const Monthly(1),
+            starts: '2026-09-01',
+          ),
+        ],
+        done: {('ЗП', d('2026-10-01'))},
+      ),
+    );
+    expect(r.warnings.whereType<SalaryOverdue>().map((w) => w.dueOn), [
+      d('2026-09-01'),
+      d('2026-11-01'),
+    ]);
+  });
+
   test('two overdue salaries → a warning for each, earliest first', () {
     final r = calc(
       [acc('Карта', AccountKind.debit, 100)],
@@ -205,7 +241,7 @@ void main() {
   group('position and scenarios (И9, И10)', () {
     test('card without bank figures: debt shown, nothing subtracted', () {
       // The owner's real case: 26 931,52 ₽ and Альфа 16 296,54 ₽ without figures.
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           AccountSummary(
             id: 'sber',

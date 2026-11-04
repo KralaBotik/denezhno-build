@@ -8,6 +8,8 @@ import 'dart:ui' as ui;
 import 'package:denezhno/app/app.dart';
 import 'package:denezhno/app/controller.dart';
 import 'package:denezhno/app/router.dart';
+import 'package:denezhno/core/calendar_date.dart';
+import 'package:denezhno/features/income/income.dart';
 import 'package:denezhno/features/payments/reminders.dart';
 import 'package:denezhno/features/payments/reminders_controller.dart';
 import 'package:denezhno/features/settings/preferences.dart';
@@ -89,6 +91,7 @@ void main() {
               FakeAccountsStore(data.accounts),
             ),
             paymentsStoreProvider.overrideWithValue(data.payments),
+            incomeStoreProvider.overrideWithValue(data.income),
             householdStoreProvider.overrideWithValue(FakeHouseholdStore()),
             backupStoreProvider.overrideWithValue(FakeBackupStore()),
             reminderSchedulerProvider.overrideWithValue(_NoReminders()),
@@ -154,6 +157,25 @@ void main() {
           ('/account', 'account', 'alfa-cc'),
           ('/update-balances', 'update-balances', null),
           ('/add-account', 'add-account', null),
+          ('/income/schedule', 'salary-schedule', 'work'),
+          (
+            '/income/payment',
+            'income-payment',
+            PaymentKey(
+              sourceId: 'work',
+              partId: 'advance',
+              plannedOn: CalendarDate.today().addDays(12),
+            ),
+          ),
+          (
+            '/income/receive',
+            'income-receive',
+            PaymentKey(
+              sourceId: 'work',
+              partId: 'advance',
+              plannedOn: CalendarDate.today().addDays(12),
+            ),
+          ),
           ('/card-figures', 'card-figures', 'alfa-cc'),
         ]) {
           router.go('/');

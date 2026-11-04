@@ -40,13 +40,20 @@ void main() {
     await store.saveFlow(plan('Спортзал', const Weekly(3)));
     await store.saveFlow(plan('Страховка', const Yearly(2, 29)));
     await store.saveFlow(
-      plan('Зарплата', const Monthly(10), kind: FlowKind.salary),
+      plan('Подработка', const Monthly(10), kind: FlowKind.otherIncome),
+    );
+    // Salary is set up in the income model since R3 Э3.
+    await expectLater(
+      store.saveFlow(
+        plan('Зарплата', const Monthly(10), kind: FlowKind.salary),
+      ),
+      throwsArgumentError,
     );
     await store.saveFlow(plan('Ремонт', Once(d('2026-12-20'))));
     var flows = (await store.payments()).flows;
     expect(
       [for (final f in flows) f.name],
-      ['Музыка', 'Спортзал', 'Страховка', 'Зарплата', 'Ремонт'],
+      ['Музыка', 'Спортзал', 'Страховка', 'Подработка', 'Ремонт'],
     );
     expect((flows[2].cadence as Yearly).day, 29);
     expect(flows[3].direction, FlowDirection.inflow);

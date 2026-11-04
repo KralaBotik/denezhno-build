@@ -11,6 +11,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fakes.dart' show FakeIncomeStore;
+
 import 'payments_ui_test.dart' show FakePayments;
 
 CalendarDate d(String s) => CalendarDate.parse(s);
@@ -152,6 +154,7 @@ void main() {
           preferencesStoreProvider.overrideWithValue(_Prefs()),
           accountsStoreProvider.overrideWithValue(_Accounts()),
           paymentsStoreProvider.overrideWithValue(payments),
+          incomeStoreProvider.overrideWithValue(FakeIncomeStore()),
           reminderSchedulerProvider.overrideWithValue(scheduler),
         ],
         child: const DenezhnoApp(),
@@ -179,6 +182,7 @@ void main() {
           preferencesStoreProvider.overrideWithValue(_Prefs()),
           accountsStoreProvider.overrideWithValue(_Accounts()),
           paymentsStoreProvider.overrideWithValue(FakePayments()),
+          incomeStoreProvider.overrideWithValue(FakeIncomeStore()),
           reminderSchedulerProvider.overrideWithValue(scheduler),
         ],
         child: const DenezhnoApp(),

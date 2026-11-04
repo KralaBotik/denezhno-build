@@ -284,7 +284,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get paymentTitle => 'Платёж';
 
   @override
-  String get incomeTitle => 'Доход';
+  String get incomeTitle => 'Зарплата и доходы';
 
   @override
   String get delete => 'Удалить';
@@ -952,4 +952,277 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get marksDontChangeBalances =>
       'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».';
+
+  @override
+  String get salarySetup => 'Настроить зарплату и аванс';
+
+  @override
+  String get salarySetupHint =>
+      'Даты и суммы выплат — чтобы считать «до зарплаты»';
+
+  @override
+  String get addIncomeSource => 'Добавить ещё работодателя';
+
+  @override
+  String get otherIncomesTitle => 'Другие доходы';
+
+  @override
+  String get scheduleTitleNew => 'Зарплата и аванс';
+
+  @override
+  String get scheduleTitleEdit => 'График выплат';
+
+  @override
+  String get sourceName => 'Название';
+
+  @override
+  String get sourceNameDefault => 'Работа';
+
+  @override
+  String get paymentsPerMonth => 'Выплат в месяц';
+
+  @override
+  String get onePayment => 'Одна';
+
+  @override
+  String get twoPayments => 'Две';
+
+  @override
+  String get partLabel => 'Название выплаты';
+
+  @override
+  String get partDay => 'Число месяца';
+
+  @override
+  String get partAmount => 'Сумма';
+
+  @override
+  String get advanceDefault => 'Аванс';
+
+  @override
+  String get salaryDefault => 'Зарплата';
+
+  @override
+  String get dayHint => '31 — последний день месяца';
+
+  @override
+  String get invalidDay => 'Укажите число от 1 до 31';
+
+  @override
+  String get invalidLabel => 'Укажите название';
+
+  @override
+  String get incomeAccount => 'Куда приходит';
+
+  @override
+  String get incomeAccountNone => 'Не выбрано';
+
+  @override
+  String get holidayRuleTitle => 'Если дата выпала на выходной';
+
+  @override
+  String get holidayPrevious => 'В предыдущий рабочий день';
+
+  @override
+  String get holidayNext => 'В следующий рабочий день';
+
+  @override
+  String get holidayNone => 'Не переносить';
+
+  @override
+  String get holidayHint =>
+      'По Трудовому кодексу (ст. 136) зарплату выплачивают накануне выходного или праздника.';
+
+  @override
+  String get scheduleEditNote =>
+      'Изменения действуют с сегодняшнего дня. Прошлые выплаты и полученные деньги не меняются.';
+
+  @override
+  String get archiveSource => 'Удалить этот доход';
+
+  @override
+  String get archiveSourceConfirm =>
+      'Новые выплаты перестанут ожидаться. Полученные деньги и история останутся.';
+
+  @override
+  String scheduleLine(int day, String amount) {
+    return '$day-го · $amount';
+  }
+
+  @override
+  String get paymentPlan => 'По графику';
+
+  @override
+  String get paymentExpected => 'Ожидается';
+
+  @override
+  String get paymentReceivedTotal => 'Получено';
+
+  @override
+  String get paymentRemaining => 'Осталось получить';
+
+  @override
+  String paymentHolidayMoved(String date) {
+    return 'перенос с $date из-за выходного';
+  }
+
+  @override
+  String get dateUnknownValue => 'Дата неизвестна';
+
+  @override
+  String get receiptsTitle => 'Поступления';
+
+  @override
+  String get receiptCancelled => 'отменено';
+
+  @override
+  String get cancelReceipt => 'Отменить';
+
+  @override
+  String get cancelReceiptConfirm =>
+      'Отменить это поступление? Остаток счёта изменится обратно (если остаток уже подтверждён — сумма вернётся в неясную разницу). Запись останется в истории.';
+
+  @override
+  String get actionReceived => 'Получено';
+
+  @override
+  String get actionMove => 'Перенести';
+
+  @override
+  String get actionUnknown => 'Не знаю когда';
+
+  @override
+  String get actionCancelPayment => 'Не будет';
+
+  @override
+  String get actionReopen => 'Вернуть';
+
+  @override
+  String get actionChangeAmount => 'Изменить сумму';
+
+  @override
+  String get actionDetails => 'Подробнее';
+
+  @override
+  String get cancelPaymentConfirm =>
+      'Отметить, что этой выплаты не будет? Расчёт перестанет её ждать.';
+
+  @override
+  String get stateReceived => 'Получена';
+
+  @override
+  String get stateCancelled => 'Не будет';
+
+  @override
+  String get stateLegacy => 'Отмечена до обновления';
+
+  @override
+  String get stateWaiting => 'Ожидается';
+
+  @override
+  String get stateOverdue => 'Задерживается';
+
+  @override
+  String get statePartial => 'Получена частично';
+
+  @override
+  String get receiveTitle => 'Получено';
+
+  @override
+  String get receiveAmount => 'Сколько пришло';
+
+  @override
+  String get receiveAccount => 'На какой счёт';
+
+  @override
+  String get receiveDate => 'Когда пришло';
+
+  @override
+  String get receiveCheck => 'Проверьте перед записью';
+
+  @override
+  String receiveBalanceChange(String account, String before, String after) {
+    return 'Остаток «$account»: было $before, станет $after';
+  }
+
+  @override
+  String receiveAlreadyIn(String account, String when) {
+    return 'Остаток «$account» не изменится: эти деньги уже есть в остатке, который вы подтвердили $when. Неясная разница уменьшится.';
+  }
+
+  @override
+  String get receiveSameDayAfter =>
+      'Нет, деньги пришли после обновления остатка';
+
+  @override
+  String get receiveSameDayBefore => 'Деньги уже были в том остатке';
+
+  @override
+  String receiveLess(String expected) {
+    return 'Ожидалось $expected';
+  }
+
+  @override
+  String get restLater => 'Остальное придёт позже';
+
+  @override
+  String get wholePayment => 'Это вся выплата';
+
+  @override
+  String get restDate => 'Когда ждать остальное';
+
+  @override
+  String get restUnknown => 'Не знаю';
+
+  @override
+  String get receiveConfirm => 'Подтвердить';
+
+  @override
+  String get receiveNoAccounts =>
+      'Сначала добавьте счёт, на который приходит зарплата';
+
+  @override
+  String get receiveFuture => 'Дата не может быть в будущем';
+
+  @override
+  String incomeOverdue(String label, String date) {
+    return 'Выплата «$label» $date ещё не получена. Пока её нет, не прибавляем и считаем на выбранный период.';
+  }
+
+  @override
+  String incomeUnknown(String label) {
+    return 'Выплата «$label» задерживается, дата неизвестна — считаем на выбранный период.';
+  }
+
+  @override
+  String incomeDelayed(
+    String label,
+    String date,
+    String perDay,
+    String before,
+  ) {
+    return 'Выплата «$label» перенесена на $date: в день ≈ $perDay вместо $before.';
+  }
+
+  @override
+  String incomeDelayedSimple(String label, String date) {
+    return 'Выплата «$label» перенесена на $date.';
+  }
+
+  @override
+  String incomePartial(String label, String received, String expected) {
+    return '«$label»: получено $received из $expected, остальное ждём.';
+  }
+
+  @override
+  String get actionSetDate => 'Указать дату';
+
+  @override
+  String incomeDue(String date) {
+    return '$date';
+  }
+
+  @override
+  String get paymentNotFound =>
+      'Выплата не найдена — возможно, график изменился.';
 }

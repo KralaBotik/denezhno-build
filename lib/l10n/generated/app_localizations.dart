@@ -595,7 +595,7 @@ abstract class AppLocalizations {
   /// No description provided for @incomeTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Доход'**
+  /// **'Зарплата и доходы'**
   String get incomeTitle;
 
   /// No description provided for @delete.
@@ -1689,6 +1689,480 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».'**
   String get marksDontChangeBalances;
+
+  /// No description provided for @salarySetup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настроить зарплату и аванс'**
+  String get salarySetup;
+
+  /// No description provided for @salarySetupHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Даты и суммы выплат — чтобы считать «до зарплаты»'**
+  String get salarySetupHint;
+
+  /// No description provided for @addIncomeSource.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить ещё работодателя'**
+  String get addIncomeSource;
+
+  /// No description provided for @otherIncomesTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другие доходы'**
+  String get otherIncomesTitle;
+
+  /// No description provided for @scheduleTitleNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зарплата и аванс'**
+  String get scheduleTitleNew;
+
+  /// No description provided for @scheduleTitleEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'График выплат'**
+  String get scheduleTitleEdit;
+
+  /// No description provided for @sourceName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название'**
+  String get sourceName;
+
+  /// No description provided for @sourceNameDefault.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа'**
+  String get sourceNameDefault;
+
+  /// No description provided for @paymentsPerMonth.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплат в месяц'**
+  String get paymentsPerMonth;
+
+  /// No description provided for @onePayment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Одна'**
+  String get onePayment;
+
+  /// No description provided for @twoPayments.
+  ///
+  /// In ru, this message translates to:
+  /// **'Две'**
+  String get twoPayments;
+
+  /// No description provided for @partLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название выплаты'**
+  String get partLabel;
+
+  /// No description provided for @partDay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Число месяца'**
+  String get partDay;
+
+  /// No description provided for @partAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сумма'**
+  String get partAmount;
+
+  /// No description provided for @advanceDefault.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аванс'**
+  String get advanceDefault;
+
+  /// No description provided for @salaryDefault.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зарплата'**
+  String get salaryDefault;
+
+  /// No description provided for @dayHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'31 — последний день месяца'**
+  String get dayHint;
+
+  /// No description provided for @invalidDay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите число от 1 до 31'**
+  String get invalidDay;
+
+  /// No description provided for @invalidLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите название'**
+  String get invalidLabel;
+
+  /// No description provided for @incomeAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Куда приходит'**
+  String get incomeAccount;
+
+  /// No description provided for @incomeAccountNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не выбрано'**
+  String get incomeAccountNone;
+
+  /// No description provided for @holidayRuleTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если дата выпала на выходной'**
+  String get holidayRuleTitle;
+
+  /// No description provided for @holidayPrevious.
+  ///
+  /// In ru, this message translates to:
+  /// **'В предыдущий рабочий день'**
+  String get holidayPrevious;
+
+  /// No description provided for @holidayNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'В следующий рабочий день'**
+  String get holidayNext;
+
+  /// No description provided for @holidayNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не переносить'**
+  String get holidayNone;
+
+  /// No description provided for @holidayHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'По Трудовому кодексу (ст. 136) зарплату выплачивают накануне выходного или праздника.'**
+  String get holidayHint;
+
+  /// No description provided for @scheduleEditNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменения действуют с сегодняшнего дня. Прошлые выплаты и полученные деньги не меняются.'**
+  String get scheduleEditNote;
+
+  /// No description provided for @archiveSource.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить этот доход'**
+  String get archiveSource;
+
+  /// No description provided for @archiveSourceConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новые выплаты перестанут ожидаться. Полученные деньги и история останутся.'**
+  String get archiveSourceConfirm;
+
+  /// No description provided for @scheduleLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'{day}-го · {amount}'**
+  String scheduleLine(int day, String amount);
+
+  /// No description provided for @paymentPlan.
+  ///
+  /// In ru, this message translates to:
+  /// **'По графику'**
+  String get paymentPlan;
+
+  /// No description provided for @paymentExpected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидается'**
+  String get paymentExpected;
+
+  /// No description provided for @paymentReceivedTotal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получено'**
+  String get paymentReceivedTotal;
+
+  /// No description provided for @paymentRemaining.
+  ///
+  /// In ru, this message translates to:
+  /// **'Осталось получить'**
+  String get paymentRemaining;
+
+  /// No description provided for @paymentHolidayMoved.
+  ///
+  /// In ru, this message translates to:
+  /// **'перенос с {date} из-за выходного'**
+  String paymentHolidayMoved(String date);
+
+  /// No description provided for @dateUnknownValue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата неизвестна'**
+  String get dateUnknownValue;
+
+  /// No description provided for @receiptsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поступления'**
+  String get receiptsTitle;
+
+  /// No description provided for @receiptCancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'отменено'**
+  String get receiptCancelled;
+
+  /// No description provided for @cancelReceipt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get cancelReceipt;
+
+  /// No description provided for @cancelReceiptConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить это поступление? Остаток счёта изменится обратно (если остаток уже подтверждён — сумма вернётся в неясную разницу). Запись останется в истории.'**
+  String get cancelReceiptConfirm;
+
+  /// No description provided for @actionReceived.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получено'**
+  String get actionReceived;
+
+  /// No description provided for @actionMove.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перенести'**
+  String get actionMove;
+
+  /// No description provided for @actionUnknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не знаю когда'**
+  String get actionUnknown;
+
+  /// No description provided for @actionCancelPayment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не будет'**
+  String get actionCancelPayment;
+
+  /// No description provided for @actionReopen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуть'**
+  String get actionReopen;
+
+  /// No description provided for @actionChangeAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить сумму'**
+  String get actionChangeAmount;
+
+  /// No description provided for @actionDetails.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подробнее'**
+  String get actionDetails;
+
+  /// No description provided for @cancelPaymentConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметить, что этой выплаты не будет? Расчёт перестанет её ждать.'**
+  String get cancelPaymentConfirm;
+
+  /// No description provided for @stateReceived.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получена'**
+  String get stateReceived;
+
+  /// No description provided for @stateCancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не будет'**
+  String get stateCancelled;
+
+  /// No description provided for @stateLegacy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмечена до обновления'**
+  String get stateLegacy;
+
+  /// No description provided for @stateWaiting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидается'**
+  String get stateWaiting;
+
+  /// No description provided for @stateOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задерживается'**
+  String get stateOverdue;
+
+  /// No description provided for @statePartial.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получена частично'**
+  String get statePartial;
+
+  /// No description provided for @receiveTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получено'**
+  String get receiveTitle;
+
+  /// No description provided for @receiveAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько пришло'**
+  String get receiveAmount;
+
+  /// No description provided for @receiveAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'На какой счёт'**
+  String get receiveAccount;
+
+  /// No description provided for @receiveDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Когда пришло'**
+  String get receiveDate;
+
+  /// No description provided for @receiveCheck.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверьте перед записью'**
+  String get receiveCheck;
+
+  /// No description provided for @receiveBalanceChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остаток «{account}»: было {before}, станет {after}'**
+  String receiveBalanceChange(String account, String before, String after);
+
+  /// No description provided for @receiveAlreadyIn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остаток «{account}» не изменится: эти деньги уже есть в остатке, который вы подтвердили {when}. Неясная разница уменьшится.'**
+  String receiveAlreadyIn(String account, String when);
+
+  /// No description provided for @receiveSameDayAfter.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет, деньги пришли после обновления остатка'**
+  String get receiveSameDayAfter;
+
+  /// No description provided for @receiveSameDayBefore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Деньги уже были в том остатке'**
+  String get receiveSameDayBefore;
+
+  /// No description provided for @receiveLess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидалось {expected}'**
+  String receiveLess(String expected);
+
+  /// No description provided for @restLater.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остальное придёт позже'**
+  String get restLater;
+
+  /// No description provided for @wholePayment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это вся выплата'**
+  String get wholePayment;
+
+  /// No description provided for @restDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Когда ждать остальное'**
+  String get restDate;
+
+  /// No description provided for @restUnknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не знаю'**
+  String get restUnknown;
+
+  /// No description provided for @receiveConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить'**
+  String get receiveConfirm;
+
+  /// No description provided for @receiveNoAccounts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала добавьте счёт, на который приходит зарплата'**
+  String get receiveNoAccounts;
+
+  /// No description provided for @receiveFuture.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата не может быть в будущем'**
+  String get receiveFuture;
+
+  /// No description provided for @incomeOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата «{label}» {date} ещё не получена. Пока её нет, не прибавляем и считаем на выбранный период.'**
+  String incomeOverdue(String label, String date);
+
+  /// No description provided for @incomeUnknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата «{label}» задерживается, дата неизвестна — считаем на выбранный период.'**
+  String incomeUnknown(String label);
+
+  /// No description provided for @incomeDelayed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата «{label}» перенесена на {date}: в день ≈ {perDay} вместо {before}.'**
+  String incomeDelayed(String label, String date, String perDay, String before);
+
+  /// No description provided for @incomeDelayedSimple.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата «{label}» перенесена на {date}.'**
+  String incomeDelayedSimple(String label, String date);
+
+  /// No description provided for @incomePartial.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{label}»: получено {received} из {expected}, остальное ждём.'**
+  String incomePartial(String label, String received, String expected);
+
+  /// No description provided for @actionSetDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Указать дату'**
+  String get actionSetDate;
+
+  /// No description provided for @incomeDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'{date}'**
+  String incomeDue(String date);
+
+  /// No description provided for @paymentNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата не найдена — возможно, график изменился.'**
+  String get paymentNotFound;
 }
 
 class _AppLocalizationsDelegate

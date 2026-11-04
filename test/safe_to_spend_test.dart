@@ -5,6 +5,8 @@ import 'package:denezhno/features/forecast/safe_to_spend.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/legacy_salary.dart';
+
 CalendarDate d(String s) => CalendarDate.parse(s);
 final today = d('2026-11-04');
 final fresh = DateTime(2026, 11, 4, 9);
@@ -50,7 +52,7 @@ PaymentsSnapshot snap({
 
 void main() {
   test('reference example: salary on the 10th, payments, card, reserve', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         acc('Т-Банк', AccountKind.debit, 46800),
         acc('Наличные', AccountKind.cash, 3000),
@@ -91,7 +93,7 @@ void main() {
   });
 
   test('salary already received → horizon moves to the next one', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [acc('Карта', AccountKind.debit, 10000)],
       payments: snap(
         flows: [flow('ЗП', FlowKind.salary, 1, const Monthly(4))],
@@ -105,7 +107,7 @@ void main() {
   });
 
   test('salary today and not received → one day, today counts', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [acc('Карта', AccountKind.debit, 1000)],
       payments: snap(
         flows: [
@@ -122,7 +124,7 @@ void main() {
   });
 
   test('no salary → 14 days by default (owner decision), with a warning', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [acc('Карта', AccountKind.debit, 2800)],
       payments: snap(),
       reserve: rub(0),
@@ -136,7 +138,7 @@ void main() {
   });
 
   test('short of money: negative available, zero per day', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [acc('Карта', AccountKind.debit, 5000)],
       payments: snap(
         flows: [
@@ -152,7 +154,7 @@ void main() {
   });
 
   test('paid items, expected income and credit limit never count', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         acc('Карта', AccountKind.debit, 20000),
         acc('Кредитка', AccountKind.creditCard, 0),
@@ -173,7 +175,7 @@ void main() {
   });
 
   test('card: minimum-only warning, missing figures warning, settled', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         acc('Карта', AccountKind.debit, 50000),
         acc('Альфа', AccountKind.creditCard, 20000),
@@ -208,7 +210,7 @@ void main() {
   });
 
   test('card due after the salary is not subtracted now', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         acc('Карта', AccountKind.debit, 10000),
         acc('Сбер', AccountKind.creditCard, 7000),
@@ -232,7 +234,7 @@ void main() {
   });
 
   test('weekly payments repeat inside the horizon; goals are subtracted', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [acc('Карта', AccountKind.debit, 30000)],
       payments: snap(
         flows: [
@@ -252,7 +254,7 @@ void main() {
   test('freshness: stale after 3 days, very stale after 7', () {
     PaymentsSnapshot s() =>
         snap(flows: [flow('ЗП', FlowKind.salary, 1, const Monthly(25))]);
-    final ok = computeSafeToSpend(
+    final ok = computeWithSalary(
       accounts: [
         acc('A', AccountKind.debit, 1, updated: DateTime(2026, 11, 1, 12)),
       ],
@@ -261,7 +263,7 @@ void main() {
       today: today,
     );
     expect(ok.warnings, isEmpty);
-    final stale = computeSafeToSpend(
+    final stale = computeWithSalary(
       accounts: [
         acc('A', AccountKind.debit, 1, updated: DateTime(2026, 10, 30, 12)),
       ],
@@ -274,7 +276,7 @@ void main() {
       d('2026-10-30'),
     );
     expect(stale.veryStale, false);
-    final veryStale = computeSafeToSpend(
+    final veryStale = computeWithSalary(
       accounts: [
         acc('A', AccountKind.debit, 1, updated: DateTime(2026, 10, 20, 12)),
       ],
@@ -286,7 +288,7 @@ void main() {
   });
 
   test('no accounts → explicit warning, zero', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: const [],
       payments: snap(),
       reserve: rub(10000),
@@ -297,7 +299,7 @@ void main() {
   });
 
   test('per day rounds down to whole rubles, exact with kopecks', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         AccountSummary(
           id: 'A',
@@ -331,7 +333,7 @@ void main() {
     final salary = flow('ЗП', FlowKind.salary, 1, const Monthly(25));
 
     test('plan linked to a card with bank figures is not subtracted again', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 50000),
           acc('Сбер', AccountKind.creditCard, 8400),
@@ -361,7 +363,7 @@ void main() {
 
     test('card payment is capped by the current debt (already repaid)', () {
       // The person paid 8 000 of 8 400 and updated balances: debt is 400 now.
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 42000),
           acc('Сбер', AccountKind.creditCard, 400),
@@ -385,7 +387,7 @@ void main() {
     });
 
     test('fully repaid card (debt 0) subtracts nothing', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 42000),
           acc('Сбер', AccountKind.creditCard, 0),
@@ -409,7 +411,7 @@ void main() {
     });
 
     test('loan payments are not trimmed to the principal (interest)', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 50000),
           acc('Кредит', AccountKind.loan, 15000),
@@ -427,7 +429,7 @@ void main() {
     });
 
     test('card with a linked plan but no figures: plan counts, no warning', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 50000),
           acc('ВТБ', AccountKind.creditCard, 5000),
@@ -443,7 +445,7 @@ void main() {
     });
 
     test('unlinked loan payment next to card figures is flagged', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 50000),
           acc('Сбер', AccountKind.creditCard, 8400),
@@ -470,7 +472,7 @@ void main() {
   });
 
   test('accounts excluded from the calculation are not counted', () {
-    final r = computeSafeToSpend(
+    final r = computeWithSalary(
       accounts: [
         acc('Карта', AccountKind.debit, 20000),
         acc('Общая с женой', AccountKind.debit, 50000, protected: true),
@@ -509,7 +511,7 @@ void main() {
     test('interest and fees charged after the statement: bank figure wins', () {
       // Debt grew to 9 100 (fee 300 + interest 400), the bank asks 8 400 to
       // keep the grace period: 8 400 is what must be paid by the date.
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 30000),
           acc('Сбер', AccountKind.creditCard, 9100),
@@ -526,7 +528,7 @@ void main() {
     });
 
     test('grace lost: only the minimum is known → minimum + warning', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 30000),
           acc('Альфа', AccountKind.creditCard, 52000),
@@ -550,7 +552,7 @@ void main() {
     });
 
     test('several obligations at once, each counted once', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 100000),
           acc('Сбер', AccountKind.creditCard, 8400),
@@ -579,7 +581,7 @@ void main() {
     });
 
     test('partial repayment entered as a new debt: only the rest is due', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 25000),
           acc('Т', AccountKind.creditCard, 5000), // paid 7 000 of 12 000
@@ -600,7 +602,7 @@ void main() {
       'partial repayment NOT yet reflected in balances: full figure counts',
       () {
         // Conservative: until the debt is updated the app cannot know.
-        final r = computeSafeToSpend(
+        final r = computeWithSalary(
           accounts: [
             acc('Карта', AccountKind.debit, 18000),
             acc('Т', AccountKind.creditCard, 12000),
@@ -617,7 +619,7 @@ void main() {
     );
 
     test('stale bank data: due date passed and not marked paid', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc('Карта', AccountKind.debit, 30000),
           acc('Сбер', AccountKind.creditCard, 8400),
@@ -636,7 +638,7 @@ void main() {
     });
 
     test('stale balances and stale card figures together', () {
-      final r = computeSafeToSpend(
+      final r = computeWithSalary(
         accounts: [
           acc(
             'Карта',

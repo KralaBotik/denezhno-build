@@ -1,6 +1,7 @@
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
 import '../accounts/accounts.dart';
+import '../income/income.dart';
 import '../payments/payments.dart';
 
 /// Why the horizon ends where it does: the next expected salary, or a period
@@ -50,14 +51,36 @@ final class NoSalary extends SpendWarning {
   const NoSalary();
 }
 
-/// The latest salary date has passed and the salary is not marked as
-/// received. It is not counted as received and the forecast does not jump to
-/// the next salary; it runs for the chosen period instead.
+/// A salary payment's date has passed and it has not been received (in
+/// full). It is not counted as received and the forecast does not jump to the
+/// next salary; it runs for the chosen period instead. It stays until the
+/// person resolves it, however long ago it was.
 final class SalaryOverdue extends SpendWarning {
-  const SalaryOverdue(this.name, this.dueOn, this.flowId);
-  final String name;
-  final CalendarDate dueOn;
-  final String flowId;
+  const SalaryOverdue(this.payment);
+  final IncomePayment payment;
+  String get name => payment.label;
+  CalendarDate get dueOn => payment.dueOn!;
+}
+
+/// A salary payment is delayed with no known date: the forecast runs for the
+/// chosen period, labelled as such.
+final class SalaryDateUnknown extends SpendWarning {
+  const SalaryDateUnknown(this.payment);
+  final IncomePayment payment;
+}
+
+/// The next salary payment was moved later than its schedule. The forecast
+/// runs to the new date; [perDayIfOnTime] is what it would have been.
+final class SalaryDelayed extends SpendWarning {
+  const SalaryDelayed(this.payment, this.perDayIfOnTime);
+  final IncomePayment payment;
+  final Money? perDayIfOnTime;
+}
+
+/// Part of a salary payment came; the rest is still expected (not counted).
+final class SalaryPartial extends SpendWarning {
+  const SalaryPartial(this.payment);
+  final IncomePayment payment;
 }
 
 /// A credit card with a debt but no figures from the bank.
@@ -255,34 +278,39 @@ SafeToSpend computeSafeToSpend({
   required CalendarDate today,
   Money? goalsThisPeriod,
   ForecastPeriod period = defaultForecastPeriod,
+  List<IncomePayment> incomes = const [],
+  CalendarDate? horizonOverride,
 }) {
   final warnings = <SpendWarning>[];
 
-  // 1. Horizon: the next salary that has not been received yet — unless the
-  // latest salary date has passed without the salary being marked: then the
-  // next date is unknown and the chosen period is used (never a silent jump
-  // to next month's salary, never counted as received).
-  CalendarDate? salary;
-  final overdue = <SalaryOverdue>[];
-  for (final f in payments.flows.where((f) => f.kind == FlowKind.salary)) {
-    // The latest date of the plan up to today, however long ago (Э1: only the
-    // latest one; from Э3 every missed payment stays until it is resolved).
-    final recent = occurrences(f, f.startsOn, today);
-    if (recent.isNotEmpty &&
-        recent.last < today &&
-        !payments.doneMarks.contains((f.id!, recent.last))) {
-      overdue.add(SalaryOverdue(f.name, recent.last, f.id!));
-    }
-    for (final d in occurrences(f, today, today.addDays(62))) {
-      if (payments.doneMarks.contains((f.id!, d))) continue;
-      if (salary == null || d < salary) salary = d;
-      break;
-    }
+  // 1. Horizon: the next salary payment (salary or advance) still expected
+  // — unless one is overdue or has no known date: then the chosen period is
+  // used, labelled as a period (never a silent jump to the next salary,
+  // never counted as received). Expected money is never added (И7).
+  final waiting = incomes
+      .where(
+        (p) =>
+            p.kind == IncomeKind.salary &&
+            p.isOpen &&
+            p.remaining.minorUnits > 0,
+      )
+      .toList();
+  final overdue = waiting.where((p) => p.isOverdue(today)).toList()
+    ..sort((a, b) => a.dueOn!.compareTo(b.dueOn!));
+  final unknown = waiting.where((p) => p.dateUnknown).toList();
+  IncomePayment? next;
+  for (final p in waiting) {
+    final due = p.dueOn;
+    if (due == null || due < today) continue;
+    if (next == null || due < next.dueOn!) next = p;
   }
   final CalendarDate horizon;
   final HorizonKind kind;
-  if (salary != null && overdue.isEmpty) {
-    horizon = salary;
+  if (horizonOverride != null) {
+    horizon = horizonOverride;
+    kind = HorizonKind.salary;
+  } else if (next != null && overdue.isEmpty && unknown.isEmpty) {
+    horizon = next.dueOn!;
     kind = HorizonKind.salary;
   } else {
     horizon = switch (period) {
@@ -290,11 +318,16 @@ SafeToSpend computeSafeToSpend({
       PeriodUntil(:final date) => date > today ? date : today.addDays(1),
     };
     kind = HorizonKind.period;
-    if (overdue.isEmpty) {
+    if (overdue.isEmpty && unknown.isEmpty) {
       warnings.add(const NoSalary());
     } else {
-      warnings.addAll(overdue..sort((a, b) => a.dueOn.compareTo(b.dueOn)));
+      warnings
+        ..addAll(overdue.map(SalaryOverdue.new))
+        ..addAll(unknown.map(SalaryDateUnknown.new));
     }
+  }
+  for (final p in waiting.where((p) => p.isPartial)) {
+    warnings.add(SalaryPartial(p));
   }
   final daysLeft = today.daysUntil(horizon) < 1 ? 1 : today.daysUntil(horizon);
 
@@ -477,6 +510,25 @@ SafeToSpend computeSafeToSpend({
               BigInt.from(daysLeft * 100) *
               BigInt.from(100),
         );
+  // A moved salary: what «в день» would have been on the original date.
+  if (horizonOverride == null &&
+      kind == HorizonKind.salary &&
+      next != null &&
+      next.isDelayed) {
+    final onTime = next.scheduledOn > today ? next.scheduledOn : null;
+    final original = onTime == null
+        ? null
+        : computeSafeToSpend(
+            accounts: accounts,
+            payments: payments,
+            reserve: reserve,
+            today: today,
+            goalsThisPeriod: goalsThisPeriod,
+            incomes: incomes,
+            horizonOverride: onTime,
+          );
+    warnings.add(SalaryDelayed(next, original?.perDay));
+  }
   return SafeToSpend(
     horizon: horizon,
     horizonKind: kind,

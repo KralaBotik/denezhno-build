@@ -1578,6 +1578,14 @@ class IncomeSources extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL CHECK (holiday_rule IN (\'previous_workday\', \'next_workday\', \'none\'))',
   );
+  late final GeneratedColumn<String> trackedFrom = GeneratedColumn<String>(
+    'tracked_from',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from)',
+  );
   late final GeneratedColumn<String> migratedFromFlowId =
       GeneratedColumn<String>(
         'migrated_from_flow_id',
@@ -1612,6 +1620,7 @@ class IncomeSources extends Table with TableInfo {
     kind,
     accountId,
     holidayRule,
+    trackedFrom,
     migratedFromFlowId,
     createdAtUtc,
     archivedAtUtc,

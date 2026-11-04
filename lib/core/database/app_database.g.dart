@@ -7759,6 +7759,17 @@ class IncomeSources extends Table
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL CHECK (holiday_rule IN (\'previous_workday\', \'next_workday\', \'none\'))',
   );
+  static const VerificationMeta _trackedFromMeta = const VerificationMeta(
+    'trackedFrom',
+  );
+  late final GeneratedColumn<String> trackedFrom = GeneratedColumn<String>(
+    'tracked_from',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from)',
+  );
   static const VerificationMeta _migratedFromFlowIdMeta =
       const VerificationMeta('migratedFromFlowId');
   late final GeneratedColumn<String> migratedFromFlowId =
@@ -7801,6 +7812,7 @@ class IncomeSources extends Table
     kind,
     accountId,
     holidayRule,
+    trackedFrom,
     migratedFromFlowId,
     createdAtUtc,
     archivedAtUtc,
@@ -7872,6 +7884,17 @@ class IncomeSources extends Table
     } else if (isInserting) {
       context.missing(_holidayRuleMeta);
     }
+    if (data.containsKey('tracked_from')) {
+      context.handle(
+        _trackedFromMeta,
+        trackedFrom.isAcceptableOrUnknown(
+          data['tracked_from']!,
+          _trackedFromMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_trackedFromMeta);
+    }
     if (data.containsKey('migrated_from_flow_id')) {
       context.handle(
         _migratedFromFlowIdMeta,
@@ -7938,6 +7961,10 @@ class IncomeSources extends Table
         DriftSqlType.string,
         data['${effectivePrefix}holiday_rule'],
       )!,
+      trackedFrom: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tracked_from'],
+      )!,
       migratedFromFlowId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}migrated_from_flow_id'],
@@ -7976,6 +8003,11 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
   /// (art. 136 of the Labour Code), the next one, or stays.
   final String holidayRule;
 
+  /// Payments by the schedule are tracked from this date: earlier ones are
+  /// not «waiting» (R2 did not require marks). Payments written to
+  /// income_occurrences are kept regardless of the date.
+  final String trackedFrom;
+
   /// The R2 plan this source was made from (makes the migration idempotent).
   final String? migratedFromFlowId;
   final int createdAtUtc;
@@ -7988,6 +8020,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
     required this.kind,
     this.accountId,
     required this.holidayRule,
+    required this.trackedFrom,
     this.migratedFromFlowId,
     required this.createdAtUtc,
     this.archivedAtUtc,
@@ -8006,6 +8039,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
       map['account_id'] = Variable<String>(accountId);
     }
     map['holiday_rule'] = Variable<String>(holidayRule);
+    map['tracked_from'] = Variable<String>(trackedFrom);
     if (!nullToAbsent || migratedFromFlowId != null) {
       map['migrated_from_flow_id'] = Variable<String>(migratedFromFlowId);
     }
@@ -8029,6 +8063,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
           ? const Value.absent()
           : Value(accountId),
       holidayRule: Value(holidayRule),
+      trackedFrom: Value(trackedFrom),
       migratedFromFlowId: migratedFromFlowId == null && nullToAbsent
           ? const Value.absent()
           : Value(migratedFromFlowId),
@@ -8052,6 +8087,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
       kind: serializer.fromJson<String>(json['kind']),
       accountId: serializer.fromJson<String?>(json['account_id']),
       holidayRule: serializer.fromJson<String>(json['holiday_rule']),
+      trackedFrom: serializer.fromJson<String>(json['tracked_from']),
       migratedFromFlowId: serializer.fromJson<String?>(
         json['migrated_from_flow_id'],
       ),
@@ -8070,6 +8106,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
       'kind': serializer.toJson<String>(kind),
       'account_id': serializer.toJson<String?>(accountId),
       'holiday_rule': serializer.toJson<String>(holidayRule),
+      'tracked_from': serializer.toJson<String>(trackedFrom),
       'migrated_from_flow_id': serializer.toJson<String?>(migratedFromFlowId),
       'created_at_utc': serializer.toJson<int>(createdAtUtc),
       'archived_at_utc': serializer.toJson<int?>(archivedAtUtc),
@@ -8084,6 +8121,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
     String? kind,
     Value<String?> accountId = const Value.absent(),
     String? holidayRule,
+    String? trackedFrom,
     Value<String?> migratedFromFlowId = const Value.absent(),
     int? createdAtUtc,
     Value<int?> archivedAtUtc = const Value.absent(),
@@ -8095,6 +8133,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
     kind: kind ?? this.kind,
     accountId: accountId.present ? accountId.value : this.accountId,
     holidayRule: holidayRule ?? this.holidayRule,
+    trackedFrom: trackedFrom ?? this.trackedFrom,
     migratedFromFlowId: migratedFromFlowId.present
         ? migratedFromFlowId.value
         : this.migratedFromFlowId,
@@ -8116,6 +8155,9 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
       holidayRule: data.holidayRule.present
           ? data.holidayRule.value
           : this.holidayRule,
+      trackedFrom: data.trackedFrom.present
+          ? data.trackedFrom.value
+          : this.trackedFrom,
       migratedFromFlowId: data.migratedFromFlowId.present
           ? data.migratedFromFlowId.value
           : this.migratedFromFlowId,
@@ -8138,6 +8180,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
           ..write('kind: $kind, ')
           ..write('accountId: $accountId, ')
           ..write('holidayRule: $holidayRule, ')
+          ..write('trackedFrom: $trackedFrom, ')
           ..write('migratedFromFlowId: $migratedFromFlowId, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('archivedAtUtc: $archivedAtUtc')
@@ -8154,6 +8197,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
     kind,
     accountId,
     holidayRule,
+    trackedFrom,
     migratedFromFlowId,
     createdAtUtc,
     archivedAtUtc,
@@ -8169,6 +8213,7 @@ class IncomeSourceRow extends DataClass implements Insertable<IncomeSourceRow> {
           other.kind == this.kind &&
           other.accountId == this.accountId &&
           other.holidayRule == this.holidayRule &&
+          other.trackedFrom == this.trackedFrom &&
           other.migratedFromFlowId == this.migratedFromFlowId &&
           other.createdAtUtc == this.createdAtUtc &&
           other.archivedAtUtc == this.archivedAtUtc);
@@ -8182,6 +8227,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
   final Value<String> kind;
   final Value<String?> accountId;
   final Value<String> holidayRule;
+  final Value<String> trackedFrom;
   final Value<String?> migratedFromFlowId;
   final Value<int> createdAtUtc;
   final Value<int?> archivedAtUtc;
@@ -8194,6 +8240,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
     this.kind = const Value.absent(),
     this.accountId = const Value.absent(),
     this.holidayRule = const Value.absent(),
+    this.trackedFrom = const Value.absent(),
     this.migratedFromFlowId = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.archivedAtUtc = const Value.absent(),
@@ -8207,6 +8254,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
     required String kind,
     this.accountId = const Value.absent(),
     required String holidayRule,
+    required String trackedFrom,
     this.migratedFromFlowId = const Value.absent(),
     required int createdAtUtc,
     this.archivedAtUtc = const Value.absent(),
@@ -8216,6 +8264,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
        name = Value(name),
        kind = Value(kind),
        holidayRule = Value(holidayRule),
+       trackedFrom = Value(trackedFrom),
        createdAtUtc = Value(createdAtUtc);
   static Insertable<IncomeSourceRow> custom({
     Expression<String>? id,
@@ -8225,6 +8274,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
     Expression<String>? kind,
     Expression<String>? accountId,
     Expression<String>? holidayRule,
+    Expression<String>? trackedFrom,
     Expression<String>? migratedFromFlowId,
     Expression<int>? createdAtUtc,
     Expression<int>? archivedAtUtc,
@@ -8238,6 +8288,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
       if (kind != null) 'kind': kind,
       if (accountId != null) 'account_id': accountId,
       if (holidayRule != null) 'holiday_rule': holidayRule,
+      if (trackedFrom != null) 'tracked_from': trackedFrom,
       if (migratedFromFlowId != null)
         'migrated_from_flow_id': migratedFromFlowId,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
@@ -8254,6 +8305,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
     Value<String>? kind,
     Value<String?>? accountId,
     Value<String>? holidayRule,
+    Value<String>? trackedFrom,
     Value<String?>? migratedFromFlowId,
     Value<int>? createdAtUtc,
     Value<int?>? archivedAtUtc,
@@ -8267,6 +8319,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
       kind: kind ?? this.kind,
       accountId: accountId ?? this.accountId,
       holidayRule: holidayRule ?? this.holidayRule,
+      trackedFrom: trackedFrom ?? this.trackedFrom,
       migratedFromFlowId: migratedFromFlowId ?? this.migratedFromFlowId,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       archivedAtUtc: archivedAtUtc ?? this.archivedAtUtc,
@@ -8298,6 +8351,9 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
     if (holidayRule.present) {
       map['holiday_rule'] = Variable<String>(holidayRule.value);
     }
+    if (trackedFrom.present) {
+      map['tracked_from'] = Variable<String>(trackedFrom.value);
+    }
     if (migratedFromFlowId.present) {
       map['migrated_from_flow_id'] = Variable<String>(migratedFromFlowId.value);
     }
@@ -8323,6 +8379,7 @@ class IncomeSourcesCompanion extends UpdateCompanion<IncomeSourceRow> {
           ..write('kind: $kind, ')
           ..write('accountId: $accountId, ')
           ..write('holidayRule: $holidayRule, ')
+          ..write('trackedFrom: $trackedFrom, ')
           ..write('migratedFromFlowId: $migratedFromFlowId, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('archivedAtUtc: $archivedAtUtc, ')
@@ -21175,6 +21232,7 @@ typedef $IncomeSourcesCreateCompanionBuilder = IncomeSourcesCompanion Function({
   required String kind,
   Value<String?> accountId,
   required String holidayRule,
+  required String trackedFrom,
   Value<String?> migratedFromFlowId,
   required int createdAtUtc,
   Value<int?> archivedAtUtc,
@@ -21188,6 +21246,7 @@ typedef $IncomeSourcesUpdateCompanionBuilder = IncomeSourcesCompanion Function({
   Value<String> kind,
   Value<String?> accountId,
   Value<String> holidayRule,
+  Value<String> trackedFrom,
   Value<String?> migratedFromFlowId,
   Value<int> createdAtUtc,
   Value<int?> archivedAtUtc,
@@ -21336,6 +21395,11 @@ class $IncomeSourcesFilterComposer
 
   ColumnFilters<String> get holidayRule => $composableBuilder(
     column: $table.holidayRule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21521,6 +21585,11 @@ class $IncomeSourcesOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -21644,6 +21713,11 @@ class $IncomeSourcesAnnotationComposer
 
   GeneratedColumn<String> get holidayRule => $composableBuilder(
     column: $table.holidayRule,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
     builder: (column) => column,
   );
 
@@ -21842,6 +21916,7 @@ class $IncomeSourcesTableManager
                 Value<String> kind = const Value.absent(),
                 Value<String?> accountId = const Value.absent(),
                 Value<String> holidayRule = const Value.absent(),
+                Value<String> trackedFrom = const Value.absent(),
                 Value<String?> migratedFromFlowId = const Value.absent(),
                 Value<int> createdAtUtc = const Value.absent(),
                 Value<int?> archivedAtUtc = const Value.absent(),
@@ -21854,6 +21929,7 @@ class $IncomeSourcesTableManager
                 kind: kind,
                 accountId: accountId,
                 holidayRule: holidayRule,
+                trackedFrom: trackedFrom,
                 migratedFromFlowId: migratedFromFlowId,
                 createdAtUtc: createdAtUtc,
                 archivedAtUtc: archivedAtUtc,
@@ -21868,6 +21944,7 @@ class $IncomeSourcesTableManager
                 required String kind,
                 Value<String?> accountId = const Value.absent(),
                 required String holidayRule,
+                required String trackedFrom,
                 Value<String?> migratedFromFlowId = const Value.absent(),
                 required int createdAtUtc,
                 Value<int?> archivedAtUtc = const Value.absent(),
@@ -21880,6 +21957,7 @@ class $IncomeSourcesTableManager
                 kind: kind,
                 accountId: accountId,
                 holidayRule: holidayRule,
+                trackedFrom: trackedFrom,
                 migratedFromFlowId: migratedFromFlowId,
                 createdAtUtc: createdAtUtc,
                 archivedAtUtc: archivedAtUtc,

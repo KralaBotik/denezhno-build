@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 
+import '../../features/payments/payments.dart';
+import '../calendar_date.dart';
 import '../ids.dart';
+import '../money/money.dart';
 
 part 'app_database.g.dart';
 
@@ -77,7 +80,11 @@ const defaultReserveMinor = 1000000;
 
 @DriftDatabase(include: {'schema.drift'})
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(super.executor);
+  AppDatabase(super.executor, {DateTime Function()? clock})
+    : clock = clock ?? DateTime.now;
+
+  /// «Now» for data steps that depend on the date (tests pass a fixed one).
+  final DateTime Function() clock;
 
   /// SHA-256 of the v1 schema.drift as released in R1. Historical: the file
   /// itself now contains v2, so this value is only checked against history.
@@ -98,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// SHA-256 of the current schema.drift (v5). A test recomputes it.
   static const schemaV5Checksum =
-      '22bd67bd03bca031625617bfc18627529e39b67d6217847d0e79634f17f56634';
+      '230ed54b24710209f22b3c1812c7c98b1ecef9517ee762f3d9083fa1d5ce74f3';
 
   static const latestSchemaVersion = 5;
 
@@ -266,7 +273,7 @@ class AppDatabase extends _$AppDatabase {
   /// Idempotent: a repeated run (or a restored backup that already has them)
   /// adds nothing.
   Future<void> _dataV4() async {
-    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final now = clock().toUtc().millisecondsSinceEpoch;
     for (final household in await select(households).get()) {
       final existing = {
         for (final c in await (select(
@@ -320,6 +327,20 @@ class AppDatabase extends _$AppDatabase {
     if (from < 5) await _dataV5();
   }
 
+  static PlannedFlow _legacyFlow(PlannedFlowRow f) => PlannedFlow(
+    id: f.id,
+    kind: FlowKind.salary,
+    name: f.name,
+    amount: Money(f.amountMinor),
+    cadence: switch (f.cadence) {
+      'monthly' => Monthly(f.day!),
+      'weekly' => Weekly(f.day!),
+      'yearly' => Yearly(f.month!, f.day!),
+      _ => Once(CalendarDate.parse(f.onceOn!)),
+    },
+    startsOn: CalendarDate.parse(f.startsOn),
+  );
+
   /// R2 salary plans → the income model (one source and one schedule part
   /// per plan; R2 «получено» marks → payments closed as «отмечено до
   /// обновления», «не будет» → cancelled). No journal entries are created:
@@ -327,7 +348,8 @@ class AppDatabase extends _$AppDatabase {
   /// R2 plan is archived. Idempotent: a plan already migrated is skipped
   /// (UNIQUE migrated_from_flow_id), and migrated plans are archived.
   Future<void> _dataV5() async {
-    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final now = clock().toUtc().millisecondsSinceEpoch;
+    final today = CalendarDate.fromDateTime(clock());
     final flows = await (select(
       plannedFlows,
     )..where((f) => f.kind.equals('salary') & f.archivedAtUtc.isNull())).get();
@@ -345,6 +367,7 @@ class AppDatabase extends _$AppDatabase {
           kind: 'salary',
           holidayRule: 'previous_workday',
           migratedFromFlowId: Value(f.id),
+          trackedFrom: today.iso,
           createdAtUtc: now,
         ),
       );
@@ -376,6 +399,34 @@ class AppDatabase extends _$AppDatabase {
             plannedAmountMinor: f.amountMinor,
             dateUnknown: 0,
             state: m.status == 'done' ? 'legacy_mark' : 'cancelled',
+            createdAtUtc: now,
+            updatedAtUtc: now,
+          ),
+        );
+      }
+      // The latest R2 date before today without a mark stays «waiting»
+      // (what the app showed before the update); earlier ones are history.
+      final marked = {
+        for (final m in await (select(
+          flowMarks,
+        )..where((m) => m.flowId.equals(f.id))).get())
+          m.dueOn,
+      };
+      final past = occurrences(
+        _legacyFlow(f),
+        CalendarDate.parse(f.startsOn),
+        today.addDays(-1),
+      );
+      if (past.isNotEmpty && !marked.contains(past.last.iso)) {
+        await into(incomeOccurrences).insert(
+          IncomeOccurrencesCompanion.insert(
+            id: newUuid(),
+            sourceId: source,
+            partId: Value(part),
+            plannedOn: past.last.iso,
+            plannedAmountMinor: f.amountMinor,
+            dateUnknown: 0,
+            state: 'open',
             createdAtUtc: now,
             updatedAtUtc: now,
           ),

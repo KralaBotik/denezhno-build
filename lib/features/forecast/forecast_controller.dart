@@ -4,6 +4,7 @@ import '../../app/controller.dart';
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
 import '../accounts/accounts_controller.dart';
+import '../income/income_controller.dart';
 import '../payments/payments_controller.dart';
 import 'safe_to_spend.dart';
 
@@ -28,19 +29,27 @@ class ReserveController extends AsyncNotifier<Money> {
   }
 }
 
-/// The period used when the next salary date is unknown. Kept for the
-/// running app only (R3 Э1); it is stored in the database from Э3 (schema v5).
+/// The period used when the next salary date is unknown (7 / 14 / 30 days
+/// or a date), stored in the database (schema v5).
 final forecastPeriodProvider =
-    NotifierProvider<ForecastPeriodController, ForecastPeriod>(
+    AsyncNotifierProvider<ForecastPeriodController, ForecastPeriod>(
       ForecastPeriodController.new,
     );
 
-class ForecastPeriodController extends Notifier<ForecastPeriod> {
+class ForecastPeriodController extends AsyncNotifier<ForecastPeriod> {
   @override
-  ForecastPeriod build() => defaultForecastPeriod;
-  // A setter would hide the intent at call sites.
-  // ignore: use_setters_to_change_properties
-  void choose(ForecastPeriod period) => state = period;
+  Future<ForecastPeriod> build() async {
+    final ready = ref.watch(
+      appControllerProvider.select((s) => s.storage == StorageStatus.ready),
+    );
+    if (!ready) return defaultForecastPeriod;
+    return ref.read(incomeStoreProvider).forecastPeriod();
+  }
+
+  Future<void> choose(ForecastPeriod period) async {
+    state = AsyncData(period);
+    await ref.read(incomeStoreProvider).setForecastPeriod(period);
+  }
 }
 
 /// «Можно потратить» for today, recomputed whenever accounts, plans, card
@@ -49,14 +58,19 @@ final safeToSpendProvider = Provider<AsyncValue<SafeToSpend>>((ref) {
   final accounts = ref.watch(accountsProvider);
   final payments = ref.watch(paymentsProvider);
   final reserve = ref.watch(reserveProvider);
-  final period = ref.watch(forecastPeriodProvider);
-  for (final v in [accounts, payments, reserve]) {
+  final period =
+      ref.watch(forecastPeriodProvider).value ?? defaultForecastPeriod;
+  final income = ref.watch(incomeProvider);
+  for (final v in [accounts, payments, reserve, income]) {
     if (v case AsyncError(:final error, :final stackTrace)) {
       return AsyncError(error, stackTrace);
     }
   }
   final a = accounts.value, p = payments.value, r = reserve.value;
-  if (a == null || p == null || r == null) return const AsyncLoading();
+  final i = income.value;
+  if (a == null || p == null || r == null || i == null) {
+    return const AsyncLoading();
+  }
   return AsyncData(
     computeSafeToSpend(
       accounts: a,
@@ -64,6 +78,7 @@ final safeToSpendProvider = Provider<AsyncValue<SafeToSpend>>((ref) {
       reserve: r,
       today: CalendarDate.today(),
       period: period,
+      incomes: i.payments,
     ),
   );
 });

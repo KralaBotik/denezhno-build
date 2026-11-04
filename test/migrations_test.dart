@@ -177,7 +177,10 @@ void main() {
             {for (final c in r.keys) c: r[c]},
         ],
       );
-      final db = AppDatabase(schema.newConnection());
+      final db = AppDatabase(
+        schema.newConnection(),
+        clock: () => DateTime(2026, 11, 4, 12),
+      );
       addTearDown(db.close);
       await verifier.migrateAndValidate(db, latest);
       expect(await history(db), [1, 2, 3, 4, 5]);
@@ -250,6 +253,7 @@ void main() {
         {V3.salary, V3.advance},
       );
       expect({for (final x in sources) x.holidayRule}, {'previous_workday'});
+      expect({for (final x in sources) x.trackedFrom}, {'2026-11-04'});
       final parts = await db.select(db.incomeScheduleParts).get();
       expect(
         {for (final x in parts) (x.label, x.amountMinor, x.day)},
@@ -269,6 +273,29 @@ void main() {
       expect(await db.select(db.accounts).get(), hasLength(19));
       expect(await db.select(db.incomeSources).get(), hasLength(2));
       expect(await db.select(db.incomeOccurrences).get(), hasLength(2));
+    });
+
+    test('the latest unmarked R2 salary date stays «waiting»; older ones are '
+        'history', () async {
+      final schema = await verifier.schemaAt(3);
+      V3.create(schema.rawDatabase);
+      // Updated on 25 Nov: 5 Nov and 20 Nov passed without marks.
+      final db = AppDatabase(
+        schema.newConnection(),
+        clock: () => DateTime(2026, 11, 25, 12),
+      );
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final rows = await db.select(db.incomeOccurrences).get();
+      expect(
+        {for (final x in rows) (x.plannedOn, x.state)},
+        {
+          ('2026-10-05', 'legacy_mark'),
+          ('2026-10-20', 'legacy_mark'),
+          ('2026-11-05', 'open'),
+          ('2026-11-20', 'open'),
+        },
+      );
     });
   });
 }

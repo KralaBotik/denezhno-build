@@ -2113,6 +2113,16 @@
             "dsl_features": []
           },
           {
+            "name": "tracked_from",
+            "getter_name": "trackedFrom",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "migrated_from_flow_id",
             "getter_name": "migratedFromFlowId",
             "moor_type": "string",
@@ -3008,7 +3018,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"income_sources\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36), \"household_id\" TEXT NOT NULL REFERENCES households(id), \"member_id\" TEXT REFERENCES members(id), \"name\" TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 60), \"kind\" TEXT NOT NULL CHECK (kind IN ('salary', 'other')), \"account_id\" TEXT REFERENCES accounts(id), \"holiday_rule\" TEXT NOT NULL CHECK (holiday_rule IN ('previous_workday', 'next_workday', 'none')), \"migrated_from_flow_id\" TEXT UNIQUE REFERENCES planned_flows(id), \"created_at_utc\" INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'), \"archived_at_utc\" INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer'));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"income_sources\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36), \"household_id\" TEXT NOT NULL REFERENCES households(id), \"member_id\" TEXT REFERENCES members(id), \"name\" TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 60), \"kind\" TEXT NOT NULL CHECK (kind IN ('salary', 'other')), \"account_id\" TEXT REFERENCES accounts(id), \"holiday_rule\" TEXT NOT NULL CHECK (holiday_rule IN ('previous_workday', 'next_workday', 'none')), \"tracked_from\" TEXT NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from), \"migrated_from_flow_id\" TEXT UNIQUE REFERENCES planned_flows(id), \"created_at_utc\" INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'), \"archived_at_utc\" INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer'));"
         }
       ]
     },

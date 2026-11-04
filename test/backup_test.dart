@@ -12,6 +12,7 @@ import 'package:denezhno/core/security/storage_location.dart';
 import 'package:denezhno/core/storage/local_store.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/forecast/safe_to_spend.dart';
+import 'package:denezhno/features/income/income.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
 import 'package:drift_dev/api/migrations_native.dart';
@@ -111,16 +112,42 @@ void main() {
     final debit = accounts.firstWhere((x) => x.name == _marker).id;
     final card = accounts.firstWhere((x) => x.name == 'Сбер кредитка').id;
     await s.updateBalances({debit: Money(4680000), card: Money(900000)});
-    await s.saveFlow(
-      PlannedFlow(
-        id: null,
-        kind: FlowKind.salary,
-        name: 'Зарплата',
-        amount: Money(8000000),
-        cadence: const Monthly(10),
-        startsOn: d('2026-11-01'),
-      ),
+    // Salary and advance (income model), one payment moved, one received.
+    await s.createIncomeSource(
+      name: 'Работа',
+      kind: IncomeKind.salary,
+      holidayRule: HolidayRule.previousWorkday,
+      accountId: debit,
+      parts: [
+        PartSpec(
+          label: 'Аванс',
+          amount: Money(3000000),
+          cadence: const Monthly(25),
+        ),
+        PartSpec(
+          label: 'Зарплата',
+          amount: Money(5000000),
+          cadence: const Monthly(10),
+        ),
+      ],
     );
+    final incomes = (await s.income()).payments;
+    await s.movePayment(incomes[0].key, incomes[0].scheduledOn.addDays(3));
+    final today = CalendarDate.today();
+    final shown = await s.previewReceipt(
+      incomes[1].key,
+      amount: Money(1000000),
+      accountId: debit,
+      date: today,
+    );
+    await s.receivePayment(
+      incomes[1].key,
+      amount: Money(1000000),
+      accountId: debit,
+      date: today,
+      placement: shown.placement,
+    );
+    await s.setForecastPeriod(const PeriodDays(30));
     await s.saveFlow(
       PlannedFlow(
         id: null,
@@ -133,7 +160,7 @@ void main() {
       ),
     );
     final flows = (await s.payments()).flows;
-    await s.setFlowDone(flows.first.id!, d('2026-11-10'), true);
+    await s.setFlowDone(flows.first.id!, d('2026-11-25'), true);
     await s.saveCardFigures(
       CardFigures(
         id: '',
@@ -160,26 +187,35 @@ void main() {
       expect(await b.store.reserve(), Money(1500000));
       expect(await b.store.canRestore(), false);
 
-      final today = d('2026-11-04');
-      SafeToSpend f(List<AccountSummary> acc, PaymentsSnapshot p, Money r) =>
-          computeSafeToSpend(
-            accounts: acc,
-            payments: p,
-            reserve: r,
-            today: today,
-          );
-      final fa = f(
-        await a.store.accounts(),
-        await a.store.payments(),
-        await a.store.reserve(),
+      // The same forecast, income payments and receipts on both devices.
+      final today = CalendarDate.today();
+      Future<SafeToSpend> f(LocalStore st) async => computeSafeToSpend(
+        accounts: await st.accounts(),
+        payments: await st.payments(),
+        reserve: await st.reserve(),
+        today: today,
+        period: await st.forecastPeriod(),
+        incomes: (await st.income()).payments,
       );
-      final fb = f(
-        await b.store.accounts(),
-        await b.store.payments(),
-        await b.store.reserve(),
+      final fa = await f(a.store);
+      final fb = await f(b.store);
+      expect(
+        (fb.available, fb.horizon, fb.cardPaymentsTotal, fb.daysLeft),
+        (fa.available, fa.horizon, fa.cardPaymentsTotal, fa.daysLeft),
       );
-      expect(fb.available, fa.available);
-      expect(fb.cardPayments.single.amount, Money(840000));
+      List<Object> view(IncomeSnapshot x) => [
+        for (final p in x.payments)
+          (p.key, p.state, p.dueOn, p.received, p.receipts.length),
+      ];
+      expect(view(await b.store.income()), view(await a.store.income()));
+      expect(await b.store.forecastPeriod(), const PeriodDays(30));
+      expect(
+        (await b.store.income()).payments
+            .expand((p) => p.receipts)
+            .single
+            .amount,
+        Money(1000000),
+      );
 
       // B persists with ITS OWN key after a restart.
       await b.store.close();

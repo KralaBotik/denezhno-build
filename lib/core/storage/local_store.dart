@@ -12,7 +12,11 @@ import '../database/payments_repo.dart';
 import '../../features/settings/preferences.dart';
 import '../database/app_database.dart' hide CardFigures;
 import '../database/encrypted_connection.dart';
+import '../database/income_repo.dart';
 import '../database/ledger.dart';
+import '../../features/forecast/safe_to_spend.dart' show ForecastPeriod;
+import '../../features/income/income.dart';
+import '../../features/operations/operations.dart';
 import '../money/money.dart';
 import '../performance/measure.dart';
 import '../security/storage_diagnostic.dart';
@@ -27,7 +31,8 @@ final class LocalStore
         AccountsStore,
         PaymentsStore,
         HouseholdStore,
-        BackupStore {
+        BackupStore,
+        IncomeStore {
   LocalStore(this.prepare);
   final Future<StorageLocation> Function() prepare;
   AppDatabase? _database;
@@ -196,4 +201,127 @@ final class LocalStore
     () => Ledger(_open())
         .updateAccountDetails(accountId, name: name, creditLimit: creditLimit),
   );
+
+  // --- Income (R3 Э3) ---------------------------------------------------------
+
+  @override
+  Future<IncomeSnapshot> income() =>
+      _serial(() => IncomeRepo(_open()).snapshot(CalendarDate.today()));
+
+  @override
+  Future<String> createIncomeSource({
+    required String name,
+    required IncomeKind kind,
+    required HolidayRule holidayRule,
+    required List<PartSpec> parts,
+    String? accountId,
+  }) => _serial(
+    () => IncomeRepo(_open()).createSource(
+      name: name,
+      kind: kind,
+      holidayRule: holidayRule,
+      parts: parts,
+      accountId: accountId,
+      today: CalendarDate.today(),
+      now: DateTime.now(),
+    ),
+  );
+
+  @override
+  Future<void> updateIncomeSchedule(
+    String sourceId, {
+    required String name,
+    required HolidayRule holidayRule,
+    required List<PartSpec> parts,
+    String? accountId,
+  }) => _serial(
+    () => IncomeRepo(_open()).updateSchedule(
+      sourceId,
+      name: name,
+      holidayRule: holidayRule,
+      parts: parts,
+      accountId: accountId,
+      effectiveFrom: CalendarDate.today(),
+      now: DateTime.now(),
+    ),
+  );
+
+  @override
+  Future<void> archiveIncomeSource(String sourceId) => _serial(
+    () => IncomeRepo(_open()).archiveSource(sourceId, DateTime.now()),
+  );
+
+  @override
+  Future<void> movePayment(PaymentKey key, CalendarDate to) =>
+      _serial(() => IncomeRepo(_open()).move(key, to, DateTime.now()));
+
+  @override
+  Future<void> markPaymentDateUnknown(PaymentKey key) =>
+      _serial(() => IncomeRepo(_open()).markDateUnknown(key, DateTime.now()));
+
+  @override
+  Future<void> setPaymentAmount(PaymentKey key, Money amount) => _serial(
+    () => IncomeRepo(_open()).setExpectedAmount(key, amount, DateTime.now()),
+  );
+
+  @override
+  Future<void> cancelPayment(PaymentKey key) =>
+      _serial(() => IncomeRepo(_open()).cancel(key, DateTime.now()));
+
+  @override
+  Future<void> reopenPayment(PaymentKey key) =>
+      _serial(() => IncomeRepo(_open()).reopen(key, DateTime.now()));
+
+  @override
+  Future<OperationPreview> previewReceipt(
+    PaymentKey key, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    SameDayPlacement placement = SameDayPlacement.auto,
+  }) => _serial(
+    () => IncomeRepo(_open()).previewReceipt(
+      key,
+      amount: amount,
+      accountId: accountId,
+      date: date,
+      now: DateTime.now(),
+      placement: placement,
+    ),
+  );
+
+  @override
+  Future<void> receivePayment(
+    PaymentKey key, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    required SameDayPlacement placement,
+    ShortfallChoice shortfall = ShortfallChoice.restLater,
+    CalendarDate? restOn,
+  }) => _serial(
+    () => IncomeRepo(_open()).receive(
+      key,
+      amount: amount,
+      accountId: accountId,
+      date: date,
+      now: DateTime.now(),
+      placement: placement,
+      shortfall: shortfall,
+      restOn: restOn,
+    ),
+  );
+
+  @override
+  Future<void> cancelReceipt(String receiptId) => _serial(
+    () => IncomeRepo(_open()).cancelReceipt(receiptId, DateTime.now()),
+  );
+
+  @override
+  Future<ForecastPeriod> forecastPeriod() =>
+      _serial(() => IncomeRepo(_open()).period());
+
+  @override
+  Future<void> setForecastPeriod(ForecastPeriod period) =>
+      _serial(() => IncomeRepo(_open()).setPeriod(period));
 }

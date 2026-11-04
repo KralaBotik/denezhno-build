@@ -16,9 +16,11 @@ import '../accounts/accounts.dart';
 import '../accounts/accounts_controller.dart';
 import '../accounts/accounts_screens.dart';
 import '../payments/payments.dart';
+import '../income/income_controller.dart';
+import '../income/income_screens.dart';
 import '../payments/payments_controller.dart';
 import '../payments/payments_screens.dart'
-    show formatDate, flowEditPath, cardFiguresPath, PaymentRow, pickDate;
+    show formatDate, cardFiguresPath, PaymentRow, pickDate;
 import 'forecast_controller.dart';
 import 'safe_to_spend.dart';
 
@@ -31,10 +33,14 @@ bool isPreliminary(SafeToSpend v) =>
         NoAccounts() ||
         NoSalary() ||
         SalaryOverdue() ||
+        SalaryDateUnknown() ||
         CardWithoutFigures() ||
         OverdueCardFigures() ||
         StaleBalances() => true,
-        MinimumOnly() || PossibleDuplicate() => false,
+        MinimumOnly() ||
+        PossibleDuplicate() ||
+        SalaryDelayed() ||
+        SalaryPartial() => false,
       },
     );
 
@@ -146,9 +152,17 @@ class _Dashboard extends ConsumerWidget {
     final today = CalendarDate.today();
     final totals = AccountTotals(accounts);
     final payments = ref.watch(paymentsProvider).value;
+    // Income first (late ones on top), then payments; four rows at most.
+    final incomes = upcomingIncome(
+      ref.watch(incomeProvider).value?.payments ?? const [],
+      today,
+    ).take(2).toList();
     final next = payments == null
         ? const <UpcomingItem>[]
-        : upcomingFor(payments, today).where((i) => !i.done).take(4).toList();
+        : upcomingFor(payments, today)
+              .where((i) => !i.done && i.direction == FlowDirection.outflow)
+              .take(4 - incomes.length)
+              .toList();
 
     void card(String? id) {
       if (id != null) context.push<void>(cardFiguresPath, extra: id);
@@ -171,38 +185,115 @@ class _Dashboard extends ConsumerWidget {
               key: const ValueKey('fix.salary'),
               icon: CupertinoIcons.money_rubl_circle,
               text: s.fixNoSalary,
-              onTap: () =>
-                  context.push<void>(flowEditPath, extra: FlowDirection.inflow),
+              onTap: () => context.push<void>(incomeSchedulePath),
             ),
           );
-        case SalaryOverdue(:final name, :final dueOn, :final flowId):
-          final plan = payments?.flows.where((f) => f.id == flowId).firstOrNull;
+        case SalaryOverdue(:final payment):
           fixes.insert(
             0,
             NoticeTile(
-              key: const ValueKey('fix.salaryOverdue'),
+              key: ValueKey('fix.salaryOverdue.${payment.key}'),
               icon: CupertinoIcons.money_rubl_circle,
-              text: s.fixSalaryOverdue(name, formatDate(dueOn)),
+              text: s.incomeOverdue(payment.label, formatDate(payment.dueOn!)),
               onTap: null,
               actions: [
                 PillButton(
                   key: const ValueKey('salary.received'),
-                  label: s.salaryReceived,
+                  label: s.actionReceived,
                   icon: CupertinoIcons.checkmark_alt,
                   filled: true,
-                  onPressed: () => unawaited(
-                    _markSalaryReceived(context, ref, flowId, dueOn),
-                  ),
+                  onPressed: () =>
+                      context.push<void>(incomeReceivePath, extra: payment.key),
                 ),
-                if (plan != null)
-                  PillButton(
-                    key: const ValueKey('salary.edit'),
-                    label: s.salaryEdit,
-                    icon: CupertinoIcons.calendar,
-                    onPressed: () =>
-                        unawaited(_openSalarySchedule(context, plan)),
-                  ),
+                PillButton(
+                  key: const ValueKey('salary.move'),
+                  label: s.actionMove,
+                  icon: CupertinoIcons.calendar,
+                  onPressed: () async {
+                    final date = await pickDate(context, today.addDays(1));
+                    if (date != null) {
+                      await ref
+                          .read(incomeProvider.notifier)
+                          .move(payment.key, date);
+                    }
+                  },
+                ),
+                PillButton(
+                  key: const ValueKey('salary.details'),
+                  label: s.actionDetails,
+                  onPressed: () =>
+                      context.push<void>(incomePaymentPath, extra: payment.key),
+                ),
               ],
+            ),
+          );
+        case SalaryDateUnknown(:final payment):
+          fixes.insert(
+            0,
+            NoticeTile(
+              key: ValueKey('fix.salaryUnknown.${payment.key}'),
+              icon: CupertinoIcons.question_circle,
+              text: s.incomeUnknown(payment.label),
+              onTap: null,
+              actions: [
+                PillButton(
+                  key: const ValueKey('salary.receivedUnknown'),
+                  label: s.actionReceived,
+                  icon: CupertinoIcons.checkmark_alt,
+                  filled: true,
+                  onPressed: () =>
+                      context.push<void>(incomeReceivePath, extra: payment.key),
+                ),
+                PillButton(
+                  key: const ValueKey('salary.setDate'),
+                  label: s.actionSetDate,
+                  icon: CupertinoIcons.calendar,
+                  onPressed: () async {
+                    final date = await pickDate(context, today.addDays(1));
+                    if (date != null) {
+                      await ref
+                          .read(incomeProvider.notifier)
+                          .move(payment.key, date);
+                    }
+                  },
+                ),
+              ],
+            ),
+          );
+        case SalaryDelayed(:final payment, :final perDayIfOnTime):
+          notes.add(
+            NoticeTile(
+              key: ValueKey('note.salaryDelayed.${payment.key}'),
+              tone: NoticeTone.info,
+              icon: CupertinoIcons.calendar_badge_plus,
+              text: perDayIfOnTime == null
+                  ? s.incomeDelayedSimple(
+                      payment.label,
+                      formatDate(payment.dueOn!),
+                    )
+                  : s.incomeDelayed(
+                      payment.label,
+                      formatDate(payment.dueOn!),
+                      formatMoney(value.perDay),
+                      formatMoney(perDayIfOnTime),
+                    ),
+              onTap: () =>
+                  context.push<void>(incomePaymentPath, extra: payment.key),
+            ),
+          );
+        case SalaryPartial(:final payment):
+          notes.add(
+            NoticeTile(
+              key: ValueKey('note.salaryPartial.${payment.key}'),
+              tone: NoticeTone.info,
+              icon: CupertinoIcons.chart_pie,
+              text: s.incomePartial(
+                payment.label,
+                formatMoney(payment.received),
+                formatMoney(payment.expected),
+              ),
+              onTap: () =>
+                  context.push<void>(incomePaymentPath, extra: payment.key),
             ),
           );
         case CardWithoutFigures(:final name, :final accountId):
@@ -337,7 +428,7 @@ class _Dashboard extends ConsumerWidget {
           actionKey: const ValueKey('home.allPayments'),
           onAction: () => context.go('/payments'),
         ),
-        if (next.isEmpty)
+        if (next.isEmpty && incomes.isEmpty)
           AppCard(
             child: Text(
               s.noUpcoming,
@@ -346,77 +437,21 @@ class _Dashboard extends ConsumerWidget {
           )
         else
           CardGroup(
-            children: [for (final i in next) PaymentRow(item: i, today: today)],
+            children: [
+              for (final row in <(CalendarDate, Widget)>[
+                for (final pay in incomes)
+                  (pay.dueOn ?? today, IncomeRow(payment: pay, today: today)),
+                for (final i in next)
+                  (i.dueOn, PaymentRow(item: i, today: today)),
+              ]..sort((a, b) => a.$1.compareTo(b.$1)))
+                row.$2,
+            ],
           ),
         const SizedBox(height: Space.l),
         _Breakdown(value: value),
         _Scenarios(value: value),
       ],
     );
-  }
-}
-
-/// Э1 limitation (until Э3): the mark is only a mark — it does not create an
-/// income entry and does not change any balance. Say so right away.
-Future<void> _markSalaryReceived(
-  BuildContext context,
-  WidgetRef ref,
-  String flowId,
-  CalendarDate dueOn,
-) async {
-  final s = AppLocalizations.of(context);
-  await ref.read(paymentsProvider.notifier).setFlowDone(flowId, dueOn, true);
-  if (!context.mounted) return;
-  final update = await showCupertinoDialog<bool>(
-    context: context,
-    builder: (ctx) => CupertinoAlertDialog(
-      key: const ValueKey('salary.markedDialog'),
-      title: Text(s.salaryMarkedTitle),
-      content: Text(s.salaryMarkedBody),
-      actions: [
-        CupertinoDialogAction(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(s.salaryMarkedDone),
-        ),
-        CupertinoDialogAction(
-          key: const ValueKey('salary.markedUpdate'),
-          isDefaultAction: true,
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(s.salaryMarkedUpdate),
-        ),
-      ],
-    ),
-  );
-  if (update == true && context.mounted) {
-    await context.push<void>(updateBalancesPath);
-  }
-}
-
-/// Э1 limitation (until Э3): only the whole schedule can be edited; moving
-/// one delayed payment arrives with the income model. Warn before opening.
-Future<void> _openSalarySchedule(BuildContext context, PlannedFlow plan) async {
-  final s = AppLocalizations.of(context);
-  final open = await showCupertinoDialog<bool>(
-    context: context,
-    builder: (ctx) => CupertinoAlertDialog(
-      key: const ValueKey('salary.scheduleDialog'),
-      title: Text(s.salaryScheduleTitle),
-      content: Text(s.salaryScheduleBody),
-      actions: [
-        CupertinoDialogAction(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(s.cancel),
-        ),
-        CupertinoDialogAction(
-          key: const ValueKey('salary.scheduleOpen'),
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(s.salaryScheduleOpen),
-        ),
-      ],
-    ),
-  );
-  if (open == true && context.mounted) {
-    await context.push<void>(flowEditPath, extra: plan);
   }
 }
 
@@ -476,12 +511,13 @@ class _HeroCard extends ConsumerWidget {
         ),
       ),
     );
-    if (choice != null) controller.choose(choice);
+    if (choice != null) await controller.choose(choice);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final period = ref.watch(forecastPeriodProvider);
+    final period =
+        ref.watch(forecastPeriodProvider).value ?? defaultForecastPeriod;
     final s = AppLocalizations.of(context);
     final p = Palette.of(context);
     const white = Color(0xFFFFFFFF);

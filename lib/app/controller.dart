@@ -8,6 +8,7 @@ import '../core/security/storage_diagnostic.dart';
 import '../core/storage/local_store.dart';
 import '../features/accounts/accounts.dart';
 import '../features/backup/backup.dart';
+import '../features/income/income.dart';
 import '../features/payments/payments.dart';
 import '../features/settings/preferences.dart';
 
@@ -28,6 +29,9 @@ final householdStoreProvider = Provider<HouseholdStore>(
   (ref) => ref.watch(localStoreProvider),
 );
 final backupStoreProvider = Provider<BackupStore>(
+  (ref) => ref.watch(localStoreProvider),
+);
+final incomeStoreProvider = Provider<IncomeStore>(
   (ref) => ref.watch(localStoreProvider),
 );
 final appControllerProvider = NotifierProvider<AppController, AppState>(

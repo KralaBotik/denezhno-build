@@ -9,6 +9,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fakes.dart' show FakeIncomeStore;
+
 const nb = ' ';
 
 class _Prefs implements PreferencesStore {
@@ -109,6 +111,7 @@ void main() {
           preferencesStoreProvider.overrideWithValue(_Prefs()),
           accountsStoreProvider.overrideWithValue(_Accounts()),
           paymentsStoreProvider.overrideWithValue(store),
+          incomeStoreProvider.overrideWithValue(FakeIncomeStore()),
         ],
         child: const DenezhnoApp(),
       ),

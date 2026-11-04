@@ -85,6 +85,10 @@ final class PaymentsRepo {
     if (flow.amount.minorUnits <= 0 || flow.amount.currency != Currency.rub) {
       throw ArgumentError('Invalid amount');
     }
+    // Salary is planned in the income model since R3 Э3 (schema v5).
+    if (flow.kind == FlowKind.salary && flow.id == null) {
+      throw ArgumentError('Salary is set up in income sources');
+    }
     final (cadence, day, month, onceOn) = switch (flow.cadence) {
       Monthly(:final day) => ('monthly', day, null, null),
       Weekly(:final weekday) => ('weekly', weekday, null, null),

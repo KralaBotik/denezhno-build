@@ -9,6 +9,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fakes.dart' show FakeIncomeStore, salaryIncome;
+
 import 'payments_ui_test.dart' show FakePayments;
 
 const nb = ' ';
@@ -77,6 +79,7 @@ void main() {
     WidgetTester tester, {
     required List<AccountSummary> accounts,
     required FakePayments payments,
+    FakeIncomeStore? income,
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
@@ -88,6 +91,7 @@ void main() {
           preferencesStoreProvider.overrideWithValue(_Prefs()),
           accountsStoreProvider.overrideWithValue(_Accounts(accounts)),
           paymentsStoreProvider.overrideWithValue(payments),
+          incomeStoreProvider.overrideWithValue(income ?? FakeIncomeStore()),
           householdStoreProvider.overrideWithValue(household),
         ],
         child: const DenezhnoApp(),
@@ -108,14 +112,6 @@ void main() {
     final payments = FakePayments()
       ..flows.addAll([
         PlannedFlow(
-          id: 'salary',
-          kind: FlowKind.salary,
-          name: 'Зарплата',
-          amount: Money(8000000),
-          cadence: Once(today.addDays(10)),
-          startsOn: today,
-        ),
-        PlannedFlow(
           id: 'net',
           kind: FlowKind.communication,
           name: 'Интернет',
@@ -128,6 +124,7 @@ void main() {
       tester,
       accounts: [acc('Карта', AccountKind.debit, 30700)],
       payments: payments,
+      income: salaryIncome(advanceIn: 10, accountId: 'Карта'),
     );
     // 30 700 − 700 − 10 000 reserve = 20 000; 10 days → 2 000 per day.
     expect(plain(tester, 'home.available'), '20${nb}000$nb₽');
@@ -137,6 +134,7 @@ void main() {
     // «Как считаем» is collapsed until tapped.
     expect(find.text('Платежи до этой даты: 1'), findsNothing);
     await tester.ensureVisible(find.byKey(const ValueKey('home.breakdown')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('home.breakdown')));
     await tester.pumpAndSettle();
     expect(find.text('Платежи до этой даты: 1'), findsOneWidget);
@@ -160,7 +158,7 @@ void main() {
     expect(find.text('Укажите зарплату — дату и сумму'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('fix.salary')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('screen.flowEdit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('screen.salarySchedule')), findsOneWidget);
   });
 
   testWidgets('reserve is edited in Settings and changes the figure', (
@@ -187,40 +185,110 @@ void main() {
     expect(plain(tester, 'home.available'), '≈ 25${nb}000$nb₽');
   });
 
-  testWidgets('Э1: overdue salary is not counted; «Получена» restores the '
-      'salary horizon', (tester) async {
+  Finder byKeyPrefix(String prefix) => find.byWidgetPredicate(
+    (w) =>
+        w.key is ValueKey<String> &&
+        (w.key! as ValueKey<String>).value.startsWith(prefix),
+  );
+
+  testWidgets('Э3: overdue advance is not counted; «Получено» is confirmed '
+      'before it is written and restores the salary horizon', (tester) async {
     final today = CalendarDate.today();
-    final payments = FakePayments()
-      ..flows.add(
-        PlannedFlow(
-          id: 'salary',
-          kind: FlowKind.salary,
-          name: 'Зарплата',
-          amount: Money(8000000),
-          cadence: Monthly(today.addDays(-3).day),
-          startsOn: today.addDays(-40),
-        ),
-      );
+    final income = salaryIncome(
+      advanceIn: -3,
+      salaryIn: 20,
+      accountId: 'Карта',
+      trackedFrom: today.addDays(-5),
+    );
     await launch(
       tester,
       accounts: [acc('Карта', AccountKind.debit, 24000)],
-      payments: payments,
+      payments: FakePayments(),
+      income: income,
     );
-    // 24 000 − 10 000 reserve, salary NOT added, 14-day period.
+    // 24 000 − 10 000 reserve, the advance NOT added, 14-day period.
     expect(plain(tester, 'home.available'), '≈ 14${nb}000$nb₽');
     expect(find.text('Расчёт на 14 дней'), findsOneWidget);
-    expect(find.byKey(const ValueKey('fix.salaryOverdue')), findsOneWidget);
+    expect(byKeyPrefix('fix.salaryOverdue'), findsOneWidget);
     await tester.ensureVisible(find.byKey(const ValueKey('salary.received')));
     await tester.tap(find.byKey(const ValueKey('salary.received')));
     await tester.pumpAndSettle();
-    expect(payments.marks, contains(('salary', today.addDays(-3))));
-    // Э1 limitation stated plainly: the mark does not change balances.
-    expect(find.byKey(const ValueKey('salary.markedDialog')), findsOneWidget);
-    expect(find.textContaining('не меняет остатки'), findsOneWidget);
-    await tester.tap(find.text('Готово'));
+    expect(find.byKey(const ValueKey('screen.receive')), findsOneWidget);
+    // The check is shown first; nothing is written yet.
+    expect(find.byKey(const ValueKey('receive.change')), findsOneWidget);
+    expect(income.stored, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('receive.confirm')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('fix.salaryOverdue')), findsNothing);
+    expect(income.stored.values.single.receipts.single.amount, Money(4000000));
+    expect(byKeyPrefix('fix.salaryOverdue'), findsNothing);
     expect(find.textContaining('Можно потратить до '), findsOneWidget);
+  });
+
+  testWidgets('Э3: partial advance — the rest stays expected, date unknown', (
+    tester,
+  ) async {
+    final today = CalendarDate.today();
+    final income = salaryIncome(
+      advanceIn: -3,
+      salaryIn: 20,
+      accountId: 'Карта',
+      trackedFrom: today.addDays(-5),
+    );
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 24000)],
+      payments: FakePayments(),
+      income: income,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('salary.received')));
+    await tester.tap(find.byKey(const ValueKey('salary.received')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('receive.amount')),
+      '15000',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('receive.less')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('receive.confirm')));
+    await tester.pumpAndSettle();
+    final pay = income.stored.values.single;
+    expect(
+      (pay.receipts.single.amount, pay.dateUnknown),
+      (Money(1500000), true),
+    );
+    // Still waiting for 25 000 with no date: a labelled period.
+    expect(byKeyPrefix('fix.salaryUnknown'), findsOneWidget);
+    expect(byKeyPrefix('note.salaryPartial'), findsOneWidget);
+    expect(find.text('Расчёт на 14 дней'), findsOneWidget);
+  });
+
+  testWidgets('Э3: «Не знаю когда» on one payment does not touch others', (
+    tester,
+  ) async {
+    final today = CalendarDate.today();
+    final income = salaryIncome(
+      advanceIn: -3,
+      salaryIn: 20,
+      accountId: 'Карта',
+      trackedFrom: today.addDays(-5),
+    );
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 24000)],
+      payments: FakePayments(),
+      income: income,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('salary.details')));
+    await tester.tap(find.byKey(const ValueKey('salary.details')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.incomePayment')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('payment.unknown')));
+    await tester.pumpAndSettle();
+    expect(income.stored.values.single.dateUnknown, true);
+    expect(income.stored.keys.single.partId, 'advance');
+    await tester.tap(find.byType(CupertinoNavigationBarBackButton));
+    await tester.pumpAndSettle();
+    expect(byKeyPrefix('fix.salaryUnknown'), findsOneWidget);
   });
 
   testWidgets('Э1: period can be changed to 7 / 30 days', (tester) async {
@@ -249,14 +317,6 @@ void main() {
     final payments = FakePayments()
       ..flows.addAll([
         PlannedFlow(
-          id: 'salary',
-          kind: FlowKind.salary,
-          name: 'Зарплата',
-          amount: Money(8000000),
-          cadence: Once(today.addDays(10)),
-          startsOn: today,
-        ),
-        PlannedFlow(
           id: 'net',
           kind: FlowKind.communication,
           name: 'Интернет',
@@ -272,6 +332,7 @@ void main() {
         acc('Кредитка Альфа', AccountKind.creditCard, 16000),
       ],
       payments: payments,
+      income: salaryIncome(advanceIn: 10, accountId: 'Карта'),
     );
     // 30 000 − 700 − 10 000; the card debt is NOT subtracted.
     expect(plain(tester, 'home.available'), '≈ 19${nb}300$nb₽');
@@ -316,16 +377,6 @@ void main() {
       'separate scenario with an interest warning', (tester) async {
     final today = CalendarDate.today();
     final payments = FakePayments()
-      ..flows.add(
-        PlannedFlow(
-          id: 'salary',
-          kind: FlowKind.salary,
-          name: 'Зарплата',
-          amount: Money(8000000),
-          cadence: Once(today.addDays(10)),
-          startsOn: today,
-        ),
-      )
       ..figures['cc'] = CardFigures(
         id: 'f',
         accountId: 'cc',
@@ -341,6 +392,7 @@ void main() {
         acc('cc', AccountKind.creditCard, 20000),
       ],
       payments: payments,
+      income: salaryIncome(advanceIn: 10, accountId: 'Карта'),
     );
     // 50 000 − 15 000 − 10 000 = 25 000.
     expect(plain(tester, 'home.available'), '25${nb}000$nb₽');
@@ -351,40 +403,5 @@ void main() {
       find.descendant(of: minimum, matching: find.textContaining('проценты')),
       findsOneWidget,
     );
-  });
-
-  testWidgets('Э1: «График» warns that the whole schedule changes', (
-    tester,
-  ) async {
-    final today = CalendarDate.today();
-    final payments = FakePayments()
-      ..flows.add(
-        PlannedFlow(
-          id: 'salary',
-          kind: FlowKind.salary,
-          name: 'Зарплата',
-          amount: Money(8000000),
-          cadence: Monthly(today.addDays(-3).day),
-          startsOn: today.addDays(-40),
-        ),
-      );
-    await launch(
-      tester,
-      accounts: [acc('Карта', AccountKind.debit, 24000)],
-      payments: payments,
-    );
-    await tester.ensureVisible(find.byKey(const ValueKey('salary.edit')));
-    await tester.tap(find.byKey(const ValueKey('salary.edit')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('salary.scheduleDialog')), findsOneWidget);
-    expect(find.textContaining('во всех следующих месяцах'), findsOneWidget);
-    await tester.tap(find.text('Отмена'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('screen.flowEdit')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('salary.edit')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('salary.scheduleOpen')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('screen.flowEdit')), findsOneWidget);
   });
 }

@@ -12,6 +12,8 @@ import '../../core/money/money_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../accounts/accounts.dart';
 import '../accounts/accounts_controller.dart';
+import '../income/income_controller.dart';
+import '../income/income_screens.dart';
 import 'payments.dart';
 import 'payments_controller.dart';
 import 'reminders_controller.dart';
@@ -282,6 +284,10 @@ class _PaymentsBody extends ConsumerWidget {
     final p = Palette.of(context);
     final today = CalendarDate.today();
     final items = upcomingFor(snapshot, today);
+    final incomes = upcomingIncome(
+      ref.watch(incomeProvider).value?.payments ?? const [],
+      today,
+    );
     final controller = ref.read(paymentsProvider.notifier);
     final debts = {
       for (final a
@@ -337,7 +343,7 @@ class _PaymentsBody extends ConsumerWidget {
       children: [
         const _RemindersRow(),
         SectionHeader(s.upcomingTitle),
-        if (items.isEmpty)
+        if (items.isEmpty && incomes.isEmpty)
           AppCard(
             child: Text(
               s.upcomingEmpty,
@@ -347,46 +353,59 @@ class _PaymentsBody extends ConsumerWidget {
         else
           CardGroup(
             children: [
-              for (final i in items)
-                PaymentRow(
-                  key: ValueKey(
-                    'upcoming.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
-                  ),
-                  item: i,
-                  today: today,
-                  trailing: CupertinoButton(
-                    key: ValueKey(
-                      'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
-                    ),
-                    padding: const EdgeInsets.only(left: Space.s),
-                    minimumSize: const Size(44, 44),
-                    onPressed: () => unawaited(
-                      i.source == UpcomingSource.flow
-                          ? controller.setFlowDone(i.flowId!, i.dueOn, !i.done)
-                          : controller.setCardSettled(
-                              i.cardFiguresId!,
-                              !i.done,
+              // Income and payments together, by date.
+              for (final row in <(CalendarDate, Widget)>[
+                for (final pay in incomes)
+                  (pay.dueOn ?? today, IncomeRow(payment: pay, today: today)),
+                for (final i in items)
+                  (
+                    i.dueOn,
+                    PaymentRow(
+                      key: ValueKey(
+                        'upcoming.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
+                      ),
+                      item: i,
+                      today: today,
+                      trailing: CupertinoButton(
+                        key: ValueKey(
+                          'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
+                        ),
+                        padding: const EdgeInsets.only(left: Space.s),
+                        minimumSize: const Size(44, 44),
+                        onPressed: () => unawaited(
+                          i.source == UpcomingSource.flow
+                              ? controller.setFlowDone(
+                                  i.flowId!,
+                                  i.dueOn,
+                                  !i.done,
+                                )
+                              : controller.setCardSettled(
+                                  i.cardFiguresId!,
+                                  !i.done,
+                                ),
+                        ),
+                        child: Semantics(
+                          label: i.done
+                              ? s.undoMark
+                              : i.direction == FlowDirection.inflow
+                              ? s.markReceived
+                              : s.markPaid,
+                          button: true,
+                          child: ExcludeSemantics(
+                            child: Icon(
+                              i.done
+                                  ? CupertinoIcons.check_mark_circled_solid
+                                  : CupertinoIcons.circle,
+                              color: i.done ? p.accent : p.textTertiary,
+                              size: 26,
                             ),
-                    ),
-                    child: Semantics(
-                      label: i.done
-                          ? s.undoMark
-                          : i.direction == FlowDirection.inflow
-                          ? s.markReceived
-                          : s.markPaid,
-                      button: true,
-                      child: ExcludeSemantics(
-                        child: Icon(
-                          i.done
-                              ? CupertinoIcons.check_mark_circled_solid
-                              : CupertinoIcons.circle,
-                          color: i.done ? p.accent : p.textTertiary,
-                          size: 26,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+              ]..sort((a, b) => a.$1.compareTo(b.$1)))
+                row.$2,
             ],
           ),
         if (items.isNotEmpty)
@@ -427,7 +446,13 @@ class _PaymentsBody extends ConsumerWidget {
           s.addPayment,
           FlowDirection.outflow,
         ),
-        flowSection(s.incomesTitle, inflows, s.addIncome, FlowDirection.inflow),
+        const IncomeSourcesSection(),
+        flowSection(
+          s.otherIncomesTitle,
+          inflows,
+          s.addIncome,
+          FlowDirection.inflow,
+        ),
       ],
     );
   }
@@ -658,8 +683,13 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context);
+    // Salary and advance live in the income model (R3 Э3), not here.
     final kinds = FlowKind.values
-        .where((k) => k.direction == widget.direction)
+        .where(
+          (k) =>
+              k.direction == widget.direction &&
+              (k != FlowKind.salary || widget.flow?.kind == FlowKind.salary),
+        )
         .toList();
     final debts = <(String?, String)>[
       for (final a

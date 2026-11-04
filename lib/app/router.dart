@@ -8,6 +8,8 @@ import '../features/forecast/home_screen.dart';
 import '../features/payments/payments.dart';
 import '../features/payments/payments_screens.dart';
 import '../features/backup/backup_section.dart';
+import '../features/income/income.dart';
+import '../features/income/income_screens.dart';
 import '../ui/theme.dart';
 import 'screens.dart';
 
@@ -79,6 +81,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CupertinoPage<void>(
           key: state.pageKey,
           child: CardFiguresScreen(accountId: state.extra! as String),
+        ),
+      ),
+      GoRoute(
+        path: incomeSchedulePath,
+        pageBuilder: (context, state) => CupertinoPage<void>(
+          key: state.pageKey,
+          child: SalaryScheduleScreen(sourceId: state.extra as String?),
+        ),
+      ),
+      GoRoute(
+        path: incomePaymentPath,
+        pageBuilder: (context, state) => CupertinoPage<void>(
+          key: state.pageKey,
+          child: IncomePaymentScreen(paymentKey: state.extra! as PaymentKey),
+        ),
+      ),
+      GoRoute(
+        path: incomeReceivePath,
+        pageBuilder: (context, state) => CupertinoPage<void>(
+          key: state.pageKey,
+          child: ReceiveScreen(paymentKey: state.extra! as PaymentKey),
         ),
       ),
       for (final (path, page) in <(String, Widget)>[

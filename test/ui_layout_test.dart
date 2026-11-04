@@ -4,7 +4,9 @@ import 'package:denezhno/app/app.dart';
 import 'package:denezhno/app/controller.dart';
 import 'package:denezhno/app/router.dart';
 import 'package:denezhno/core/money/money.dart';
+import 'package:denezhno/core/calendar_date.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
+import 'package:denezhno/features/income/income.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/payments/reminders.dart';
 import 'package:denezhno/features/payments/reminders_controller.dart';
@@ -46,6 +48,10 @@ void main() {
     ('/add-account', null),
     ('/card-figures', 'alfa-cc'),
     ('/flow', FlowDirection.outflow),
+    ('/income/schedule', null),
+    ('/income/schedule', 'work'),
+    ('/income/payment', 'advanceKey'),
+    ('/income/receive', 'advanceKey'),
   ];
 
   for (final size in sizes.entries) {
@@ -83,6 +89,7 @@ void main() {
                   FakeAccountsStore(data.accounts),
                 ),
                 paymentsStoreProvider.overrideWithValue(data.payments),
+                incomeStoreProvider.overrideWithValue(data.income),
                 householdStoreProvider.overrideWithValue(household),
                 backupStoreProvider.overrideWithValue(FakeBackupStore()),
                 reminderSchedulerProvider.overrideWithValue(_Reminders()),
@@ -103,7 +110,18 @@ void main() {
               if (path == '/' || path == '/accounts' || path == '/payments') {
                 router.go(path);
               } else {
-                unawaited(router.push<void>(path, extra: extra));
+                unawaited(
+                  router.push<void>(
+                    path,
+                    extra: extra == 'advanceKey'
+                        ? PaymentKey(
+                            sourceId: 'work',
+                            partId: 'advance',
+                            plannedOn: CalendarDate.today().addDays(12),
+                          )
+                        : extra,
+                  ),
+                );
               }
               await tester.pumpAndSettle();
               expect(tester.takeException(), isNull, reason: path);

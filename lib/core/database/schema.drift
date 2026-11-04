@@ -246,6 +246,10 @@ CREATE TABLE income_sources (
   -- A pay date on a weekend or holiday moves to the previous working day
   -- (art. 136 of the Labour Code), the next one, or stays.
   holiday_rule TEXT NOT NULL CHECK (holiday_rule IN ('previous_workday', 'next_workday', 'none')),
+  -- Payments by the schedule are tracked from this date: earlier ones are
+  -- not «waiting» (R2 did not require marks). Payments written to
+  -- income_occurrences are kept regardless of the date.
+  tracked_from TEXT NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from),
   -- The R2 plan this source was made from (makes the migration idempotent).
   migrated_from_flow_id TEXT UNIQUE REFERENCES planned_flows(id),
   created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),

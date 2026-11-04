@@ -138,7 +138,7 @@
   "addPayment": "Добавить платёж",
   "addIncome": "Добавить доход",
   "paymentTitle": "Платёж",
-  "incomeTitle": "Доход",
+  "incomeTitle": "Зарплата и доходы",
   "delete": "Удалить",
   "markPaid": "Оплачено",
   "markReceived": "Получено",
@@ -606,5 +606,194 @@
   "salaryScheduleTitle": "Изменить график?",
   "salaryScheduleBody": "Изменение даты здесь сдвинет её во всех следующих месяцах. Перенести одну задержанную выплату можно будет в следующем обновлении, а пока расчёт идёт на выбранный период.",
   "salaryScheduleOpen": "Открыть график",
-  "marksDontChangeBalances": "Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета»."
+  "marksDontChangeBalances": "Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».",
+  "salarySetup": "Настроить зарплату и аванс",
+  "salarySetupHint": "Даты и суммы выплат — чтобы считать «до зарплаты»",
+  "addIncomeSource": "Добавить ещё работодателя",
+  "otherIncomesTitle": "Другие доходы",
+  "scheduleTitleNew": "Зарплата и аванс",
+  "scheduleTitleEdit": "График выплат",
+  "sourceName": "Название",
+  "sourceNameDefault": "Работа",
+  "paymentsPerMonth": "Выплат в месяц",
+  "onePayment": "Одна",
+  "twoPayments": "Две",
+  "partLabel": "Название выплаты",
+  "partDay": "Число месяца",
+  "partAmount": "Сумма",
+  "advanceDefault": "Аванс",
+  "salaryDefault": "Зарплата",
+  "dayHint": "31 — последний день месяца",
+  "invalidDay": "Укажите число от 1 до 31",
+  "invalidLabel": "Укажите название",
+  "incomeAccount": "Куда приходит",
+  "incomeAccountNone": "Не выбрано",
+  "holidayRuleTitle": "Если дата выпала на выходной",
+  "holidayPrevious": "В предыдущий рабочий день",
+  "holidayNext": "В следующий рабочий день",
+  "holidayNone": "Не переносить",
+  "holidayHint": "По Трудовому кодексу (ст. 136) зарплату выплачивают накануне выходного или праздника.",
+  "scheduleEditNote": "Изменения действуют с сегодняшнего дня. Прошлые выплаты и полученные деньги не меняются.",
+  "archiveSource": "Удалить этот доход",
+  "archiveSourceConfirm": "Новые выплаты перестанут ожидаться. Полученные деньги и история останутся.",
+  "scheduleLine": "{day}-го · {amount}",
+  "@scheduleLine": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentPlan": "По графику",
+  "paymentExpected": "Ожидается",
+  "paymentReceivedTotal": "Получено",
+  "paymentRemaining": "Осталось получить",
+  "paymentHolidayMoved": "перенос с {date} из-за выходного",
+  "@paymentHolidayMoved": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dateUnknownValue": "Дата неизвестна",
+  "receiptsTitle": "Поступления",
+  "receiptCancelled": "отменено",
+  "cancelReceipt": "Отменить",
+  "cancelReceiptConfirm": "Отменить это поступление? Остаток счёта изменится обратно (если остаток уже подтверждён — сумма вернётся в неясную разницу). Запись останется в истории.",
+  "actionReceived": "Получено",
+  "actionMove": "Перенести",
+  "actionUnknown": "Не знаю когда",
+  "actionCancelPayment": "Не будет",
+  "actionReopen": "Вернуть",
+  "actionChangeAmount": "Изменить сумму",
+  "actionDetails": "Подробнее",
+  "cancelPaymentConfirm": "Отметить, что этой выплаты не будет? Расчёт перестанет её ждать.",
+  "stateReceived": "Получена",
+  "stateCancelled": "Не будет",
+  "stateLegacy": "Отмечена до обновления",
+  "stateWaiting": "Ожидается",
+  "stateOverdue": "Задерживается",
+  "statePartial": "Получена частично",
+  "receiveTitle": "Получено",
+  "receiveAmount": "Сколько пришло",
+  "receiveAccount": "На какой счёт",
+  "receiveDate": "Когда пришло",
+  "receiveCheck": "Проверьте перед записью",
+  "receiveBalanceChange": "Остаток «{account}»: было {before}, станет {after}",
+  "@receiveBalanceChange": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "receiveAlreadyIn": "Остаток «{account}» не изменится: эти деньги уже есть в остатке, который вы подтвердили {when}. Неясная разница уменьшится.",
+  "@receiveAlreadyIn": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "receiveSameDayAfter": "Нет, деньги пришли после обновления остатка",
+  "receiveSameDayBefore": "Деньги уже были в том остатке",
+  "receiveLess": "Ожидалось {expected}",
+  "@receiveLess": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+  "restLater": "Остальное придёт позже",
+  "wholePayment": "Это вся выплата",
+  "restDate": "Когда ждать остальное",
+  "restUnknown": "Не знаю",
+  "receiveConfirm": "Подтвердить",
+  "receiveNoAccounts": "Сначала добавьте счёт, на который приходит зарплата",
+  "receiveFuture": "Дата не может быть в будущем",
+  "incomeOverdue": "Выплата «{label}» {date} ещё не получена. Пока её нет, не прибавляем и считаем на выбранный период.",
+  "@incomeOverdue": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "incomeUnknown": "Выплата «{label}» задерживается, дата неизвестна — считаем на выбранный период.",
+  "@incomeUnknown": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "incomeDelayed": "Выплата «{label}» перенесена на {date}: в день ≈ {perDay} вместо {before}.",
+  "@incomeDelayed": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "perDay": {
+        "type": "String"
+      },
+      "before": {
+        "type": "String"
+      }
+    }
+  },
+  "incomeDelayedSimple": "Выплата «{label}» перенесена на {date}.",
+  "@incomeDelayedSimple": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "incomePartial": "«{label}»: получено {received} из {expected}, остальное ждём.",
+  "@incomePartial": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "received": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+  "actionSetDate": "Указать дату",
+  "incomeDue": "{date}",
+  "@incomeDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentNotFound": "Выплата не найдена — возможно, график изменился."
 }
