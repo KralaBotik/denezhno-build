@@ -6048,6 +6048,1640 @@ class CardFiguresCompanion extends UpdateCompanion<CardFiguresRow> {
   }
 }
 
+class CategoryGroups extends Table
+    with TableInfo<CategoryGroups, CategoryGroupRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  CategoryGroups(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36)',
+  );
+  static const VerificationMeta _householdIdMeta = const VerificationMeta(
+    'householdId',
+  );
+  late final GeneratedColumn<String> householdId = GeneratedColumn<String>(
+    'household_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES households(id)',
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40)',
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (typeof(sort_order) = \'integer\')',
+  );
+  static const VerificationMeta _archivedAtUtcMeta = const VerificationMeta(
+    'archivedAtUtc',
+  );
+  late final GeneratedColumn<int> archivedAtUtc = GeneratedColumn<int>(
+    'archived_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = \'integer\')',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    householdId,
+    name,
+    sortOrder,
+    archivedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_groups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryGroupRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('household_id')) {
+      context.handle(
+        _householdIdMeta,
+        householdId.isAcceptableOrUnknown(
+          data['household_id']!,
+          _householdIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_householdIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('archived_at_utc')) {
+      context.handle(
+        _archivedAtUtcMeta,
+        archivedAtUtc.isAcceptableOrUnknown(
+          data['archived_at_utc']!,
+          _archivedAtUtcMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoryGroupRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryGroupRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      householdId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}household_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      archivedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at_utc'],
+      ),
+    );
+  }
+
+  @override
+  CategoryGroups createAlias(String alias) {
+    return CategoryGroups(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class CategoryGroupRow extends DataClass
+    implements Insertable<CategoryGroupRow> {
+  final String id;
+  final String householdId;
+  final String name;
+  final int sortOrder;
+  final int? archivedAtUtc;
+  const CategoryGroupRow({
+    required this.id,
+    required this.householdId,
+    required this.name,
+    required this.sortOrder,
+    this.archivedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['household_id'] = Variable<String>(householdId);
+    map['name'] = Variable<String>(name);
+    map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || archivedAtUtc != null) {
+      map['archived_at_utc'] = Variable<int>(archivedAtUtc);
+    }
+    return map;
+  }
+
+  CategoryGroupsCompanion toCompanion(bool nullToAbsent) {
+    return CategoryGroupsCompanion(
+      id: Value(id),
+      householdId: Value(householdId),
+      name: Value(name),
+      sortOrder: Value(sortOrder),
+      archivedAtUtc: archivedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAtUtc),
+    );
+  }
+
+  factory CategoryGroupRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryGroupRow(
+      id: serializer.fromJson<String>(json['id']),
+      householdId: serializer.fromJson<String>(json['household_id']),
+      name: serializer.fromJson<String>(json['name']),
+      sortOrder: serializer.fromJson<int>(json['sort_order']),
+      archivedAtUtc: serializer.fromJson<int?>(json['archived_at_utc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'household_id': serializer.toJson<String>(householdId),
+      'name': serializer.toJson<String>(name),
+      'sort_order': serializer.toJson<int>(sortOrder),
+      'archived_at_utc': serializer.toJson<int?>(archivedAtUtc),
+    };
+  }
+
+  CategoryGroupRow copyWith({
+    String? id,
+    String? householdId,
+    String? name,
+    int? sortOrder,
+    Value<int?> archivedAtUtc = const Value.absent(),
+  }) => CategoryGroupRow(
+    id: id ?? this.id,
+    householdId: householdId ?? this.householdId,
+    name: name ?? this.name,
+    sortOrder: sortOrder ?? this.sortOrder,
+    archivedAtUtc: archivedAtUtc.present
+        ? archivedAtUtc.value
+        : this.archivedAtUtc,
+  );
+  CategoryGroupRow copyWithCompanion(CategoryGroupsCompanion data) {
+    return CategoryGroupRow(
+      id: data.id.present ? data.id.value : this.id,
+      householdId: data.householdId.present
+          ? data.householdId.value
+          : this.householdId,
+      name: data.name.present ? data.name.value : this.name,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      archivedAtUtc: data.archivedAtUtc.present
+          ? data.archivedAtUtc.value
+          : this.archivedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryGroupRow(')
+          ..write('id: $id, ')
+          ..write('householdId: $householdId, ')
+          ..write('name: $name, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('archivedAtUtc: $archivedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, householdId, name, sortOrder, archivedAtUtc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryGroupRow &&
+          other.id == this.id &&
+          other.householdId == this.householdId &&
+          other.name == this.name &&
+          other.sortOrder == this.sortOrder &&
+          other.archivedAtUtc == this.archivedAtUtc);
+}
+
+class CategoryGroupsCompanion extends UpdateCompanion<CategoryGroupRow> {
+  final Value<String> id;
+  final Value<String> householdId;
+  final Value<String> name;
+  final Value<int> sortOrder;
+  final Value<int?> archivedAtUtc;
+  final Value<int> rowid;
+  const CategoryGroupsCompanion({
+    this.id = const Value.absent(),
+    this.householdId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.archivedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryGroupsCompanion.insert({
+    required String id,
+    required String householdId,
+    required String name,
+    required int sortOrder,
+    this.archivedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       householdId = Value(householdId),
+       name = Value(name),
+       sortOrder = Value(sortOrder);
+  static Insertable<CategoryGroupRow> custom({
+    Expression<String>? id,
+    Expression<String>? householdId,
+    Expression<String>? name,
+    Expression<int>? sortOrder,
+    Expression<int>? archivedAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (householdId != null) 'household_id': householdId,
+      if (name != null) 'name': name,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (archivedAtUtc != null) 'archived_at_utc': archivedAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryGroupsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? householdId,
+    Value<String>? name,
+    Value<int>? sortOrder,
+    Value<int?>? archivedAtUtc,
+    Value<int>? rowid,
+  }) {
+    return CategoryGroupsCompanion(
+      id: id ?? this.id,
+      householdId: householdId ?? this.householdId,
+      name: name ?? this.name,
+      sortOrder: sortOrder ?? this.sortOrder,
+      archivedAtUtc: archivedAtUtc ?? this.archivedAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (householdId.present) {
+      map['household_id'] = Variable<String>(householdId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (archivedAtUtc.present) {
+      map['archived_at_utc'] = Variable<int>(archivedAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('householdId: $householdId, ')
+          ..write('name: $name, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('archivedAtUtc: $archivedAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class Categories extends Table with TableInfo<Categories, CategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  Categories(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36)',
+  );
+  static const VerificationMeta _householdIdMeta = const VerificationMeta(
+    'householdId',
+  );
+  late final GeneratedColumn<String> householdId = GeneratedColumn<String>(
+    'household_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES households(id)',
+  );
+  static const VerificationMeta _directionMeta = const VerificationMeta(
+    'direction',
+  );
+  late final GeneratedColumn<String> direction = GeneratedColumn<String>(
+    'direction',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (direction IN (\'expense\', \'income\'))',
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40)',
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(icon) BETWEEN 1 AND 40)',
+  );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES category_groups(id)',
+  );
+  static const VerificationMeta _ledgerAccountIdMeta = const VerificationMeta(
+    'ledgerAccountId',
+  );
+  late final GeneratedColumn<String> ledgerAccountId = GeneratedColumn<String>(
+    'ledger_account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL UNIQUE REFERENCES accounts(id)',
+  );
+  static const VerificationMeta _systemKeyMeta = const VerificationMeta(
+    'systemKey',
+  );
+  late final GeneratedColumn<String> systemKey = GeneratedColumn<String>(
+    'system_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK (system_key IS NULL OR length(system_key) BETWEEN 1 AND 40)',
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (typeof(sort_order) = \'integer\')',
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  late final GeneratedColumn<int> createdAtUtc = GeneratedColumn<int>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (typeof(created_at_utc) = \'integer\')',
+  );
+  static const VerificationMeta _archivedAtUtcMeta = const VerificationMeta(
+    'archivedAtUtc',
+  );
+  late final GeneratedColumn<int> archivedAtUtc = GeneratedColumn<int>(
+    'archived_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = \'integer\')',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    householdId,
+    direction,
+    name,
+    icon,
+    groupId,
+    ledgerAccountId,
+    systemKey,
+    sortOrder,
+    createdAtUtc,
+    archivedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('household_id')) {
+      context.handle(
+        _householdIdMeta,
+        householdId.isAcceptableOrUnknown(
+          data['household_id']!,
+          _householdIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_householdIdMeta);
+    }
+    if (data.containsKey('direction')) {
+      context.handle(
+        _directionMeta,
+        direction.isAcceptableOrUnknown(data['direction']!, _directionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_directionMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
+    if (data.containsKey('ledger_account_id')) {
+      context.handle(
+        _ledgerAccountIdMeta,
+        ledgerAccountId.isAcceptableOrUnknown(
+          data['ledger_account_id']!,
+          _ledgerAccountIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_ledgerAccountIdMeta);
+    }
+    if (data.containsKey('system_key')) {
+      context.handle(
+        _systemKeyMeta,
+        systemKey.isAcceptableOrUnknown(data['system_key']!, _systemKeyMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    if (data.containsKey('archived_at_utc')) {
+      context.handle(
+        _archivedAtUtcMeta,
+        archivedAtUtc.isAcceptableOrUnknown(
+          data['archived_at_utc']!,
+          _archivedAtUtcMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {householdId, systemKey},
+  ];
+  @override
+  CategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      householdId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}household_id'],
+      )!,
+      direction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}direction'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      ),
+      ledgerAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ledger_account_id'],
+      )!,
+      systemKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}system_key'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+      archivedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at_utc'],
+      ),
+    );
+  }
+
+  @override
+  Categories createAlias(String alias) {
+    return Categories(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'UNIQUE(household_id, system_key)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class CategoryRow extends DataClass implements Insertable<CategoryRow> {
+  final String id;
+  final String householdId;
+  final String direction;
+  final String name;
+  final String icon;
+  final String? groupId;
+  final String ledgerAccountId;
+
+  /// Stable key of a default category ('salary', 'groceries', ...) so the app
+  /// finds «Зарплата» even after the person renames it. NULL for own ones.
+  final String? systemKey;
+  final int sortOrder;
+  final int createdAtUtc;
+  final int? archivedAtUtc;
+  const CategoryRow({
+    required this.id,
+    required this.householdId,
+    required this.direction,
+    required this.name,
+    required this.icon,
+    this.groupId,
+    required this.ledgerAccountId,
+    this.systemKey,
+    required this.sortOrder,
+    required this.createdAtUtc,
+    this.archivedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['household_id'] = Variable<String>(householdId);
+    map['direction'] = Variable<String>(direction);
+    map['name'] = Variable<String>(name);
+    map['icon'] = Variable<String>(icon);
+    if (!nullToAbsent || groupId != null) {
+      map['group_id'] = Variable<String>(groupId);
+    }
+    map['ledger_account_id'] = Variable<String>(ledgerAccountId);
+    if (!nullToAbsent || systemKey != null) {
+      map['system_key'] = Variable<String>(systemKey);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at_utc'] = Variable<int>(createdAtUtc);
+    if (!nullToAbsent || archivedAtUtc != null) {
+      map['archived_at_utc'] = Variable<int>(archivedAtUtc);
+    }
+    return map;
+  }
+
+  CategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CategoriesCompanion(
+      id: Value(id),
+      householdId: Value(householdId),
+      direction: Value(direction),
+      name: Value(name),
+      icon: Value(icon),
+      groupId: groupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupId),
+      ledgerAccountId: Value(ledgerAccountId),
+      systemKey: systemKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(systemKey),
+      sortOrder: Value(sortOrder),
+      createdAtUtc: Value(createdAtUtc),
+      archivedAtUtc: archivedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAtUtc),
+    );
+  }
+
+  factory CategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryRow(
+      id: serializer.fromJson<String>(json['id']),
+      householdId: serializer.fromJson<String>(json['household_id']),
+      direction: serializer.fromJson<String>(json['direction']),
+      name: serializer.fromJson<String>(json['name']),
+      icon: serializer.fromJson<String>(json['icon']),
+      groupId: serializer.fromJson<String?>(json['group_id']),
+      ledgerAccountId: serializer.fromJson<String>(json['ledger_account_id']),
+      systemKey: serializer.fromJson<String?>(json['system_key']),
+      sortOrder: serializer.fromJson<int>(json['sort_order']),
+      createdAtUtc: serializer.fromJson<int>(json['created_at_utc']),
+      archivedAtUtc: serializer.fromJson<int?>(json['archived_at_utc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'household_id': serializer.toJson<String>(householdId),
+      'direction': serializer.toJson<String>(direction),
+      'name': serializer.toJson<String>(name),
+      'icon': serializer.toJson<String>(icon),
+      'group_id': serializer.toJson<String?>(groupId),
+      'ledger_account_id': serializer.toJson<String>(ledgerAccountId),
+      'system_key': serializer.toJson<String?>(systemKey),
+      'sort_order': serializer.toJson<int>(sortOrder),
+      'created_at_utc': serializer.toJson<int>(createdAtUtc),
+      'archived_at_utc': serializer.toJson<int?>(archivedAtUtc),
+    };
+  }
+
+  CategoryRow copyWith({
+    String? id,
+    String? householdId,
+    String? direction,
+    String? name,
+    String? icon,
+    Value<String?> groupId = const Value.absent(),
+    String? ledgerAccountId,
+    Value<String?> systemKey = const Value.absent(),
+    int? sortOrder,
+    int? createdAtUtc,
+    Value<int?> archivedAtUtc = const Value.absent(),
+  }) => CategoryRow(
+    id: id ?? this.id,
+    householdId: householdId ?? this.householdId,
+    direction: direction ?? this.direction,
+    name: name ?? this.name,
+    icon: icon ?? this.icon,
+    groupId: groupId.present ? groupId.value : this.groupId,
+    ledgerAccountId: ledgerAccountId ?? this.ledgerAccountId,
+    systemKey: systemKey.present ? systemKey.value : this.systemKey,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    archivedAtUtc: archivedAtUtc.present
+        ? archivedAtUtc.value
+        : this.archivedAtUtc,
+  );
+  CategoryRow copyWithCompanion(CategoriesCompanion data) {
+    return CategoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      householdId: data.householdId.present
+          ? data.householdId.value
+          : this.householdId,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      name: data.name.present ? data.name.value : this.name,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      ledgerAccountId: data.ledgerAccountId.present
+          ? data.ledgerAccountId.value
+          : this.ledgerAccountId,
+      systemKey: data.systemKey.present ? data.systemKey.value : this.systemKey,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      archivedAtUtc: data.archivedAtUtc.present
+          ? data.archivedAtUtc.value
+          : this.archivedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryRow(')
+          ..write('id: $id, ')
+          ..write('householdId: $householdId, ')
+          ..write('direction: $direction, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('groupId: $groupId, ')
+          ..write('ledgerAccountId: $ledgerAccountId, ')
+          ..write('systemKey: $systemKey, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('archivedAtUtc: $archivedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    householdId,
+    direction,
+    name,
+    icon,
+    groupId,
+    ledgerAccountId,
+    systemKey,
+    sortOrder,
+    createdAtUtc,
+    archivedAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryRow &&
+          other.id == this.id &&
+          other.householdId == this.householdId &&
+          other.direction == this.direction &&
+          other.name == this.name &&
+          other.icon == this.icon &&
+          other.groupId == this.groupId &&
+          other.ledgerAccountId == this.ledgerAccountId &&
+          other.systemKey == this.systemKey &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.archivedAtUtc == this.archivedAtUtc);
+}
+
+class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
+  final Value<String> id;
+  final Value<String> householdId;
+  final Value<String> direction;
+  final Value<String> name;
+  final Value<String> icon;
+  final Value<String?> groupId;
+  final Value<String> ledgerAccountId;
+  final Value<String?> systemKey;
+  final Value<int> sortOrder;
+  final Value<int> createdAtUtc;
+  final Value<int?> archivedAtUtc;
+  final Value<int> rowid;
+  const CategoriesCompanion({
+    this.id = const Value.absent(),
+    this.householdId = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.name = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.ledgerAccountId = const Value.absent(),
+    this.systemKey = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.archivedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoriesCompanion.insert({
+    required String id,
+    required String householdId,
+    required String direction,
+    required String name,
+    required String icon,
+    this.groupId = const Value.absent(),
+    required String ledgerAccountId,
+    this.systemKey = const Value.absent(),
+    required int sortOrder,
+    required int createdAtUtc,
+    this.archivedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       householdId = Value(householdId),
+       direction = Value(direction),
+       name = Value(name),
+       icon = Value(icon),
+       ledgerAccountId = Value(ledgerAccountId),
+       sortOrder = Value(sortOrder),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<CategoryRow> custom({
+    Expression<String>? id,
+    Expression<String>? householdId,
+    Expression<String>? direction,
+    Expression<String>? name,
+    Expression<String>? icon,
+    Expression<String>? groupId,
+    Expression<String>? ledgerAccountId,
+    Expression<String>? systemKey,
+    Expression<int>? sortOrder,
+    Expression<int>? createdAtUtc,
+    Expression<int>? archivedAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (householdId != null) 'household_id': householdId,
+      if (direction != null) 'direction': direction,
+      if (name != null) 'name': name,
+      if (icon != null) 'icon': icon,
+      if (groupId != null) 'group_id': groupId,
+      if (ledgerAccountId != null) 'ledger_account_id': ledgerAccountId,
+      if (systemKey != null) 'system_key': systemKey,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (archivedAtUtc != null) 'archived_at_utc': archivedAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? householdId,
+    Value<String>? direction,
+    Value<String>? name,
+    Value<String>? icon,
+    Value<String?>? groupId,
+    Value<String>? ledgerAccountId,
+    Value<String?>? systemKey,
+    Value<int>? sortOrder,
+    Value<int>? createdAtUtc,
+    Value<int?>? archivedAtUtc,
+    Value<int>? rowid,
+  }) {
+    return CategoriesCompanion(
+      id: id ?? this.id,
+      householdId: householdId ?? this.householdId,
+      direction: direction ?? this.direction,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      groupId: groupId ?? this.groupId,
+      ledgerAccountId: ledgerAccountId ?? this.ledgerAccountId,
+      systemKey: systemKey ?? this.systemKey,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      archivedAtUtc: archivedAtUtc ?? this.archivedAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (householdId.present) {
+      map['household_id'] = Variable<String>(householdId.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(direction.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
+    if (ledgerAccountId.present) {
+      map['ledger_account_id'] = Variable<String>(ledgerAccountId.value);
+    }
+    if (systemKey.present) {
+      map['system_key'] = Variable<String>(systemKey.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<int>(createdAtUtc.value);
+    }
+    if (archivedAtUtc.present) {
+      map['archived_at_utc'] = Variable<int>(archivedAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('householdId: $householdId, ')
+          ..write('direction: $direction, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('groupId: $groupId, ')
+          ..write('ledgerAccountId: $ledgerAccountId, ')
+          ..write('systemKey: $systemKey, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('archivedAtUtc: $archivedAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class EntryDetails extends Table with TableInfo<EntryDetails, EntryDetailsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  EntryDetails(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _entryIdMeta = const VerificationMeta(
+    'entryId',
+  );
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY REFERENCES journal_entries(id)',
+  );
+  static const VerificationMeta _occurredOnMeta = const VerificationMeta(
+    'occurredOn',
+  );
+  late final GeneratedColumn<String> occurredOn = GeneratedColumn<String>(
+    'occurred_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(occurred_on) = 10 AND date(occurred_on) = occurred_on)',
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK (description IS NULL OR length(description) <= 200)',
+  );
+  static const VerificationMeta _counterpartyMeta = const VerificationMeta(
+    'counterparty',
+  );
+  late final GeneratedColumn<String> counterparty = GeneratedColumn<String>(
+    'counterparty',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK (counterparty IS NULL OR length(counterparty) <= 100)',
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (note IS NULL OR length(note) <= 500)',
+  );
+  static const VerificationMeta _reversesEntryIdMeta = const VerificationMeta(
+    'reversesEntryId',
+  );
+  late final GeneratedColumn<String> reversesEntryId = GeneratedColumn<String>(
+    'reverses_entry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'UNIQUE REFERENCES journal_entries(id)',
+  );
+  static const VerificationMeta _supersedesEntryIdMeta = const VerificationMeta(
+    'supersedesEntryId',
+  );
+  late final GeneratedColumn<String> supersedesEntryId =
+      GeneratedColumn<String>(
+        'supersedes_entry_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'UNIQUE REFERENCES journal_entries(id)',
+      );
+  static const VerificationMeta _causedByEntryIdMeta = const VerificationMeta(
+    'causedByEntryId',
+  );
+  late final GeneratedColumn<String> causedByEntryId = GeneratedColumn<String>(
+    'caused_by_entry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES journal_entries(id)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    entryId,
+    occurredOn,
+    description,
+    counterparty,
+    note,
+    reversesEntryId,
+    supersedesEntryId,
+    causedByEntryId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'entry_details';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EntryDetailsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('entry_id')) {
+      context.handle(
+        _entryIdMeta,
+        entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryIdMeta);
+    }
+    if (data.containsKey('occurred_on')) {
+      context.handle(
+        _occurredOnMeta,
+        occurredOn.isAcceptableOrUnknown(data['occurred_on']!, _occurredOnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredOnMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('counterparty')) {
+      context.handle(
+        _counterpartyMeta,
+        counterparty.isAcceptableOrUnknown(
+          data['counterparty']!,
+          _counterpartyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('reverses_entry_id')) {
+      context.handle(
+        _reversesEntryIdMeta,
+        reversesEntryId.isAcceptableOrUnknown(
+          data['reverses_entry_id']!,
+          _reversesEntryIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('supersedes_entry_id')) {
+      context.handle(
+        _supersedesEntryIdMeta,
+        supersedesEntryId.isAcceptableOrUnknown(
+          data['supersedes_entry_id']!,
+          _supersedesEntryIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('caused_by_entry_id')) {
+      context.handle(
+        _causedByEntryIdMeta,
+        causedByEntryId.isAcceptableOrUnknown(
+          data['caused_by_entry_id']!,
+          _causedByEntryIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {entryId};
+  @override
+  EntryDetailsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EntryDetailsRow(
+      entryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_id'],
+      )!,
+      occurredOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}occurred_on'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      counterparty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}counterparty'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      reversesEntryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reverses_entry_id'],
+      ),
+      supersedesEntryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}supersedes_entry_id'],
+      ),
+      causedByEntryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}caused_by_entry_id'],
+      ),
+    );
+  }
+
+  @override
+  EntryDetails createAlias(String alias) {
+    return EntryDetails(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK(reverses_entry_id IS NULL OR reverses_entry_id <> entry_id)',
+    'CHECK(supersedes_entry_id IS NULL OR supersedes_entry_id <> entry_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class EntryDetailsRow extends DataClass implements Insertable<EntryDetailsRow> {
+  final String entryId;
+  final String occurredOn;
+  final String? description;
+  final String? counterparty;
+  final String? note;
+  final String? reversesEntryId;
+  final String? supersedesEntryId;
+  final String? causedByEntryId;
+  const EntryDetailsRow({
+    required this.entryId,
+    required this.occurredOn,
+    this.description,
+    this.counterparty,
+    this.note,
+    this.reversesEntryId,
+    this.supersedesEntryId,
+    this.causedByEntryId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['entry_id'] = Variable<String>(entryId);
+    map['occurred_on'] = Variable<String>(occurredOn);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || counterparty != null) {
+      map['counterparty'] = Variable<String>(counterparty);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || reversesEntryId != null) {
+      map['reverses_entry_id'] = Variable<String>(reversesEntryId);
+    }
+    if (!nullToAbsent || supersedesEntryId != null) {
+      map['supersedes_entry_id'] = Variable<String>(supersedesEntryId);
+    }
+    if (!nullToAbsent || causedByEntryId != null) {
+      map['caused_by_entry_id'] = Variable<String>(causedByEntryId);
+    }
+    return map;
+  }
+
+  EntryDetailsCompanion toCompanion(bool nullToAbsent) {
+    return EntryDetailsCompanion(
+      entryId: Value(entryId),
+      occurredOn: Value(occurredOn),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      counterparty: counterparty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counterparty),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      reversesEntryId: reversesEntryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reversesEntryId),
+      supersedesEntryId: supersedesEntryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(supersedesEntryId),
+      causedByEntryId: causedByEntryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(causedByEntryId),
+    );
+  }
+
+  factory EntryDetailsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EntryDetailsRow(
+      entryId: serializer.fromJson<String>(json['entry_id']),
+      occurredOn: serializer.fromJson<String>(json['occurred_on']),
+      description: serializer.fromJson<String?>(json['description']),
+      counterparty: serializer.fromJson<String?>(json['counterparty']),
+      note: serializer.fromJson<String?>(json['note']),
+      reversesEntryId: serializer.fromJson<String?>(json['reverses_entry_id']),
+      supersedesEntryId: serializer.fromJson<String?>(
+        json['supersedes_entry_id'],
+      ),
+      causedByEntryId: serializer.fromJson<String?>(json['caused_by_entry_id']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'entry_id': serializer.toJson<String>(entryId),
+      'occurred_on': serializer.toJson<String>(occurredOn),
+      'description': serializer.toJson<String?>(description),
+      'counterparty': serializer.toJson<String?>(counterparty),
+      'note': serializer.toJson<String?>(note),
+      'reverses_entry_id': serializer.toJson<String?>(reversesEntryId),
+      'supersedes_entry_id': serializer.toJson<String?>(supersedesEntryId),
+      'caused_by_entry_id': serializer.toJson<String?>(causedByEntryId),
+    };
+  }
+
+  EntryDetailsRow copyWith({
+    String? entryId,
+    String? occurredOn,
+    Value<String?> description = const Value.absent(),
+    Value<String?> counterparty = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+    Value<String?> reversesEntryId = const Value.absent(),
+    Value<String?> supersedesEntryId = const Value.absent(),
+    Value<String?> causedByEntryId = const Value.absent(),
+  }) => EntryDetailsRow(
+    entryId: entryId ?? this.entryId,
+    occurredOn: occurredOn ?? this.occurredOn,
+    description: description.present ? description.value : this.description,
+    counterparty: counterparty.present ? counterparty.value : this.counterparty,
+    note: note.present ? note.value : this.note,
+    reversesEntryId: reversesEntryId.present
+        ? reversesEntryId.value
+        : this.reversesEntryId,
+    supersedesEntryId: supersedesEntryId.present
+        ? supersedesEntryId.value
+        : this.supersedesEntryId,
+    causedByEntryId: causedByEntryId.present
+        ? causedByEntryId.value
+        : this.causedByEntryId,
+  );
+  EntryDetailsRow copyWithCompanion(EntryDetailsCompanion data) {
+    return EntryDetailsRow(
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      occurredOn: data.occurredOn.present
+          ? data.occurredOn.value
+          : this.occurredOn,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      counterparty: data.counterparty.present
+          ? data.counterparty.value
+          : this.counterparty,
+      note: data.note.present ? data.note.value : this.note,
+      reversesEntryId: data.reversesEntryId.present
+          ? data.reversesEntryId.value
+          : this.reversesEntryId,
+      supersedesEntryId: data.supersedesEntryId.present
+          ? data.supersedesEntryId.value
+          : this.supersedesEntryId,
+      causedByEntryId: data.causedByEntryId.present
+          ? data.causedByEntryId.value
+          : this.causedByEntryId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EntryDetailsRow(')
+          ..write('entryId: $entryId, ')
+          ..write('occurredOn: $occurredOn, ')
+          ..write('description: $description, ')
+          ..write('counterparty: $counterparty, ')
+          ..write('note: $note, ')
+          ..write('reversesEntryId: $reversesEntryId, ')
+          ..write('supersedesEntryId: $supersedesEntryId, ')
+          ..write('causedByEntryId: $causedByEntryId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    entryId,
+    occurredOn,
+    description,
+    counterparty,
+    note,
+    reversesEntryId,
+    supersedesEntryId,
+    causedByEntryId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EntryDetailsRow &&
+          other.entryId == this.entryId &&
+          other.occurredOn == this.occurredOn &&
+          other.description == this.description &&
+          other.counterparty == this.counterparty &&
+          other.note == this.note &&
+          other.reversesEntryId == this.reversesEntryId &&
+          other.supersedesEntryId == this.supersedesEntryId &&
+          other.causedByEntryId == this.causedByEntryId);
+}
+
+class EntryDetailsCompanion extends UpdateCompanion<EntryDetailsRow> {
+  final Value<String> entryId;
+  final Value<String> occurredOn;
+  final Value<String?> description;
+  final Value<String?> counterparty;
+  final Value<String?> note;
+  final Value<String?> reversesEntryId;
+  final Value<String?> supersedesEntryId;
+  final Value<String?> causedByEntryId;
+  final Value<int> rowid;
+  const EntryDetailsCompanion({
+    this.entryId = const Value.absent(),
+    this.occurredOn = const Value.absent(),
+    this.description = const Value.absent(),
+    this.counterparty = const Value.absent(),
+    this.note = const Value.absent(),
+    this.reversesEntryId = const Value.absent(),
+    this.supersedesEntryId = const Value.absent(),
+    this.causedByEntryId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EntryDetailsCompanion.insert({
+    required String entryId,
+    required String occurredOn,
+    this.description = const Value.absent(),
+    this.counterparty = const Value.absent(),
+    this.note = const Value.absent(),
+    this.reversesEntryId = const Value.absent(),
+    this.supersedesEntryId = const Value.absent(),
+    this.causedByEntryId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : entryId = Value(entryId),
+       occurredOn = Value(occurredOn);
+  static Insertable<EntryDetailsRow> custom({
+    Expression<String>? entryId,
+    Expression<String>? occurredOn,
+    Expression<String>? description,
+    Expression<String>? counterparty,
+    Expression<String>? note,
+    Expression<String>? reversesEntryId,
+    Expression<String>? supersedesEntryId,
+    Expression<String>? causedByEntryId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (entryId != null) 'entry_id': entryId,
+      if (occurredOn != null) 'occurred_on': occurredOn,
+      if (description != null) 'description': description,
+      if (counterparty != null) 'counterparty': counterparty,
+      if (note != null) 'note': note,
+      if (reversesEntryId != null) 'reverses_entry_id': reversesEntryId,
+      if (supersedesEntryId != null) 'supersedes_entry_id': supersedesEntryId,
+      if (causedByEntryId != null) 'caused_by_entry_id': causedByEntryId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EntryDetailsCompanion copyWith({
+    Value<String>? entryId,
+    Value<String>? occurredOn,
+    Value<String?>? description,
+    Value<String?>? counterparty,
+    Value<String?>? note,
+    Value<String?>? reversesEntryId,
+    Value<String?>? supersedesEntryId,
+    Value<String?>? causedByEntryId,
+    Value<int>? rowid,
+  }) {
+    return EntryDetailsCompanion(
+      entryId: entryId ?? this.entryId,
+      occurredOn: occurredOn ?? this.occurredOn,
+      description: description ?? this.description,
+      counterparty: counterparty ?? this.counterparty,
+      note: note ?? this.note,
+      reversesEntryId: reversesEntryId ?? this.reversesEntryId,
+      supersedesEntryId: supersedesEntryId ?? this.supersedesEntryId,
+      causedByEntryId: causedByEntryId ?? this.causedByEntryId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (entryId.present) {
+      map['entry_id'] = Variable<String>(entryId.value);
+    }
+    if (occurredOn.present) {
+      map['occurred_on'] = Variable<String>(occurredOn.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (counterparty.present) {
+      map['counterparty'] = Variable<String>(counterparty.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (reversesEntryId.present) {
+      map['reverses_entry_id'] = Variable<String>(reversesEntryId.value);
+    }
+    if (supersedesEntryId.present) {
+      map['supersedes_entry_id'] = Variable<String>(supersedesEntryId.value);
+    }
+    if (causedByEntryId.present) {
+      map['caused_by_entry_id'] = Variable<String>(causedByEntryId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EntryDetailsCompanion(')
+          ..write('entryId: $entryId, ')
+          ..write('occurredOn: $occurredOn, ')
+          ..write('description: $description, ')
+          ..write('counterparty: $counterparty, ')
+          ..write('note: $note, ')
+          ..write('reversesEntryId: $reversesEntryId, ')
+          ..write('supersedesEntryId: $supersedesEntryId, ')
+          ..write('causedByEntryId: $causedByEntryId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6103,6 +7737,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'card_figures_by_account',
     'CREATE INDEX card_figures_by_account ON card_figures (account_id, recorded_at_utc)',
   );
+  late final CategoryGroups categoryGroups = CategoryGroups(this);
+  late final Categories categories = Categories(this);
+  late final EntryDetails entryDetails = EntryDetails(this);
+  late final Index entryDetailsByCause = Index(
+    'entry_details_by_cause',
+    'CREATE INDEX entry_details_by_cause ON entry_details (caused_by_entry_id)',
+  );
+  late final Trigger entryDetailsNoUpdate = Trigger(
+    'CREATE TRIGGER entry_details_no_update BEFORE UPDATE ON entry_details BEGIN SELECT RAISE (ABORT, \'journal is append-only\');END',
+    'entry_details_no_update',
+  );
+  late final Trigger entryDetailsNoDelete = Trigger(
+    'CREATE TRIGGER entry_details_no_delete BEFORE DELETE ON entry_details BEGIN SELECT RAISE (ABORT, \'journal is append-only\');END',
+    'entry_details_no_delete',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6133,6 +7782,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     flowMarks,
     cardFigures,
     cardFiguresByAccount,
+    categoryGroups,
+    categories,
+    entryDetails,
+    entryDetailsByCause,
+    entryDetailsNoUpdate,
+    entryDetailsNoDelete,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6174,6 +7829,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'balance_assertions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'entry_details',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'entry_details',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [],
@@ -8118,6 +9787,42 @@ final class $HouseholdsReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<CategoryGroups, List<CategoryGroupRow>>
+  _categoryGroupsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.categoryGroups,
+    aliasName: 'households__id__category_groups__household_id',
+  );
+
+  $CategoryGroupsProcessedTableManager get categoryGroupsRefs {
+    final manager = $CategoryGroupsTableManager(
+      $_db,
+      $_db.categoryGroups,
+    ).filter((f) => f.householdId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_categoryGroupsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<Categories, List<CategoryRow>>
+  _categoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.categories,
+    aliasName: 'households__id__categories__household_id',
+  );
+
+  $CategoriesProcessedTableManager get categoriesRefs {
+    final manager = $CategoriesTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.householdId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_categoriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $HouseholdsFilterComposer extends Composer<_$AppDatabase, Households> {
@@ -8257,6 +9962,56 @@ class $HouseholdsFilterComposer extends Composer<_$AppDatabase, Households> {
           }) => $PlannedFlowsFilterComposer(
             $db: $db,
             $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoryGroupsRefs(
+    Expression<bool> Function($CategoryGroupsFilterComposer f) f,
+  ) {
+    final $CategoryGroupsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryGroups,
+      getReferencedColumn: (t) => t.householdId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoryGroupsFilterComposer(
+            $db: $db,
+            $table: $db.categoryGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoriesRefs(
+    Expression<bool> Function($CategoriesFilterComposer f) f,
+  ) {
+    final $CategoriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.householdId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesFilterComposer(
+            $db: $db,
+            $table: $db.categories,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -8458,6 +10213,56 @@ class $HouseholdsAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> categoryGroupsRefs<T extends Object>(
+    Expression<T> Function($CategoryGroupsAnnotationComposer a) f,
+  ) {
+    final $CategoryGroupsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryGroups,
+      getReferencedColumn: (t) => t.householdId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoryGroupsAnnotationComposer(
+            $db: $db,
+            $table: $db.categoryGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> categoriesRefs<T extends Object>(
+    Expression<T> Function($CategoriesAnnotationComposer a) f,
+  ) {
+    final $CategoriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.householdId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $HouseholdsTableManager
@@ -8479,6 +10284,8 @@ class $HouseholdsTableManager
             bool accountsRefs,
             bool journalEntriesRefs,
             bool plannedFlowsRefs,
+            bool categoryGroupsRefs,
+            bool categoriesRefs,
           })
         > {
   $HouseholdsTableManager(_$AppDatabase db, Households table)
@@ -8535,6 +10342,8 @@ class $HouseholdsTableManager
                 accountsRefs = false,
                 journalEntriesRefs = false,
                 plannedFlowsRefs = false,
+                categoryGroupsRefs = false,
+                categoriesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8543,6 +10352,8 @@ class $HouseholdsTableManager
                     if (accountsRefs) db.accounts,
                     if (journalEntriesRefs) db.journalEntries,
                     if (plannedFlowsRefs) db.plannedFlows,
+                    if (categoryGroupsRefs) db.categoryGroups,
+                    if (categoriesRefs) db.categories,
                   ],
                   addJoins:
                       <
@@ -8646,6 +10457,44 @@ class $HouseholdsTableManager
                           referencedColumn: 'household_id',
                           typedResults: items,
                         ),
+                      if (categoryGroupsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          HouseholdRow,
+                          Households,
+                          CategoryGroupRow,
+                          CategoryGroups
+                        >(
+                          currentTable: table,
+                          referencedTable: $HouseholdsReferences
+                              ._categoryGroupsRefsTable(db),
+                          managerFromTypedResult: (p0) => $HouseholdsReferences(
+                            db,
+                            table,
+                            p0,
+                          ).categoryGroupsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'household_id',
+                          typedResults: items,
+                        ),
+                      if (categoriesRefs)
+                        await $_getPrefetchedDataByColumns<
+                          HouseholdRow,
+                          Households,
+                          CategoryRow,
+                          Categories
+                        >(
+                          currentTable: table,
+                          referencedTable: $HouseholdsReferences
+                              ._categoriesRefsTable(db),
+                          managerFromTypedResult: (p0) => $HouseholdsReferences(
+                            db,
+                            table,
+                            p0,
+                          ).categoriesRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'household_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8672,6 +10521,8 @@ typedef $HouseholdsProcessedTableManager =
         bool accountsRefs,
         bool journalEntriesRefs,
         bool plannedFlowsRefs,
+        bool categoryGroupsRefs,
+        bool categoriesRefs,
       })
     >;
 typedef $MembersCreateCompanionBuilder = MembersCompanion Function({
@@ -9315,6 +11166,23 @@ final class $AccountsReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<Categories, List<CategoryRow>>
+  _categoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.categories,
+    aliasName: 'accounts__id__categories__ledger_account_id',
+  );
+
+  $CategoriesProcessedTableManager get categoriesRefs {
+    final manager = $CategoriesTableManager($_db, $_db.categories).filter(
+      (f) => f.ledgerAccountId.id.sqlEquals($_itemColumn<String>('id')!),
+    );
+
+    final cache = $_typedResult.readTableOrNull(_categoriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $AccountsFilterComposer extends Composer<_$AppDatabase, Accounts> {
@@ -9548,6 +11416,31 @@ class $AccountsFilterComposer extends Composer<_$AppDatabase, Accounts> {
           }) => $CardFiguresFilterComposer(
             $db: $db,
             $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoriesRefs(
+    Expression<bool> Function($CategoriesFilterComposer f) f,
+  ) {
+    final $CategoriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.ledgerAccountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesFilterComposer(
+            $db: $db,
+            $table: $db.categories,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9932,6 +11825,31 @@ class $AccountsAnnotationComposer extends Composer<_$AppDatabase, Accounts> {
     );
     return f(composer);
   }
+
+  Expression<T> categoriesRefs<T extends Object>(
+    Expression<T> Function($CategoriesAnnotationComposer a) f,
+  ) {
+    final $CategoriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.ledgerAccountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $AccountsTableManager
@@ -9956,6 +11874,7 @@ class $AccountsTableManager
             bool balanceAssertionsRefs,
             bool plannedFlowsRefs,
             bool cardFiguresRefs,
+            bool categoriesRefs,
           })
         > {
   $AccountsTableManager(_$AppDatabase db, Accounts table)
@@ -10047,6 +11966,7 @@ class $AccountsTableManager
                 balanceAssertionsRefs = false,
                 plannedFlowsRefs = false,
                 cardFiguresRefs = false,
+                categoriesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -10055,6 +11975,7 @@ class $AccountsTableManager
                     if (balanceAssertionsRefs) db.balanceAssertions,
                     if (plannedFlowsRefs) db.plannedFlows,
                     if (cardFiguresRefs) db.cardFigures,
+                    if (categoriesRefs) db.categories,
                   ],
                   addJoins:
                       <
@@ -10194,6 +12115,22 @@ class $AccountsTableManager
                           referencedColumn: 'account_id',
                           typedResults: items,
                         ),
+                      if (categoriesRefs)
+                        await $_getPrefetchedDataByColumns<
+                          AccountRow,
+                          Accounts,
+                          CategoryRow,
+                          Categories
+                        >(
+                          currentTable: table,
+                          referencedTable: $AccountsReferences
+                              ._categoriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $AccountsReferences(db, table, p0).categoriesRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'ledger_account_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -10223,6 +12160,7 @@ typedef $AccountsProcessedTableManager =
         bool balanceAssertionsRefs,
         bool plannedFlowsRefs,
         bool cardFiguresRefs,
+        bool categoriesRefs,
       })
     >;
 typedef $JournalEntriesCreateCompanionBuilder =
@@ -14032,6 +15970,1670 @@ typedef $CardFiguresProcessedTableManager =
       CardFiguresRow,
       PrefetchHooks Function({bool accountId, bool source})
     >;
+typedef $CategoryGroupsCreateCompanionBuilder =
+    CategoryGroupsCompanion Function({
+      required String id,
+      required String householdId,
+      required String name,
+      required int sortOrder,
+      Value<int?> archivedAtUtc,
+      Value<int> rowid,
+    });
+typedef $CategoryGroupsUpdateCompanionBuilder =
+    CategoryGroupsCompanion Function({
+      Value<String> id,
+      Value<String> householdId,
+      Value<String> name,
+      Value<int> sortOrder,
+      Value<int?> archivedAtUtc,
+      Value<int> rowid,
+    });
+
+final class $CategoryGroupsReferences
+    extends BaseReferences<_$AppDatabase, CategoryGroups, CategoryGroupRow> {
+  $CategoryGroupsReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static Households _householdIdTable(_$AppDatabase db) => db.households
+      .createAlias('category_groups__household_id__households__id');
+
+  $HouseholdsProcessedTableManager get householdId {
+    final $_column = $_itemColumn<String>('household_id')!;
+
+    final manager = $HouseholdsTableManager(
+      $_db,
+      $_db.households,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_householdIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<Categories, List<CategoryRow>>
+  _categoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.categories,
+    aliasName: 'category_groups__id__categories__group_id',
+  );
+
+  $CategoriesProcessedTableManager get categoriesRefs {
+    final manager = $CategoriesTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.groupId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_categoriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $CategoryGroupsFilterComposer
+    extends Composer<_$AppDatabase, CategoryGroups> {
+  $CategoryGroupsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $HouseholdsFilterComposer get householdId {
+    final $HouseholdsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsFilterComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> categoriesRefs(
+    Expression<bool> Function($CategoriesFilterComposer f) f,
+  ) {
+    final $CategoriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $CategoryGroupsOrderingComposer
+    extends Composer<_$AppDatabase, CategoryGroups> {
+  $CategoryGroupsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $HouseholdsOrderingComposer get householdId {
+    final $HouseholdsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsOrderingComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $CategoryGroupsAnnotationComposer
+    extends Composer<_$AppDatabase, CategoryGroups> {
+  $CategoryGroupsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => column,
+  );
+
+  $HouseholdsAnnotationComposer get householdId {
+    final $HouseholdsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsAnnotationComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> categoriesRefs<T extends Object>(
+    Expression<T> Function($CategoriesAnnotationComposer a) f,
+  ) {
+    final $CategoriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoriesAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $CategoryGroupsTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          CategoryGroups,
+          CategoryGroupRow,
+          $CategoryGroupsFilterComposer,
+          $CategoryGroupsOrderingComposer,
+          $CategoryGroupsAnnotationComposer,
+          $CategoryGroupsCreateCompanionBuilder,
+          $CategoryGroupsUpdateCompanionBuilder,
+          (CategoryGroupRow, $CategoryGroupsReferences),
+          CategoryGroupRow,
+          PrefetchHooks Function({bool householdId, bool categoriesRefs})
+        > {
+  $CategoryGroupsTableManager(_$AppDatabase db, CategoryGroups table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $CategoryGroupsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $CategoryGroupsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $CategoryGroupsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> householdId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int?> archivedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryGroupsCompanion(
+                id: id,
+                householdId: householdId,
+                name: name,
+                sortOrder: sortOrder,
+                archivedAtUtc: archivedAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String householdId,
+                required String name,
+                required int sortOrder,
+                Value<int?> archivedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryGroupsCompanion.insert(
+                id: id,
+                householdId: householdId,
+                name: name,
+                sortOrder: sortOrder,
+                archivedAtUtc: archivedAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<CategoryGroups, CategoryGroupRow>(table),
+                  $CategoryGroupsReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({householdId = false, categoriesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (categoriesRefs) db.categories],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (householdId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.householdId,
+                            referencedTable: $CategoryGroupsReferences
+                                ._householdIdTable(db),
+                            referencedColumn: $CategoryGroupsReferences
+                                ._householdIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (categoriesRefs)
+                        await $_getPrefetchedDataByColumns<
+                          CategoryGroupRow,
+                          CategoryGroups,
+                          CategoryRow,
+                          Categories
+                        >(
+                          currentTable: table,
+                          referencedTable: $CategoryGroupsReferences
+                              ._categoriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $CategoryGroupsReferences(
+                                db,
+                                table,
+                                p0,
+                              ).categoriesRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'group_id',
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $CategoryGroupsProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      CategoryGroups,
+      CategoryGroupRow,
+      $CategoryGroupsFilterComposer,
+      $CategoryGroupsOrderingComposer,
+      $CategoryGroupsAnnotationComposer,
+      $CategoryGroupsCreateCompanionBuilder,
+      $CategoryGroupsUpdateCompanionBuilder,
+      (CategoryGroupRow, $CategoryGroupsReferences),
+      CategoryGroupRow,
+      PrefetchHooks Function({bool householdId, bool categoriesRefs})
+    >;
+typedef $CategoriesCreateCompanionBuilder = CategoriesCompanion Function({
+  required String id,
+  required String householdId,
+  required String direction,
+  required String name,
+  required String icon,
+  Value<String?> groupId,
+  required String ledgerAccountId,
+  Value<String?> systemKey,
+  required int sortOrder,
+  required int createdAtUtc,
+  Value<int?> archivedAtUtc,
+  Value<int> rowid,
+});
+typedef $CategoriesUpdateCompanionBuilder = CategoriesCompanion Function({
+  Value<String> id,
+  Value<String> householdId,
+  Value<String> direction,
+  Value<String> name,
+  Value<String> icon,
+  Value<String?> groupId,
+  Value<String> ledgerAccountId,
+  Value<String?> systemKey,
+  Value<int> sortOrder,
+  Value<int> createdAtUtc,
+  Value<int?> archivedAtUtc,
+  Value<int> rowid,
+});
+
+final class $CategoriesReferences
+    extends BaseReferences<_$AppDatabase, Categories, CategoryRow> {
+  $CategoriesReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static Households _householdIdTable(_$AppDatabase db) =>
+      db.households.createAlias('categories__household_id__households__id');
+
+  $HouseholdsProcessedTableManager get householdId {
+    final $_column = $_itemColumn<String>('household_id')!;
+
+    final manager = $HouseholdsTableManager(
+      $_db,
+      $_db.households,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_householdIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static CategoryGroups _groupIdTable(_$AppDatabase db) => db.categoryGroups
+      .createAlias('categories__group_id__category_groups__id');
+
+  $CategoryGroupsProcessedTableManager? get groupId {
+    final $_column = $_itemColumn<String>('group_id');
+    if ($_column == null) return null;
+    final manager = $CategoryGroupsTableManager(
+      $_db,
+      $_db.categoryGroups,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_groupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static Accounts _ledgerAccountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias('categories__ledger_account_id__accounts__id');
+
+  $AccountsProcessedTableManager get ledgerAccountId {
+    final $_column = $_itemColumn<String>('ledger_account_id')!;
+
+    final manager = $AccountsTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ledgerAccountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $CategoriesFilterComposer extends Composer<_$AppDatabase, Categories> {
+  $CategoriesFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get systemKey => $composableBuilder(
+    column: $table.systemKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $HouseholdsFilterComposer get householdId {
+    final $HouseholdsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsFilterComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CategoryGroupsFilterComposer get groupId {
+    final $CategoryGroupsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.categoryGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoryGroupsFilterComposer(
+            $db: $db,
+            $table: $db.categoryGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $AccountsFilterComposer get ledgerAccountId {
+    final $AccountsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ledgerAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $AccountsFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $CategoriesOrderingComposer extends Composer<_$AppDatabase, Categories> {
+  $CategoriesOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get systemKey => $composableBuilder(
+    column: $table.systemKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $HouseholdsOrderingComposer get householdId {
+    final $HouseholdsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsOrderingComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CategoryGroupsOrderingComposer get groupId {
+    final $CategoryGroupsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.categoryGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoryGroupsOrderingComposer(
+            $db: $db,
+            $table: $db.categoryGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $AccountsOrderingComposer get ledgerAccountId {
+    final $AccountsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ledgerAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $AccountsOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $CategoriesAnnotationComposer
+    extends Composer<_$AppDatabase, Categories> {
+  $CategoriesAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get systemKey =>
+      $composableBuilder(column: $table.systemKey, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get archivedAtUtc => $composableBuilder(
+    column: $table.archivedAtUtc,
+    builder: (column) => column,
+  );
+
+  $HouseholdsAnnotationComposer get householdId {
+    final $HouseholdsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.householdId,
+      referencedTable: $db.households,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $HouseholdsAnnotationComposer(
+            $db: $db,
+            $table: $db.households,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CategoryGroupsAnnotationComposer get groupId {
+    final $CategoryGroupsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.categoryGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CategoryGroupsAnnotationComposer(
+            $db: $db,
+            $table: $db.categoryGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $AccountsAnnotationComposer get ledgerAccountId {
+    final $AccountsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ledgerAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $AccountsAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $CategoriesTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          Categories,
+          CategoryRow,
+          $CategoriesFilterComposer,
+          $CategoriesOrderingComposer,
+          $CategoriesAnnotationComposer,
+          $CategoriesCreateCompanionBuilder,
+          $CategoriesUpdateCompanionBuilder,
+          (CategoryRow, $CategoriesReferences),
+          CategoryRow,
+          PrefetchHooks Function({
+            bool householdId,
+            bool groupId,
+            bool ledgerAccountId,
+          })
+        > {
+  $CategoriesTableManager(_$AppDatabase db, Categories table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $CategoriesFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $CategoriesOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $CategoriesAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> householdId = const Value.absent(),
+                Value<String> direction = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
+                Value<String> ledgerAccountId = const Value.absent(),
+                Value<String?> systemKey = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> createdAtUtc = const Value.absent(),
+                Value<int?> archivedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoriesCompanion(
+                id: id,
+                householdId: householdId,
+                direction: direction,
+                name: name,
+                icon: icon,
+                groupId: groupId,
+                ledgerAccountId: ledgerAccountId,
+                systemKey: systemKey,
+                sortOrder: sortOrder,
+                createdAtUtc: createdAtUtc,
+                archivedAtUtc: archivedAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String householdId,
+                required String direction,
+                required String name,
+                required String icon,
+                Value<String?> groupId = const Value.absent(),
+                required String ledgerAccountId,
+                Value<String?> systemKey = const Value.absent(),
+                required int sortOrder,
+                required int createdAtUtc,
+                Value<int?> archivedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoriesCompanion.insert(
+                id: id,
+                householdId: householdId,
+                direction: direction,
+                name: name,
+                icon: icon,
+                groupId: groupId,
+                ledgerAccountId: ledgerAccountId,
+                systemKey: systemKey,
+                sortOrder: sortOrder,
+                createdAtUtc: createdAtUtc,
+                archivedAtUtc: archivedAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<Categories, CategoryRow>(table),
+                  $CategoriesReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                householdId = false,
+                groupId = false,
+                ledgerAccountId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (householdId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.householdId,
+                            referencedTable: $CategoriesReferences
+                                ._householdIdTable(db),
+                            referencedColumn: $CategoriesReferences
+                                ._householdIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (groupId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.groupId,
+                            referencedTable: $CategoriesReferences
+                                ._groupIdTable(db),
+                            referencedColumn: $CategoriesReferences
+                                ._groupIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (ledgerAccountId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.ledgerAccountId,
+                            referencedTable: $CategoriesReferences
+                                ._ledgerAccountIdTable(db),
+                            referencedColumn: $CategoriesReferences
+                                ._ledgerAccountIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $CategoriesProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      Categories,
+      CategoryRow,
+      $CategoriesFilterComposer,
+      $CategoriesOrderingComposer,
+      $CategoriesAnnotationComposer,
+      $CategoriesCreateCompanionBuilder,
+      $CategoriesUpdateCompanionBuilder,
+      (CategoryRow, $CategoriesReferences),
+      CategoryRow,
+      PrefetchHooks Function({
+        bool householdId,
+        bool groupId,
+        bool ledgerAccountId,
+      })
+    >;
+typedef $EntryDetailsCreateCompanionBuilder = EntryDetailsCompanion Function({
+  required String entryId,
+  required String occurredOn,
+  Value<String?> description,
+  Value<String?> counterparty,
+  Value<String?> note,
+  Value<String?> reversesEntryId,
+  Value<String?> supersedesEntryId,
+  Value<String?> causedByEntryId,
+  Value<int> rowid,
+});
+typedef $EntryDetailsUpdateCompanionBuilder = EntryDetailsCompanion Function({
+  Value<String> entryId,
+  Value<String> occurredOn,
+  Value<String?> description,
+  Value<String?> counterparty,
+  Value<String?> note,
+  Value<String?> reversesEntryId,
+  Value<String?> supersedesEntryId,
+  Value<String?> causedByEntryId,
+  Value<int> rowid,
+});
+
+final class $EntryDetailsReferences
+    extends BaseReferences<_$AppDatabase, EntryDetails, EntryDetailsRow> {
+  $EntryDetailsReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static JournalEntries _entryIdTable(_$AppDatabase db) => db.journalEntries
+      .createAlias('entry_details__entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager get entryId {
+    final $_column = $_itemColumn<String>('entry_id')!;
+
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_entryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static JournalEntries _reversesEntryIdTable(_$AppDatabase db) => db
+      .journalEntries
+      .createAlias('entry_details__reverses_entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager? get reversesEntryId {
+    final $_column = $_itemColumn<String>('reverses_entry_id');
+    if ($_column == null) return null;
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_reversesEntryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static JournalEntries _supersedesEntryIdTable(_$AppDatabase db) => db
+      .journalEntries
+      .createAlias('entry_details__supersedes_entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager? get supersedesEntryId {
+    final $_column = $_itemColumn<String>('supersedes_entry_id');
+    if ($_column == null) return null;
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_supersedesEntryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static JournalEntries _causedByEntryIdTable(_$AppDatabase db) => db
+      .journalEntries
+      .createAlias('entry_details__caused_by_entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager? get causedByEntryId {
+    final $_column = $_itemColumn<String>('caused_by_entry_id');
+    if ($_column == null) return null;
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_causedByEntryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $EntryDetailsFilterComposer
+    extends Composer<_$AppDatabase, EntryDetails> {
+  $EntryDetailsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get occurredOn => $composableBuilder(
+    column: $table.occurredOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get counterparty => $composableBuilder(
+    column: $table.counterparty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $JournalEntriesFilterComposer get entryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesFilterComposer get reversesEntryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reversesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesFilterComposer get supersedesEntryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.supersedesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesFilterComposer get causedByEntryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.causedByEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $EntryDetailsOrderingComposer
+    extends Composer<_$AppDatabase, EntryDetails> {
+  $EntryDetailsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get occurredOn => $composableBuilder(
+    column: $table.occurredOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get counterparty => $composableBuilder(
+    column: $table.counterparty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $JournalEntriesOrderingComposer get entryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesOrderingComposer get reversesEntryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reversesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesOrderingComposer get supersedesEntryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.supersedesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesOrderingComposer get causedByEntryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.causedByEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $EntryDetailsAnnotationComposer
+    extends Composer<_$AppDatabase, EntryDetails> {
+  $EntryDetailsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get occurredOn => $composableBuilder(
+    column: $table.occurredOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get counterparty => $composableBuilder(
+    column: $table.counterparty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $JournalEntriesAnnotationComposer get entryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesAnnotationComposer get reversesEntryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reversesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesAnnotationComposer get supersedesEntryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.supersedesEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesAnnotationComposer get causedByEntryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.causedByEntryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $EntryDetailsTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          EntryDetails,
+          EntryDetailsRow,
+          $EntryDetailsFilterComposer,
+          $EntryDetailsOrderingComposer,
+          $EntryDetailsAnnotationComposer,
+          $EntryDetailsCreateCompanionBuilder,
+          $EntryDetailsUpdateCompanionBuilder,
+          (EntryDetailsRow, $EntryDetailsReferences),
+          EntryDetailsRow,
+          PrefetchHooks Function({
+            bool entryId,
+            bool reversesEntryId,
+            bool supersedesEntryId,
+            bool causedByEntryId,
+          })
+        > {
+  $EntryDetailsTableManager(_$AppDatabase db, EntryDetails table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $EntryDetailsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $EntryDetailsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $EntryDetailsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> entryId = const Value.absent(),
+                Value<String> occurredOn = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> counterparty = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> reversesEntryId = const Value.absent(),
+                Value<String?> supersedesEntryId = const Value.absent(),
+                Value<String?> causedByEntryId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EntryDetailsCompanion(
+                entryId: entryId,
+                occurredOn: occurredOn,
+                description: description,
+                counterparty: counterparty,
+                note: note,
+                reversesEntryId: reversesEntryId,
+                supersedesEntryId: supersedesEntryId,
+                causedByEntryId: causedByEntryId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String entryId,
+                required String occurredOn,
+                Value<String?> description = const Value.absent(),
+                Value<String?> counterparty = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> reversesEntryId = const Value.absent(),
+                Value<String?> supersedesEntryId = const Value.absent(),
+                Value<String?> causedByEntryId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EntryDetailsCompanion.insert(
+                entryId: entryId,
+                occurredOn: occurredOn,
+                description: description,
+                counterparty: counterparty,
+                note: note,
+                reversesEntryId: reversesEntryId,
+                supersedesEntryId: supersedesEntryId,
+                causedByEntryId: causedByEntryId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<EntryDetails, EntryDetailsRow>(table),
+                  $EntryDetailsReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                entryId = false,
+                reversesEntryId = false,
+                supersedesEntryId = false,
+                causedByEntryId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (entryId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.entryId,
+                            referencedTable: $EntryDetailsReferences
+                                ._entryIdTable(db),
+                            referencedColumn: $EntryDetailsReferences
+                                ._entryIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (reversesEntryId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.reversesEntryId,
+                            referencedTable: $EntryDetailsReferences
+                                ._reversesEntryIdTable(db),
+                            referencedColumn: $EntryDetailsReferences
+                                ._reversesEntryIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (supersedesEntryId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.supersedesEntryId,
+                            referencedTable: $EntryDetailsReferences
+                                ._supersedesEntryIdTable(db),
+                            referencedColumn: $EntryDetailsReferences
+                                ._supersedesEntryIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (causedByEntryId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.causedByEntryId,
+                            referencedTable: $EntryDetailsReferences
+                                ._causedByEntryIdTable(db),
+                            referencedColumn: $EntryDetailsReferences
+                                ._causedByEntryIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $EntryDetailsProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      EntryDetails,
+      EntryDetailsRow,
+      $EntryDetailsFilterComposer,
+      $EntryDetailsOrderingComposer,
+      $EntryDetailsAnnotationComposer,
+      $EntryDetailsCreateCompanionBuilder,
+      $EntryDetailsUpdateCompanionBuilder,
+      (EntryDetailsRow, $EntryDetailsReferences),
+      EntryDetailsRow,
+      PrefetchHooks Function({
+        bool entryId,
+        bool reversesEntryId,
+        bool supersedesEntryId,
+        bool causedByEntryId,
+      })
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14067,4 +17669,10 @@ class $AppDatabaseManager {
       $FlowMarksTableManager(_db, _db.flowMarks);
   $CardFiguresTableManager get cardFigures =>
       $CardFiguresTableManager(_db, _db.cardFigures);
+  $CategoryGroupsTableManager get categoryGroups =>
+      $CategoryGroupsTableManager(_db, _db.categoryGroups);
+  $CategoriesTableManager get categories =>
+      $CategoriesTableManager(_db, _db.categories);
+  $EntryDetailsTableManager get entryDetails =>
+      $EntryDetailsTableManager(_db, _db.entryDetails);
 }

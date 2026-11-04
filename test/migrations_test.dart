@@ -1,10 +1,12 @@
 import 'package:denezhno/core/database/app_database.dart';
+import 'package:denezhno/core/database/ledger.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'generated_migrations/schema.dart';
+import 'support/v3_fixture.dart';
 
 const latest = AppDatabase.latestSchemaVersion;
 
@@ -39,11 +41,16 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     final all = {for (final e in db.allSchemaEntities) e.entityName};
-    final v1 = AppDatabase.entitiesAddedIn[1]!;
-    final v3 = AppDatabase.entitiesAddedIn[3]!;
-    expect(all.containsAll(v1) && all.containsAll(v3), true);
-    expect(v1.intersection(v3), isEmpty);
-    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3]);
+    final listed = AppDatabase.entitiesAddedIn.values.toList();
+    for (final set in listed) {
+      expect(all.containsAll(set), true);
+    }
+    for (var i = 0; i < listed.length; i++) {
+      for (var j = i + 1; j < listed.length; j++) {
+        expect(listed[i].intersection(listed[j]), isEmpty);
+      }
+    }
+    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3, 4]);
   });
 
   test('v1 snapshot upgrades to latest without losing settings', () async {
@@ -61,10 +68,14 @@ void main() {
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
     expect((await db.select(db.appSettings).get()).single.valueJson, '"dark"');
-    expect(await history(db), [1, 2, 3]);
+    expect(await history(db), [1, 2, 3, 4]);
     expect(await db.select(db.households).get(), hasLength(1));
     final system = await db.select(db.accounts).get();
-    expect({for (final a in system) a.kind}, {'opening_equity', 'suspense'});
+    expect(
+      {for (final a in system) a.kind},
+      {'opening_equity', 'suspense', 'income', 'expense'},
+    );
+    expect(await db.select(db.categories).get(), hasLength(14));
     expect(await db.select(db.flowKinds).get(), hasLength(8));
   });
 
@@ -102,8 +113,14 @@ void main() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
-    expect(await history(db), [2, 3]);
-    expect((await db.select(db.accounts).get()).single.name, 'Сбер');
+    expect(await history(db), [2, 3, 4]);
+    expect(
+      (await db.select(db.accounts).get())
+          .where((a) => a.kind == 'credit_card')
+          .single
+          .name,
+      'Сбер',
+    );
     // v3 reference data was seeded; v2 data was not re-seeded.
     expect(await db.select(db.flowKinds).get(), hasLength(8));
     expect(await db.select(db.households).get(), hasLength(1));
@@ -133,6 +150,86 @@ void main() {
     expect(ok([3], 3), true);
     expect(ok([1, 3], 3), false);
     expect(ok([1, 2], 3), false);
+    expect(ok([1, 2, 3, 4], 4), true);
+    expect(ok([3, 4], 4), true);
+    expect(ok([1, 2, 4], 4), false);
     expect(AppDatabase.isReleasedHistory([(3, 'x' * 64)], 3), false);
+  });
+
+  group('v3 database from the phone (realistic data)', () {
+    Future<Map<String, List<Map<String, Object?>>>> dump(
+      Future<List<Map<String, Object?>>> Function(String sql) query,
+    ) async => {
+      for (final t in V3.userTables)
+        t: await query('SELECT * FROM "$t" ORDER BY rowid'),
+    };
+
+    test(
+      'upgrades to v4: every row kept, categories added, no new entries',
+      () async {
+        final schema = await verifier.schemaAt(3);
+        V3.create(schema.rawDatabase);
+        final before = await dump(
+          (sql) async => [
+            for (final r in schema.rawDatabase.select(sql))
+              {for (final c in r.keys) c: r[c]},
+          ],
+        );
+        final db = AppDatabase(schema.newConnection());
+        addTearDown(db.close);
+        await verifier.migrateAndValidate(db, latest);
+        expect(await history(db), [1, 2, 3, 4]);
+
+        final after = await dump(
+          (sql) async => [
+            for (final r in await db.customSelect(sql).get()) r.data,
+          ],
+        );
+        for (final t in V3.userTables) {
+          if (t == 'accounts') continue;
+          expect(after[t], before[t], reason: t);
+        }
+        // Accounts: the old ones untouched, plus one internal per category.
+        expect(after['accounts']!.take(5).toList(), before['accounts']);
+        final added = after['accounts']!.skip(5).toList();
+        expect(added, hasLength(14));
+        expect({for (final a in added) a['kind']}, {'income', 'expense'});
+
+        // Balances unchanged: the migration posts nothing.
+        final sums = {
+          for (final r
+              in await db
+                  .customSelect(
+                    'SELECT account_id, SUM(amount_minor) AS s FROM postings '
+                    'GROUP BY account_id',
+                  )
+                  .get())
+            r.read<String>('account_id'): r.read<int>('s'),
+        };
+        expect(sums, V3.balances);
+
+        final categories = await db.select(db.categories).get();
+        expect(categories, hasLength(14));
+        expect(
+          categories.where((c) => c.systemKey == 'salary').single.name,
+          'Зарплата',
+        );
+        for (final c in categories) {
+          final a = added.singleWhere((a) => a['id'] == c.ledgerAccountId);
+          expect(a['kind'], c.direction);
+        }
+        // Category accounts never appear as the person's accounts.
+        expect(
+          [for (final a in await Ledger(db).accounts()) a.name],
+          ['Сбер', 'Кредитка Альфа', 'Подушка'],
+        );
+
+        // Running the data step again (a retried migration or a restored
+        // backup that already has them) adds nothing.
+        await db.upgradeDataTo(3);
+        expect(await db.select(db.categories).get(), hasLength(14));
+        expect(await db.select(db.accounts).get(), hasLength(19));
+      },
+    );
   });
 }

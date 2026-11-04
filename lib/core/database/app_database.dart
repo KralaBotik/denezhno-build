@@ -38,6 +38,40 @@ const flowKindSeed = {
   'other_payment': 'outflow',
 };
 
+/// v4: internal accounts behind categories (temporary equity accounts in
+/// bookkeeping terms; never shown as accounts) and the kinds of operations.
+const accountKindSeedV4 = {'income': 'equity', 'expense': 'equity'};
+const entryKindSeedV4 = [
+  'income',
+  'expense',
+  'transfer',
+  'refund',
+  'reversal',
+  'anchor_correction',
+  'reclass',
+];
+
+/// Default categories: (system key, direction, name, icon key).
+const defaultCategories = [
+  ('groceries', 'expense', 'Продукты', 'cart'),
+  ('cafe', 'expense', 'Кафе и рестораны', 'cafe'),
+  ('transport', 'expense', 'Транспорт', 'car'),
+  ('home', 'expense', 'Дом и ЖКХ', 'house'),
+  ('communication', 'expense', 'Связь и интернет', 'phone'),
+  ('health', 'expense', 'Здоровье', 'heart'),
+  ('clothes', 'expense', 'Одежда', 'bag'),
+  ('fun', 'expense', 'Развлечения', 'film'),
+  ('subscriptions', 'expense', 'Подписки', 'repeat'),
+  ('gifts', 'expense', 'Подарки', 'gift'),
+  ('fees', 'expense', 'Проценты и комиссии', 'percent'),
+  ('other_expense', 'expense', 'Прочие расходы', 'ellipsis'),
+  ('salary', 'income', 'Зарплата', 'briefcase'),
+  ('other_income', 'income', 'Прочие доходы', 'plus'),
+];
+
+/// Technical name of a category's internal ledger account (never shown).
+const categoryAccountName = 'Внутренний счёт категории';
+
 /// Default «неприкосновенный» reserve: 10 000 ₽ (owner decision, R2 plan).
 const defaultReserveMinor = 1000000;
 
@@ -54,11 +88,18 @@ class AppDatabase extends _$AppDatabase {
   static const schemaV2Checksum =
       '74cd8e6c76fafe812b8ae5a94f2025d55afdb33756b0bf141f514e14f1230b6a';
 
-  /// SHA-256 of the current schema.drift (v3). A test recomputes it.
+  /// SHA-256 of schema.drift as released at v3 (R2 step 2). Historical.
   static const schemaV3Checksum =
       '26e2a1bfbb16f4f5da74cb86edbf1710c08981e0e7f795ee138efa5544a50112';
 
-  static const latestSchemaVersion = 3;
+  /// SHA-256 of the current schema.drift (v4). A test recomputes it.
+  static const schemaV4Checksum =
+      '436482421afc66175266e62d7bcabf77cdb1cefffcc0430a41261fd97efc26fd';
+
+  static const latestSchemaVersion = 4;
+
+  /// Checksum recorded for the current schema version.
+  static String get latestChecksum => releasedChecksums[latestSchemaVersion]!;
   static const _appVersion = '0.3.0+3';
 
   /// Released schema versions and the checksum recorded for each.
@@ -66,6 +107,7 @@ class AppDatabase extends _$AppDatabase {
     1: schemaV1Checksum,
     2: schemaV2Checksum,
     3: schemaV3Checksum,
+    4: schemaV4Checksum,
   };
 
   /// Which schema entities each version introduced. Every entity belongs to
@@ -79,14 +121,22 @@ class AppDatabase extends _$AppDatabase {
       'card_figures',
       'card_figures_by_account',
     },
+    4: {
+      'category_groups',
+      'categories',
+      'entry_details',
+      'entry_details_by_cause',
+      'entry_details_no_update',
+      'entry_details_no_delete',
+    },
   };
+
+  /// v2 introduced everything not listed for another version.
   static Set<String> _introducedIn(int version, Iterable<String> all) =>
       version == 2
       ? {
           for (final name in all)
-            if (!entitiesAddedIn[1]!.contains(name) &&
-                !entitiesAddedIn[3]!.contains(name))
-              name,
+            if (!entitiesAddedIn.values.any((s) => s.contains(name))) name,
         }
       : entitiesAddedIn[version]!;
 
@@ -99,6 +149,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await _seedV2();
       await _seedV3();
+      await _seedV4();
       await _recordVersion(
         latestSchemaVersion,
         releasedChecksums[latestSchemaVersion]!,
@@ -127,6 +178,7 @@ class AppDatabase extends _$AppDatabase {
           }
           if (version == 2) await _seedV2();
           if (version == 3) await _seedV3();
+          if (version == 4) await _seedV4();
           await _recordVersion(version, releasedChecksums[version]!);
         }
         await customStatement('PRAGMA user_version = $to');
@@ -178,6 +230,76 @@ class AppDatabase extends _$AppDatabase {
           appVersion: _appVersion,
         ),
       );
+
+  /// v4 reference rows, then the data step shared with restoring an older
+  /// backup ([upgradeDataTo]).
+  Future<void> _seedV4() async {
+    for (final e in accountKindSeedV4.entries) {
+      await into(accountKinds)
+          .insert(AccountKindsCompanion.insert(kind: e.key, nature: e.value));
+    }
+    for (final k in entryKindSeedV4) {
+      await into(entryKinds).insert(EntryKindsCompanion.insert(kind: k));
+    }
+    await _dataV4();
+  }
+
+  /// Default categories for every household that does not have them yet.
+  /// Idempotent: a repeated run (or a restored backup that already has them)
+  /// adds nothing.
+  Future<void> _dataV4() async {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    for (final household in await select(households).get()) {
+      final existing = {
+        for (final c in await (select(
+          categories,
+        )..where((c) => c.householdId.equals(household.id))).get())
+          c.systemKey,
+      };
+      var order = 0;
+      for (final (key, direction, name, icon) in defaultCategories) {
+        order++;
+        if (existing.contains(key)) continue;
+        final account = newUuid();
+        await into(accounts).insert(
+          AccountsCompanion.insert(
+            id: account,
+            householdId: household.id,
+            kind: direction,
+            name: categoryAccountName,
+            currency: household.baseCurrency,
+            visibility: 'shared',
+            isProtected: 0,
+            sortOrder: 0,
+            createdAtUtc: now,
+          ),
+        );
+        await into(categories).insert(
+          CategoriesCompanion.insert(
+            id: newUuid(),
+            householdId: household.id,
+            direction: direction,
+            name: name,
+            icon: icon,
+            ledgerAccountId: account,
+            systemKey: Value(key),
+            sortOrder: order,
+            createdAtUtc: now,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Brings data restored from an older backup (schema [from]) to the current
+  /// version with the same data steps the migration runs. Reference data is
+  /// already current (it comes with this schema).
+  Future<void> upgradeDataTo(int from) async {
+    if (from < 3 || from > latestSchemaVersion) {
+      throw StateError('Unsupported backup schema');
+    }
+    if (from < 4) await _dataV4();
+  }
 
   Future<void> _seedV3() async {
     for (final e in flowKindSeed.entries) {

@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'generated_migrations/schema_v1.dart' as v1;
+import 'generated_migrations/schema_v3.dart' as v3;
+import 'support/v3_fixture.dart';
 
 const _key = '0202020202020202020202020202020202020202020202020202020202020202';
 
@@ -73,6 +75,90 @@ void main() {
     await again.close();
     expect(backup.lastModifiedSync(), modified);
   });
+
+  /// The phone's real case: an encrypted v3 file with financial data.
+  Future<void> createV3File() async {
+    final db = v3.DatabaseAtV3(await encryptedConnection(file, _key));
+    await db.customSelect('SELECT 1').get(); // creates the v3 tables
+    await db.close();
+    final raw = sqlite3.open(file.path);
+    try {
+      configureEncryptedDatabase(raw, _key);
+      raw.execute('BEGIN');
+      V3.create(raw);
+      raw.execute('COMMIT');
+    } finally {
+      raw.close();
+    }
+  }
+
+  Map<String, List<Map<String, Object?>>> rawDump(String path) {
+    final raw = sqlite3.open(path);
+    try {
+      configureEncryptedDatabase(raw, _key);
+      return {
+        for (final t in V3.userTables)
+          t: [
+            for (final r in raw.select('SELECT * FROM "$t" ORDER BY rowid'))
+              {for (final c in r.keys) c: r[c]},
+          ],
+      };
+    } finally {
+      raw.close();
+    }
+  }
+
+  test(
+    'v3 file: a failed upgrade leaves v3 intact; the retry succeeds once',
+    () async {
+      await createV3File();
+      expect(rawUserVersion(file.path), 3);
+      final before = rawDump(file.path);
+
+      final failing = AppDatabase(
+        (await encryptedConnection(file, _key)).interceptWith(_FailUpgrade()),
+      );
+      await expectLater(
+        failing.customSelect('SELECT 1').get(),
+        throwsA(anything),
+      );
+      await failing.close();
+      // Rolled back completely: still v3, no v4 tables, data identical.
+      expect(rawUserVersion(file.path), 3);
+      expect(rawDump(file.path), before);
+      final raw = sqlite3.open(file.path);
+      try {
+        configureEncryptedDatabase(raw, _key);
+        expect(
+          raw.select(
+            "SELECT name FROM sqlite_master WHERE name = 'categories'",
+          ),
+          isEmpty,
+        );
+      } finally {
+        raw.close();
+      }
+      // The encrypted pre-migration copy is the v3 database.
+      final copy = File('${file.path}.pre-v3.bak');
+      expect(copy.existsSync(), true);
+      expect(rawUserVersion(copy.path), 3);
+      expect(rawDump(copy.path), before);
+
+      // Retry: upgrades once, keeps every row, adds categories once.
+      for (var run = 0; run < 2; run++) {
+        final db = AppDatabase(await encryptedConnection(file, _key));
+        await db.customSelect('SELECT 1').get();
+        expect(await db.select(db.categories).get(), hasLength(14));
+        expect(await db.select(db.journalEntries).get(), hasLength(4));
+        await db.close();
+      }
+      expect(rawUserVersion(file.path), AppDatabase.latestSchemaVersion);
+      final after = rawDump(file.path);
+      for (final t in V3.userTables.where((t) => t != 'accounts')) {
+        expect(after[t], before[t], reason: t);
+      }
+    },
+  );
 
   test('failed upgrade rolls back to intact v1; copy remains', () async {
     await createV1File();

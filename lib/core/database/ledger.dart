@@ -13,8 +13,6 @@ final class Ledger {
   Ledger(this.db);
   final AppDatabase db;
 
-  static const _systemKinds = {'opening_equity', 'suspense'};
-
   Future<HouseholdRow> _household() => db.select(db.households).getSingle();
 
   Future<AccountRow> _systemAccount(String kind) =>
@@ -38,7 +36,11 @@ final class Ledger {
     final rows =
         await (db.select(db.accounts)
               ..where(
-                (a) => a.archivedAtUtc.isNull() & a.kind.isNotIn(_systemKinds),
+                (a) =>
+                    a.archivedAtUtc.isNull() &
+                    a.kind.isIn([
+                      for (final k in AccountKind.values) k.dbValue,
+                    ]),
               )
               ..orderBy([
                 (a) => OrderingTerm.asc(a.sortOrder),

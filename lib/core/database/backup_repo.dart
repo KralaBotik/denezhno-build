@@ -10,8 +10,17 @@ import 'app_database.dart';
 const backupPayloadVersion = 1;
 
 /// Database schema versions whose payload this app can restore. A payload
-/// from a newer schema is refused; older ones need an explicit converter.
-const restorableSchemaVersions = {3};
+/// from a newer schema is refused; an older one is inserted as is and then
+/// brought to the current version by the migration's own data steps
+/// ([AppDatabase.upgradeDataTo]).
+const restorableSchemaVersions = {3, 4};
+
+/// Tables each payload version contains (older payloads lack newer tables).
+const _tablesSince = {
+  'category_groups': 4,
+  'categories': 4,
+  'entry_details': 4,
+};
 
 /// Every table with user data, in foreign-key order (parents first).
 /// Reference tables (currencies, kinds, sources) are recreated by the schema;
@@ -20,8 +29,11 @@ const backupTables = [
   'households',
   'members',
   'accounts',
+  'category_groups',
+  'categories',
   'journal_entries',
   'postings',
+  'entry_details',
   'balance_assertions',
   'planned_flows',
   'flow_marks',
@@ -74,8 +86,8 @@ final class BackupRepo {
         (SELECT COUNT(*) FROM balance_assertions) +
         (SELECT COUNT(*) FROM planned_flows) +
         (SELECT COUNT(*) FROM card_figures) +
-        (SELECT COUNT(*) FROM accounts
-           WHERE kind NOT IN ('opening_equity', 'suspense')) AS n
+        (SELECT COUNT(*) FROM accounts a JOIN account_kinds k ON k.kind = a.kind
+           WHERE k.nature IN ('asset', 'liability')) AS n
     ''').getSingle();
     return checks.read<int>('n') == 0;
   }
@@ -90,10 +102,12 @@ final class BackupRepo {
     final data = _parse(payload);
     await db.transaction(() async {
       if (!await isEmpty()) throw const RestoreTargetNotEmpty();
-      // Remove the seed (household, member, system accounts, settings); the
-      // backup brings its own with the same stable IDs.
+      // Remove the seed (household, member, system and category accounts,
+      // categories, settings); the backup brings its own with the same IDs.
       for (final name in [
         'app_settings',
+        'categories',
+        'category_groups',
         'accounts',
         'members',
         'households',
@@ -102,15 +116,21 @@ final class BackupRepo {
       }
       for (final name in backupTables) {
         final table = _table(name);
-        for (final row in data[name]!) {
+        for (final row in data.tables[name]!) {
           await db.into(table).insert(table.map(row) as Insertable<dynamic>);
         }
       }
-      await _verify(data);
+      await _verify(data.tables);
+      // An older backup: the same data steps as the migration.
+      if (data.schemaVersion < AppDatabase.latestSchemaVersion) {
+        await db.upgradeDataTo(data.schemaVersion);
+      }
     });
   }
 
-  Map<String, List<Map<String, Object?>>> _parse(Uint8List payload) {
+  ({int schemaVersion, Map<String, List<Map<String, Object?>>> tables}) _parse(
+    Uint8List payload,
+  ) {
     final Object? json;
     try {
       json = jsonDecode(utf8.decode(payload));
@@ -129,8 +149,14 @@ final class BackupRepo {
     if (tables is! Map<String, Object?> || counts is! Map<String, Object?>) {
       throw const IncompleteBackup();
     }
+    final version = json['schemaVersion']! as int;
     final result = <String, List<Map<String, Object?>>>{};
     for (final name in backupTables) {
+      if ((_tablesSince[name] ?? 0) > version) {
+        if (tables.containsKey(name)) throw const IncompleteBackup();
+        result[name] = const [];
+        continue;
+      }
       final rows = tables[name];
       if (rows is! List || counts[name] != rows.length) {
         throw const IncompleteBackup();
@@ -143,7 +169,7 @@ final class BackupRepo {
     if (result['households']!.length != 1 || result['members']!.isEmpty) {
       throw const IncompleteBackup();
     }
-    return result;
+    return (schemaVersion: version, tables: result);
   }
 
   Future<void> _verify(Map<String, List<Map<String, Object?>>> data) async {

@@ -175,3 +175,58 @@ CREATE TABLE card_figures (
 ) AS CardFiguresRow;
 
 CREATE INDEX card_figures_by_account ON card_figures (account_id, recorded_at_utc);
+
+-- ===== Schema v4 (R3 Э2: категории и операции в журнале) =====
+-- Categories the person sees are separate from the bookkeeping: each one is
+-- backed 1:1 by an internal ledger account (kind income/expense, never shown).
+-- Renaming, icon and group change only here; postings are never touched.
+
+CREATE TABLE category_groups (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40),
+  sort_order INTEGER NOT NULL CHECK (typeof(sort_order) = 'integer'),
+  archived_at_utc INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer')
+) AS CategoryGroupRow;
+
+CREATE TABLE categories (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  direction TEXT NOT NULL CHECK (direction IN ('expense', 'income')),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40),
+  icon TEXT NOT NULL CHECK (length(icon) BETWEEN 1 AND 40),
+  group_id TEXT REFERENCES category_groups(id),
+  ledger_account_id TEXT NOT NULL UNIQUE REFERENCES accounts(id),
+  -- Stable key of a default category ('salary', 'groceries', ...) so the app
+  -- finds «Зарплата» even after the person renames it. NULL for own ones.
+  system_key TEXT CHECK (system_key IS NULL OR length(system_key) BETWEEN 1 AND 40),
+  sort_order INTEGER NOT NULL CHECK (typeof(sort_order) = 'integer'),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  archived_at_utc INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer'),
+  UNIQUE (household_id, system_key)
+) AS CategoryRow;
+
+-- What an entry means for the person: the calendar date of the operation,
+-- a description, and links. Append-only like the journal.
+--  reverses_entry_id: this entry cancels that one (UNIQUE: at most once).
+--  supersedes_entry_id: this entry replaces that one after an edit.
+--  caused_by_entry_id: an anchor correction made for that operation.
+CREATE TABLE entry_details (
+  entry_id TEXT NOT NULL PRIMARY KEY REFERENCES journal_entries(id),
+  occurred_on TEXT NOT NULL CHECK (length(occurred_on) = 10 AND date(occurred_on) = occurred_on),
+  description TEXT CHECK (description IS NULL OR length(description) <= 200),
+  counterparty TEXT CHECK (counterparty IS NULL OR length(counterparty) <= 100),
+  note TEXT CHECK (note IS NULL OR length(note) <= 500),
+  reverses_entry_id TEXT UNIQUE REFERENCES journal_entries(id),
+  supersedes_entry_id TEXT UNIQUE REFERENCES journal_entries(id),
+  caused_by_entry_id TEXT REFERENCES journal_entries(id),
+  CHECK (reverses_entry_id IS NULL OR reverses_entry_id <> entry_id),
+  CHECK (supersedes_entry_id IS NULL OR supersedes_entry_id <> entry_id)
+) AS EntryDetailsRow;
+
+CREATE INDEX entry_details_by_cause ON entry_details (caused_by_entry_id);
+
+CREATE TRIGGER entry_details_no_update BEFORE UPDATE ON entry_details
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+CREATE TRIGGER entry_details_no_delete BEFORE DELETE ON entry_details
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;

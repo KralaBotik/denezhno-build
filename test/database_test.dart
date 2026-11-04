@@ -74,7 +74,7 @@ void main() {
       );
       final history = await db.select(db.schemaMigrations).get();
       expect(history.single.version, AppDatabase.latestSchemaVersion);
-      expect(history.single.schemaChecksum, AppDatabase.schemaV3Checksum);
+      expect(history.single.schemaChecksum, AppDatabase.latestChecksum);
       expect(await db.select(db.households).get(), hasLength(1));
     },
   );
@@ -84,7 +84,7 @@ void main() {
       sha256
           .convert(await File('lib/core/database/schema.drift').readAsBytes())
           .toString(),
-      AppDatabase.schemaV3Checksum,
+      AppDatabase.latestChecksum,
     );
   });
 

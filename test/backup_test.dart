@@ -14,7 +14,11 @@ import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/forecast/safe_to_spend.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
+import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'generated_migrations/schema.dart';
+import 'support/v3_fixture.dart';
 
 // Two «devices»: different directories and different Keychain keys.
 const _keyA =
@@ -181,6 +185,90 @@ void main() {
       await b.store.close();
       expect(await b.store.open(), AppTheme.dark);
       expect((await b.store.accounts()).length, 3);
+    },
+  );
+
+  test(
+    'a v3 backup (made before the update) restores like the migration',
+    () async {
+      final verifier = SchemaVerifier(
+        GeneratedHelper(),
+        setup: (db) => db.execute('PRAGMA foreign_keys = ON'),
+      );
+      // The backup file the R2 app (schema v3) would have produced.
+      final source = await verifier.schemaAt(3);
+      V3.create(source.rawDatabase);
+      const v3Tables = [
+        'households',
+        'members',
+        'accounts',
+        'journal_entries',
+        'postings',
+        'balance_assertions',
+        'planned_flows',
+        'flow_marks',
+        'card_figures',
+        'app_settings',
+      ];
+      final tables = {
+        for (final t in v3Tables)
+          t: [
+            for (final r in source.rawDatabase.select(
+              'SELECT * FROM "$t" ORDER BY rowid',
+            ))
+              {for (final c in r.keys) c: r[c]},
+          ],
+      };
+      final payload = utf8.encode(
+        jsonEncode({
+          'format': 'denezhno-backup',
+          'payloadVersion': 1,
+          'schemaVersion': 3,
+          'createdAtUtc': 0,
+          'counts': {for (final e in tables.entries) e.key: e.value.length},
+          'tables': tables,
+        }),
+      );
+      final file = encryptBackup(Uint8List.fromList(payload), _password);
+      await b.store.restoreBackup(file, _password);
+
+      // The same fixture migrated on the phone.
+      final migrated = AppDatabase(source.newConnection());
+      await migrated.customSelect('SELECT 1').get();
+      final expected = jsonDecode(
+        utf8.decode(await BackupRepo(migrated).exportPayload(DateTime(2026))),
+      ) as Map<String, Object?>;
+      await migrated.close();
+      final restored = await b.dump();
+      final want = expected['tables']! as Map<String, Object?>;
+      for (final t in v3Tables.where((t) => t != 'accounts')) {
+        expect(restored[t], want[t], reason: t);
+      }
+      // Same accounts; categories created once, as by the migration.
+      List<Object?> people(Object? rows) => [
+        for (final r in rows! as List)
+          if (!{'income', 'expense'}.contains((r as Map)['kind'])) r,
+      ];
+      expect(people(restored['accounts']), people(want['accounts']));
+      List<Object?> names(Object? rows) => [
+        for (final r in rows! as List) [(r as Map)['system_key'], r['name']],
+      ];
+      expect(names(restored['categories']), names(want['categories']));
+      expect((restored['categories']! as List).length, 14);
+      expect(restored['entry_details'], isEmpty); // nothing was posted
+
+      // The person sees the same accounts, balances and forecast.
+      final accounts = await b.store.accounts();
+      expect(
+        [for (final x in accounts) (x.name, x.amount)],
+        [
+          ('Сбер', Money(2873152)),
+          ('Кредитка Альфа', Money(1629654)),
+          ('Подушка', Money(15000000)),
+        ],
+      );
+      expect(await b.store.open(), AppTheme.dark);
+      expect(await b.store.canRestore(), false);
     },
   );
 
