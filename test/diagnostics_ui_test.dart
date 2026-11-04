@@ -187,7 +187,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.events.where((e) => e == 'open'), hasLength(2));
     expect(store.events, isNot(contains('delete')));
-    expect(find.textContaining('Настройки сохраняются'), findsOneWidget);
+    expect(
+      find.textContaining('Защищённое хранилище недоступно'),
+      findsNothing,
+    );
   });
   testWidgets('settings has a diagnostics section after a successful start '
       'and keeps an earlier failure', (tester) async {
@@ -198,7 +201,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('open.settings')));
     await tester.pumpAndSettle();
-    expect(find.text('Диагностика'), findsOneWidget);
+    // Diagnostics are not in everyday settings, but in «Для разработчика».
+    expect(find.byKey(const ValueKey('diagnostics.report')), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings.developer')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings.developer')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.developer')), findsOneWidget);
     final shown = tester
         .widget<Text>(
           find.descendant(

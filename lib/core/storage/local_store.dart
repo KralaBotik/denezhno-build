@@ -186,4 +186,14 @@ final class LocalStore
           payload.fillRange(0, payload.length, 0);
         }
       });
+
+  @override
+  Future<void> updateAccountDetails(
+    String accountId, {
+    required String name,
+    Money? creditLimit,
+  }) => _serial(
+    () => Ledger(_open())
+        .updateAccountDetails(accountId, name: name, creditLimit: creditLimit),
+  );
 }

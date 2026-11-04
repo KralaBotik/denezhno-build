@@ -140,3 +140,20 @@ jobs:
         # Watchdog: повтор только при «тихом» зависании без результата (см. скрипт);
         # настоящие падения теста не повторяются.
         run: tool/ci/run-simulator-test.sh 720
+      - name: Screenshots on iOS Simulator (best effort)
+        if: success()
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          # Синтетические данные и хранилища в памяти; реальная база не трогается.
+          mkdir -p "$RUNNER_TEMP/screens"
+          flutter test integration_test/screenshots_test.dart -d "$SIM_UDID" \
+            --dart-define=SCREENS_DIR="$RUNNER_TEMP/screens"
+          ls -1 "$RUNNER_TEMP/screens"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: simulator-screenshots
+          path: ${{ runner.temp }}/screens
+          if-no-files-found: warn
+          retention-days: 14

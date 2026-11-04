@@ -22,6 +22,13 @@ class _Prefs implements PreferencesStore {
 /// real encrypted database in ledger_test.dart.
 class FakeAccounts implements AccountsStore {
   @override
+  Future<void> updateAccountDetails(
+    String accountId, {
+    required String name,
+    Money? creditLimit,
+  }) async {}
+
+  @override
   Future<void> setIncludedInForecast(String id, bool included) async {
     final i = list.indexWhere((a) => a.id == id);
     final a = list[i];
@@ -248,7 +255,7 @@ void main() {
       );
     await openAccounts(tester, store);
     await tapKey(tester, 'account.g');
-    expect(find.text('Учитывать в «можно потратить»'), findsOneWidget);
+    expect(find.text('Учитывать в «можно потратить»'), findsWidgets);
     await tapKey(tester, 'account.included');
     expect(store.list.single.isProtected, true);
     await tester.tap(find.byType(CupertinoNavigationBarBackButton));

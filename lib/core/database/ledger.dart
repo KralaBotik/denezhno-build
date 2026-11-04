@@ -270,4 +270,34 @@ final class Ledger {
       AccountsCompanion(isProtected: Value(included ? 0 : 1)),
     );
   }
+
+  Future<void> updateAccountDetails(
+    String id, {
+    required String name,
+    Money? creditLimit,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed.length > 60) {
+      throw ArgumentError('Invalid name');
+    }
+    final row = await (db.select(
+      db.accounts,
+    )..where((a) => a.id.equals(id))).getSingleOrNull();
+    final kind = row == null ? null : AccountKind.fromDb(row.kind);
+    if (kind == null || row!.archivedAtUtc != null) {
+      throw ArgumentError('Unknown account');
+    }
+    if (creditLimit != null &&
+        (kind != AccountKind.creditCard || creditLimit.minorUnits < 0)) {
+      throw ArgumentError('Invalid credit limit');
+    }
+    await (db.update(db.accounts)..where((a) => a.id.equals(id))).write(
+      AccountsCompanion(
+        name: Value(trimmed),
+        creditLimitMinor: Value(
+          kind == AccountKind.creditCard ? creditLimit?.minorUnits : null,
+        ),
+      ),
+    );
+  }
 }

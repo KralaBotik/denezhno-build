@@ -24,6 +24,13 @@ class _Prefs implements PreferencesStore {
 
 class _Accounts implements AccountsStore {
   @override
+  Future<void> updateAccountDetails(
+    String accountId, {
+    required String name,
+    Money? creditLimit,
+  }) async {}
+
+  @override
   Future<void> setIncludedInForecast(String id, bool included) async {}
 
   _Accounts(this.list);
@@ -53,6 +60,17 @@ AccountSummary acc(String name, AccountKind kind, int rubles) => AccountSummary(
   isProtected: false,
   lastUpdatedAt: DateTime.now(),
 );
+
+/// Plain text of a MoneyText (rich text with smaller kopecks).
+String plain(WidgetTester tester, String key) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(Text),
+      ),
+    )
+    .textSpan!
+    .toPlainText();
 
 void main() {
   Future<_Household> launch(
@@ -112,12 +130,15 @@ void main() {
       payments: payments,
     );
     // 30 700 − 700 − 10 000 reserve = 20 000; 10 days → 2 000 per day.
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('home.available'))).data,
-      '20${nb}000$nb₽',
-    );
-    expect(find.text('≈ 2${nb}000$nb₽ в день · дней: 10'), findsOneWidget);
-    expect(find.textContaining('Можно потратить до зарплаты'), findsOneWidget);
+    expect(plain(tester, 'home.available'), '20${nb}000$nb₽');
+    expect(find.text('≈ 2${nb}000$nb₽ в день · 10 дн.'), findsOneWidget);
+    expect(find.textContaining('Можно потратить до '), findsOneWidget);
+    expect(find.text('Точный расчёт'), findsOneWidget);
+    // «Как считаем» is collapsed until tapped.
+    expect(find.text('Платежи до этой даты: 1'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('home.breakdown')));
+    await tester.tap(find.byKey(const ValueKey('home.breakdown')));
+    await tester.pumpAndSettle();
     expect(find.text('Платежи до этой даты: 1'), findsOneWidget);
     expect(find.text('Резерв (не трогаем)'), findsOneWidget);
     expect(find.text('Интернет'), findsWidgets);
@@ -131,12 +152,14 @@ void main() {
       accounts: [acc('Карта', AccountKind.debit, 4000)],
       payments: FakePayments(),
     );
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('home.available'))).data,
-      'Не хватает 6${nb}000$nb₽',
-    );
-    expect(find.textContaining('Зарплата не указана'), findsOneWidget);
-    expect(find.text('Можно потратить до конца месяца'), findsOneWidget);
+    expect(plain(tester, 'home.available'), '6${nb}000$nb₽');
+    expect(find.text('До конца месяца не хватает'), findsOneWidget);
+    // Missing salary makes the figure preliminary, with a one-tap fix.
+    expect(find.text('Предварительный расчёт'), findsOneWidget);
+    expect(find.text('Укажите зарплату — дату и сумму'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('fix.salary')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.flowEdit')), findsOneWidget);
   });
 
   testWidgets('reserve is edited in Settings and changes the figure', (
@@ -152,15 +175,14 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('reserve.edit')));
     await tester.tap(find.byKey(const ValueKey('reserve.edit')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.reserve')), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('reserve.field')), '5000');
     await tester.tap(find.byKey(const ValueKey('reserve.save')));
     await tester.pumpAndSettle();
     expect(household.value, Money(500000));
+    expect(find.text('5${nb}000$nb₽'), findsOneWidget); // settings row value
     await tester.tap(find.byType(CupertinoNavigationBarBackButton));
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('home.available'))).data,
-      '25${nb}000$nb₽',
-    );
+    expect(plain(tester, 'home.available'), '≈ 25${nb}000$nb₽');
   });
 }

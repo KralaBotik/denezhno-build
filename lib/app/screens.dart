@@ -4,21 +4,22 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/settings/preferences.dart';
-import '../l10n/generated/app_localizations.dart';
-import 'controller.dart';
-import 'diagnostics.dart';
 import '../core/money/money.dart';
 import '../core/money/money_text.dart';
-import '../features/backup/backup_section.dart';
 import '../features/forecast/forecast_controller.dart';
+import '../features/settings/preferences.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../ui/theme.dart';
+import '../ui/widgets.dart';
+import 'controller.dart';
+import 'diagnostics.dart';
 
+/// Bottom tabs. «Операции» and «Прогноз» return when those features exist;
+/// the forecast lives on Главная (see docs/design-system.md).
 enum AppSection {
-  home('/', CupertinoIcons.house),
-  accounts('/accounts', CupertinoIcons.creditcard),
-  transactions('/transactions', CupertinoIcons.list_bullet),
-  payments('/payments', CupertinoIcons.calendar),
-  forecast('/forecast', CupertinoIcons.chart_bar);
+  home('/', CupertinoIcons.house_fill),
+  accounts('/accounts', CupertinoIcons.creditcard_fill),
+  payments('/payments', CupertinoIcons.calendar);
 
   const AppSection(this.path, this.icon);
   final String path;
@@ -26,86 +27,56 @@ enum AppSection {
   String title(AppLocalizations s) => switch (this) {
     home => s.home,
     accounts => s.accounts,
-    transactions => s.transactions,
     payments => s.payments,
-    forecast => s.forecast,
-  };
-  String description(AppLocalizations s) => switch (this) {
-    home => s.homeEmpty,
-    accounts => s.accountsEmpty,
-    transactions => s.transactionsEmpty,
-    payments => s.paymentsEmpty,
-    forecast => s.forecastEmpty,
   };
 }
 
-class SectionScreen extends StatelessWidget {
-  const SectionScreen({super.key, required this.section});
-  final AppSection section;
+const settingsPath = '/settings';
+const reservePath = '/reserve';
+const backupPath = '/backup';
+const developerPath = '/developer';
+
+/// Storage state for the person. Shown only when something is not right
+/// (opening, closed, error); with diagnostics on the error screen.
+class StorageNotice extends ConsumerWidget {
+  const StorageNotice({super.key, this.showDiagnostics = true});
+
+  /// On the error screen the diagnostics are shown right under the message.
+  final bool showDiagnostics;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(appControllerProvider.select((s) => s.storage));
     final s = AppLocalizations.of(context);
-    return CupertinoPageScaffold(
-      key: ValueKey('screen.${section.name}'),
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(section == AppSection.home ? s.appName : section.title(s)),
-        trailing: CupertinoButton(
-          key: const ValueKey('open.settings'),
-          padding: EdgeInsets.zero,
-          onPressed: () => context.push<void>('/settings'),
-          child: Semantics(
-            label: s.settings,
-            button: true,
-            child: const ExcludeSemantics(child: Icon(CupertinoIcons.gear)),
-          ),
-        ),
-      ),
-      child: SafeArea(
-        child: CustomScrollView(
-          key: PageStorageKey(section.name),
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.all(24),
-              sliver: SliverList.list(
-                children: [
-                  const SizedBox(height: 32),
-                  ExcludeSemantics(
-                    child: Icon(
-                      section.icon,
-                      size: 52,
-                      color: CupertinoColors.activeBlue,
-                    ),
+    final p = Palette.of(context);
+    final error = status == StorageStatus.unavailable;
+    return Semantics(
+      liveRegion: true,
+      child: AppCard(
+        color: error ? p.negativeSoft : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(switch (status) {
+              StorageStatus.opening => s.storageOpening,
+              StorageStatus.ready => s.storageReady,
+              StorageStatus.paused => s.storagePaused,
+              StorageStatus.unavailable => s.storageError,
+            }, style: AppText.body(p.text)),
+            if (error)
+              Padding(
+                padding: const EdgeInsets.only(top: Space.m),
+                child: PillButton(
+                  label: s.retry,
+                  filled: true,
+                  onPressed: () => unawaited(
+                    ref.read(appControllerProvider.notifier).resume(),
                   ),
-                  const SizedBox(height: 24),
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      section == AppSection.home ? s.welcome : section.title(s),
-                      textAlign: TextAlign.center,
-                      style: CupertinoTheme.of(context)
-                          .textTheme
-                          .navLargeTitleTextStyle,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(section.description(s), textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  Text(
-                    s.notAvailableYet,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: CupertinoColors.secondaryLabel.resolveFrom(
-                        context,
-                      ),
-                    ),
-                  ),
-                  if (section == AppSection.home) ...[
-                    const SizedBox(height: 32),
-                    const StorageNotice(),
-                  ],
-                ],
+                ),
               ),
-            ),
+            if (error && showDiagnostics) ...[
+              const SizedBox(height: Space.m),
+              const DiagnosticsPanel(),
+            ],
           ],
         ),
       ),
@@ -118,182 +89,214 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
     final theme = ref.watch(appControllerProvider.select((s) => s.theme));
-    final ready = ref.watch(
-      appControllerProvider.select((s) => s.storage == StorageStatus.ready),
-    );
-    final labels = [s.themeSystem, s.themeLight, s.themeDark];
-    return CupertinoPageScaffold(
+    final status = ref.watch(appControllerProvider.select((s) => s.storage));
+    final ready = status == StorageStatus.ready;
+    final reserve = ref.watch(reserveProvider).value;
+    final labels = {
+      AppTheme.system: s.themeAuto,
+      AppTheme.light: s.themeLightShort,
+      AppTheme.dark: s.themeDarkShort,
+    };
+    return AppPage(
       key: const ValueKey('screen.settings'),
-      navigationBar: CupertinoNavigationBar(middle: Text(s.settings)),
-      child: SafeArea(
-        child: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-              child: Semantics(header: true, child: Text(s.appearance)),
-            ),
-            for (final choice in AppTheme.values)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Semantics(
-                  selected: theme == choice,
-                  child: CupertinoButton(
-                    key: ValueKey('theme.${choice.name}'),
-                    onPressed: ready
-                        ? () => unawaited(
-                            ref
-                                .read(appControllerProvider.notifier)
-                                .setTheme(choice),
-                          )
-                        : null,
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(labels[choice.index])),
-                        if (theme == choice)
-                          const Icon(CupertinoIcons.check_mark, size: 20),
-                      ],
+      title: s.settings,
+      children: [
+        if (!ready) const StorageNotice(showDiagnostics: false),
+        SectionHeader(s.appearance),
+        AppCard(
+          child: SizedBox(
+            width: double.infinity,
+            child: CupertinoSlidingSegmentedControl<AppTheme>(
+              groupValue: theme,
+              onValueChanged: (v) {
+                if (v != null && ready) {
+                  unawaited(
+                    ref.read(appControllerProvider.notifier).setTheme(v),
+                  );
+                }
+              },
+              children: {
+                for (final e in labels.entries)
+                  e.key: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(
+                      e.value,
+                      key: ValueKey('theme.${e.key.name}'),
+                      style: AppText.secondary(p.text),
                     ),
                   ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(header: true, child: Text(s.storage)),
-                  const SizedBox(height: 12),
-                  const StorageNotice(showDiagnostics: false),
-                  const SizedBox(height: 24),
-                  const ReserveRow(),
-                  const SizedBox(height: 24),
-                  const BackupSection(),
-                  const SizedBox(height: 24),
-                  Semantics(header: true, child: Text(s.diagnostics)),
-                  const SizedBox(height: 8),
-                  const DiagnosticsPanel(),
-                  const SizedBox(height: 24),
-                  Text(s.syncUnavailable),
-                ],
-              ),
+              },
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class StorageNotice extends ConsumerWidget {
-  const StorageNotice({super.key, this.showDiagnostics = true});
-
-  /// On the error screen the diagnostics are shown right under the message.
-  final bool showDiagnostics;
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(appControllerProvider.select((s) => s.storage));
-    final s = AppLocalizations.of(context);
-    return Semantics(
-      liveRegion: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(switch (status) {
-            StorageStatus.opening => s.storageOpening,
-            StorageStatus.ready => s.storageReady,
-            StorageStatus.paused => s.storagePaused,
-            StorageStatus.unavailable => s.storageError,
-          }),
-          if (status == StorageStatus.unavailable)
-            CupertinoButton(
-              onPressed: () =>
-                  unawaited(ref.read(appControllerProvider.notifier).resume()),
-              child: Text(s.retry),
-            ),
-          if (status == StorageStatus.unavailable && showDiagnostics) ...[
-            const SizedBox(height: 8),
-            const DiagnosticsPanel(),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Settings row for the reserve kept out of «можно потратить».
-class ReserveRow extends ConsumerWidget {
-  const ReserveRow({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = AppLocalizations.of(context);
-    final ready = ref.watch(
-      appControllerProvider.select((st) => st.storage == StorageStatus.ready),
-    );
-    final reserve = ref.watch(reserveProvider).value;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Semantics(header: true, child: Text(s.reserveTitle)),
-        const SizedBox(height: 4),
-        Text(
-          s.reserveHint,
-          style: TextStyle(
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
           ),
         ),
-        CupertinoButton(
-          key: const ValueKey('reserve.edit'),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          onPressed: !ready || reserve == null
-              ? null
-              : () => unawaited(_edit(context, ref, reserve)),
+        SectionHeader(s.settingsFinance),
+        CardGroup(
+          children: [
+            SettingsRow(
+              key: const ValueKey('reserve.edit'),
+              icon: CupertinoIcons.shield_lefthalf_fill,
+              title: s.reserveTitle,
+              subtitle: s.reserveHint,
+              value: reserve == null ? null : formatMoney(reserve),
+              onTap: ready ? () => context.push<void>(reservePath) : null,
+            ),
+          ],
+        ),
+        SectionHeader(s.settingsData),
+        CardGroup(
+          children: [
+            SettingsRow(
+              key: const ValueKey('settings.backup'),
+              icon: CupertinoIcons.lock_shield_fill,
+              title: s.backupTitle,
+              subtitle: s.backupRowHint,
+              onTap: () => context.push<void>(backupPath),
+            ),
+          ],
+        ),
+        SectionHeader(s.settingsAbout),
+        CardGroup(
+          children: [
+            SettingsRow(
+              title: s.versionLabel,
+              value: '${appVersionLabel.replaceAll('+', ' (')})',
+            ),
+            SettingsRow(
+              key: const ValueKey('settings.developer'),
+              icon: CupertinoIcons.wrench_fill,
+              iconColor: p.textSecondary,
+              title: s.developerTitle,
+              onTap: () => context.push<void>(developerPath),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Space.xs, Space.l, Space.xs, 0),
           child: Text(
-            reserve == null ? s.reserveEdit : formatMoney(reserve),
-            key: const ValueKey('reserve.value'),
+            s.syncUnavailable,
+            style: AppText.caption(p.textTertiary),
           ),
         ),
       ],
     );
   }
+}
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, Money current) async {
+/// The reserve kept out of «можно потратить».
+class ReserveScreen extends ConsumerStatefulWidget {
+  const ReserveScreen({super.key});
+  @override
+  ConsumerState<ReserveScreen> createState() => _ReserveScreenState();
+}
+
+class _ReserveScreenState extends ConsumerState<ReserveScreen> {
+  late final TextEditingController _field = TextEditingController(
+    text: switch (ref.read(reserveProvider).value) {
+      final Money m => moneyInputText(m),
+      null => '',
+    },
+  );
+  String? _error;
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
     final s = AppLocalizations.of(context);
-    final controller = TextEditingController(text: moneyInputText(current));
-    final value = await showCupertinoDialog<Money>(
-      context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: Text(s.reserveEdit),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            key: const ValueKey('reserve.field'),
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
+    Money? value;
+    try {
+      value = parseMoneyInput(_field.text) ?? Money(0);
+      if (value.minorUnits < 0) value = null;
+    } on Object {
+      value = null;
+    }
+    if (value == null) {
+      setState(() => _error = s.invalidAmount);
+      return;
+    }
+    try {
+      await ref.read(reserveProvider.notifier).set(value);
+      if (mounted) context.pop();
+    } on Object {
+      if (mounted) setState(() => _error = s.saveFailed);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    return CupertinoPageScaffold(
+      key: const ValueKey('screen.reserve'),
+      backgroundColor: p.background,
+      navigationBar: CupertinoNavigationBar(
+        middle: BarText(s.reserveTitle),
+        backgroundColor: p.background,
+        border: null,
+        trailing: CupertinoButton(
+          key: const ValueKey('reserve.save'),
+          padding: EdgeInsets.zero,
+          onPressed: () => unawaited(_save()),
+          child: BarText(s.save),
         ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(s.cancel),
-          ),
-          CupertinoDialogAction(
-            key: const ValueKey('reserve.save'),
-            isDefaultAction: true,
-            onPressed: () {
-              try {
-                final m = parseMoneyInput(controller.text) ?? Money(0);
-                if (m.minorUnits >= 0) Navigator.of(ctx).pop(m);
-              } on Object {
-                // Invalid input: keep the dialog open.
-              }
-            },
-            child: Text(s.save),
-          ),
-        ],
+      ),
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(Space.l),
+          children: [
+            FormFieldCard(
+              label: s.fieldAmount,
+              error: _error,
+              child: CupertinoTextField(
+                key: const ValueKey('reserve.field'),
+                controller: _field,
+                padding: const EdgeInsets.all(Space.m),
+                decoration: fieldDecoration(context),
+                style: AppText.amount(p.text, size: 22),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                suffix: Padding(
+                  padding: const EdgeInsets.only(right: Space.m),
+                  child: Text('₽', style: AppText.body(p.textSecondary)),
+                ),
+              ),
+            ),
+            Text(s.reserveExplain, style: AppText.secondary(p.textSecondary)),
+          ],
+        ),
       ),
     );
-    controller.dispose();
-    if (value != null) await ref.read(reserveProvider.notifier).set(value);
+  }
+}
+
+/// Technical diagnostics, kept away from everyday settings.
+class DeveloperScreen extends ConsumerWidget {
+  const DeveloperScreen({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    return AppPage(
+      key: const ValueKey('screen.developer'),
+      title: s.developerTitle,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: Space.m),
+          child: Text(
+            s.developerHint,
+            style: AppText.secondary(p.textSecondary),
+          ),
+        ),
+        const StorageNotice(showDiagnostics: false),
+        const SizedBox(height: Space.m),
+        const AppCard(child: DiagnosticsPanel()),
+      ],
+    );
   }
 }

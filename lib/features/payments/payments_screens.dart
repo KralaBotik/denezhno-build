@@ -15,6 +15,8 @@ import '../accounts/accounts_controller.dart';
 import 'payments.dart';
 import 'payments_controller.dart';
 import 'reminders_controller.dart';
+import '../../ui/theme.dart';
+import '../../ui/widgets.dart';
 
 const flowEditPath = '/flow';
 const cardFiguresPath = '/card-figures';
@@ -72,60 +74,200 @@ String cadenceLabel(AppLocalizations s, Cadence c) => switch (c) {
   Once(:final date) => s.onceOn(formatDate(date)),
 };
 
-Color _secondary(BuildContext c) =>
-    CupertinoColors.secondaryLabel.resolveFrom(c);
+Color _secondary(BuildContext c) => Palette.of(c).textSecondary;
 
-String _signed(UpcomingItem i) => i.direction == FlowDirection.inflow
-    ? '+${formatMoney(i.amount)}'
-    : formatMoney(-i.amount);
+/// One upcoming payment: date badge, name, when, signed amount.
+class PaymentRow extends StatelessWidget {
+  const PaymentRow({
+    super.key,
+    required this.item,
+    required this.today,
+    this.trailing,
+  });
+  final UpcomingItem item;
+  final CalendarDate today;
+  final Widget? trailing;
 
-/// «Платежи» tab: the next 30 days, credit-card figures, recurring payments
-/// and incomes.
+  static const _months = [
+    'янв',
+    'фев',
+    'мар',
+    'апр',
+    'мая',
+    'июн',
+    'июл',
+    'авг',
+    'сен',
+    'окт',
+    'ноя',
+    'дек',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    final inflow = item.direction == FlowDirection.inflow;
+    final soon = today.daysUntil(item.dueOn) <= 1;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Space.m),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            decoration: BoxDecoration(
+              color: soon && !item.done ? p.warningSoft : p.surface2,
+              borderRadius: BorderRadius.circular(Space.radiusSmall),
+            ),
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: Column(
+                children: [
+                  Text(
+                    '${item.dueOn.day}',
+                    style: AppText.headline(p.text).copyWith(height: 1.1),
+                  ),
+                  Text(
+                    _months[item.dueOn.month - 1],
+                    style: AppText.caption(p.textSecondary)
+                        .copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: Space.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: AppText.body(item.done ? p.textTertiary : p.text)
+                      .copyWith(
+                        decoration: item.done
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                ),
+                Text(
+                  [
+                    formatDue(s, item.dueOn, today),
+                    if (item.isMinimumOnly) s.cardMinOnly,
+                  ].join(' · '),
+                  style: AppText.caption(p.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: Space.s),
+          Flexible(
+            flex: 0,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.34,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: MoneyText(
+                  inflow ? item.amount : -item.amount,
+                  prefix: inflow ? '+' : '',
+                  color: item.done
+                      ? p.textTertiary
+                      : inflow
+                      ? p.accent
+                      : p.text,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+}
+
+/// «Платежи»: the next 30 days, credit-card figures, recurring payments and
+/// incomes; «+» adds a payment or an income.
 class PaymentsScreen extends ConsumerWidget {
   const PaymentsScreen({super.key});
+
+  Future<void> _add(BuildContext context) async {
+    final s = AppLocalizations.of(context);
+    final choice = await showCupertinoModalPopup<FlowDirection>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(s.addPaymentOrIncome),
+        actions: [
+          CupertinoActionSheetAction(
+            key: const ValueKey('sheet.payment'),
+            onPressed: () => Navigator.of(ctx).pop(FlowDirection.outflow),
+            child: Text(s.addPayment),
+          ),
+          CupertinoActionSheetAction(
+            key: const ValueKey('sheet.income'),
+            onPressed: () => Navigator.of(ctx).pop(FlowDirection.inflow),
+            child: Text(s.addIncome),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(s.cancel),
+        ),
+      ),
+    );
+    if (choice != null && context.mounted) {
+      await context.push<void>(flowEditPath, extra: choice);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
     final ready = ref.watch(
       appControllerProvider.select((st) => st.storage == StorageStatus.ready),
     );
     final data = ref.watch(paymentsProvider);
-    return CupertinoPageScaffold(
+    return AppPage(
       key: const ValueKey('screen.payments'),
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(s.payments),
-        trailing: CupertinoButton(
-          key: const ValueKey('open.settings'),
-          padding: EdgeInsets.zero,
-          onPressed: () => context.push<void>('/settings'),
-          child: Semantics(
-            label: s.settings,
-            button: true,
-            child: const ExcludeSemantics(child: Icon(CupertinoIcons.gear)),
-          ),
-        ),
+      title: s.payments,
+      trailing: CupertinoButton(
+        key: const ValueKey('payments.add'),
+        padding: EdgeInsets.zero,
+        onPressed: ready ? () => unawaited(_add(context)) : null,
+        child: const Icon(CupertinoIcons.add_circled_solid, size: 28),
       ),
-      child: SafeArea(
-        child: !ready
-            ? ListView(
-                padding: const EdgeInsets.all(24),
-                children: const [StorageNotice()],
-              )
-            : switch (data) {
-                AsyncData(:final value) => _PaymentsBody(snapshot: value),
-                AsyncError() => ListView(
-                  padding: const EdgeInsets.all(24),
-                  children: [
-                    Text(s.accountsLoadFailed),
-                    CupertinoButton(
-                      onPressed: () => ref.invalidate(paymentsProvider),
-                      child: Text(s.retry),
-                    ),
-                  ],
-                ),
-                _ => const Center(child: CupertinoActivityIndicator()),
-              },
-      ),
+      children: [
+        if (!ready)
+          const StorageNotice(showDiagnostics: false)
+        else
+          switch (data) {
+            AsyncData(:final value) => _PaymentsBody(snapshot: value),
+            AsyncError() => AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.accountsLoadFailed, style: AppText.body(p.text)),
+                  const SizedBox(height: Space.m),
+                  PillButton(
+                    label: s.retry,
+                    onPressed: () => ref.invalidate(paymentsProvider),
+                  ),
+                ],
+              ),
+            ),
+            _ => const Padding(
+              padding: EdgeInsets.all(Space.xxl),
+              child: CupertinoActivityIndicator(),
+            ),
+          },
+      ],
     );
   }
 }
@@ -137,6 +279,7 @@ class _PaymentsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
     final today = CalendarDate.today();
     final items = upcomingFor(snapshot, today);
     final controller = ref.read(paymentsProvider.notifier);
@@ -152,118 +295,114 @@ class _PaymentsBody extends ConsumerWidget {
       List<PlannedFlow> list,
       String add,
       FlowDirection dir,
-    ) {
-      return CupertinoListSection.insetGrouped(
-        header: Text(title),
-        children: [
-          for (final f in list)
-            CupertinoListTile(
-              key: ValueKey('flow.${f.id}'),
-              title: Text(f.name),
-              subtitle: Text(cadenceLabel(s, f.cadence)),
-              additionalInfo: Text(formatMoney(f.amount)),
-              trailing: const CupertinoListTileChevron(),
-              onTap: () => context.push<void>(flowEditPath, extra: f),
+    ) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(title),
+        CardGroup(
+          children: [
+            for (final f in list)
+              SettingsRow(
+                key: ValueKey('flow.${f.id}'),
+                icon: dir == FlowDirection.inflow
+                    ? CupertinoIcons.arrow_down_left
+                    : CupertinoIcons.arrow_up_right,
+                iconColor: dir == FlowDirection.inflow
+                    ? p.accent
+                    : p.textSecondary,
+                title: f.name,
+                subtitle:
+                    '${flowKindLabel(s, f.kind)} · ${cadenceLabel(s, f.cadence)}',
+                value: formatMoney(f.amount),
+                onTap: () => context.push<void>(flowEditPath, extra: f),
+              ),
+            SettingsRow(
+              key: ValueKey('flow.add.${dir.name}'),
+              icon: CupertinoIcons.add,
+              title: add,
+              onTap: () => context.push<void>(flowEditPath, extra: dir),
             ),
-          CupertinoListTile(
-            key: ValueKey('flow.add.${dir.name}'),
-            title: Text(
-              add,
-              style: const TextStyle(color: CupertinoColors.activeBlue),
-            ),
-            onTap: () => context.push<void>(flowEditPath, extra: dir),
-          ),
-        ],
-      );
-    }
+          ],
+        ),
+      ],
+    );
 
-    return ListView(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _RemindersRow(),
-        CupertinoListSection.insetGrouped(
-          header: Text(s.upcomingTitle),
-          children: [
-            if (items.isEmpty)
-              CupertinoListTile(
-                title: Text(
-                  s.upcomingEmpty,
-                  maxLines: 4,
-                  style: TextStyle(color: _secondary(context)),
-                ),
-              ),
-            for (final i in items)
-              CupertinoListTile(
-                key: ValueKey(
-                  'upcoming.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
-                ),
-                title: Text(
-                  i.title,
-                  style: i.done
-                      ? TextStyle(
-                          color: _secondary(context),
-                          decoration: TextDecoration.lineThrough,
-                        )
-                      : null,
-                ),
-                subtitle: Text(
-                  [
-                    formatDue(s, i.dueOn, today),
-                    if (i.isMinimumOnly) s.cardMinOnly,
-                  ].join(' · '),
-                  maxLines: 2,
-                ),
-                additionalInfo: Text(_signed(i)),
-                trailing: CupertinoButton(
+        SectionHeader(s.upcomingTitle),
+        if (items.isEmpty)
+          AppCard(
+            child: Text(
+              s.upcomingEmpty,
+              style: AppText.secondary(p.textSecondary),
+            ),
+          )
+        else
+          CardGroup(
+            children: [
+              for (final i in items)
+                PaymentRow(
                   key: ValueKey(
-                    'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
+                    'upcoming.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
                   ),
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(44, 44),
-                  onPressed: () => unawaited(
-                    i.source == UpcomingSource.flow
-                        ? controller.setFlowDone(i.flowId!, i.dueOn, !i.done)
-                        : controller.setCardSettled(i.cardFiguresId!, !i.done),
-                  ),
-                  child: Semantics(
-                    label: i.done
-                        ? s.undoMark
-                        : i.direction == FlowDirection.inflow
-                        ? s.markReceived
-                        : s.markPaid,
-                    button: true,
-                    child: ExcludeSemantics(
-                      child: Icon(
-                        i.done
-                            ? CupertinoIcons.check_mark_circled_solid
-                            : CupertinoIcons.circle,
-                        color: i.done
-                            ? CupertinoColors.activeGreen
-                            : CupertinoColors.systemGrey,
+                  item: i,
+                  today: today,
+                  trailing: CupertinoButton(
+                    key: ValueKey(
+                      'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
+                    ),
+                    padding: const EdgeInsets.only(left: Space.s),
+                    minimumSize: const Size(44, 44),
+                    onPressed: () => unawaited(
+                      i.source == UpcomingSource.flow
+                          ? controller.setFlowDone(i.flowId!, i.dueOn, !i.done)
+                          : controller.setCardSettled(
+                              i.cardFiguresId!,
+                              !i.done,
+                            ),
+                    ),
+                    child: Semantics(
+                      label: i.done
+                          ? s.undoMark
+                          : i.direction == FlowDirection.inflow
+                          ? s.markReceived
+                          : s.markPaid,
+                      button: true,
+                      child: ExcludeSemantics(
+                        child: Icon(
+                          i.done
+                              ? CupertinoIcons.check_mark_circled_solid
+                              : CupertinoIcons.circle,
+                          color: i.done ? p.accent : p.textTertiary,
+                          size: 26,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
-        if (snapshot.creditCards.isNotEmpty)
-          CupertinoListSection.insetGrouped(
-            header: Text(s.creditCardsTitle),
+            ],
+          ),
+        if (snapshot.creditCards.isNotEmpty) ...[
+          SectionHeader(s.creditCardsTitle),
+          CardGroup(
             children: [
               for (final card in snapshot.creditCards.entries)
-                CupertinoListTile(
+                SettingsRow(
                   key: ValueKey('card.${card.key}'),
-                  title: Text(card.value),
-                  subtitle: Text(
-                    _figuresText(s, snapshot.cardFigures[card.key]),
-                    maxLines: 3,
-                  ),
-                  trailing: const CupertinoListTileChevron(),
+                  icon: CupertinoIcons.creditcard_fill,
+                  iconColor: snapshot.cardFigures[card.key] == null
+                      ? p.warning
+                      : p.negative,
+                  title: card.value,
+                  subtitle: _figuresText(s, snapshot.cardFigures[card.key]),
                   onTap: () =>
                       context.push<void>(cardFiguresPath, extra: card.key),
                 ),
             ],
           ),
+        ],
         flowSection(
           s.recurringTitle,
           outflows,
@@ -271,7 +410,6 @@ class _PaymentsBody extends ConsumerWidget {
           FlowDirection.outflow,
         ),
         flowSection(s.incomesTitle, inflows, s.addIncome, FlowDirection.inflow),
-        const SizedBox(height: 24),
       ],
     );
   }
@@ -532,6 +670,8 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
           Text(label, style: TextStyle(color: _secondary(context))),
           const SizedBox(height: 6),
           CupertinoTextField(
+            padding: const EdgeInsets.all(Space.m),
+            decoration: fieldDecoration(context),
             key: ValueKey(key),
             controller: c,
             keyboardType: numeric
@@ -548,9 +688,12 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
       _CadenceChoice.once: s.cadenceOnce,
     };
     return CupertinoPageScaffold(
+      backgroundColor: Palette.of(context).background,
       key: const ValueKey('screen.flowEdit'),
       navigationBar: CupertinoNavigationBar(
-        middle: Text(
+        backgroundColor: Palette.of(context).background,
+        border: null,
+        middle: BarText(
           widget.direction == FlowDirection.inflow
               ? s.incomeTitle
               : s.paymentTitle,
@@ -559,7 +702,7 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
           key: const ValueKey('flow.save'),
           padding: EdgeInsets.zero,
           onPressed: _saving ? null : () => unawaited(_save()),
-          child: Text(s.save),
+          child: BarText(s.save),
         ),
       ),
       child: SafeArea(
@@ -570,6 +713,17 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
             field('flow.amount', s.fieldAmount, _amount, numeric: true),
             error(_amountError),
             CupertinoListSection.insetGrouped(
+              backgroundColor: const Color(0x00000000),
+              margin: const EdgeInsets.fromLTRB(
+                Space.l,
+                Space.s,
+                Space.l,
+                Space.s,
+              ),
+              decoration: BoxDecoration(
+                color: Palette.of(context).surface,
+                borderRadius: BorderRadius.circular(Space.radius),
+              ),
               header: Text(s.fieldKind),
               children: [
                 for (final k in kinds)
@@ -584,6 +738,17 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
               ],
             ),
             CupertinoListSection.insetGrouped(
+              backgroundColor: const Color(0x00000000),
+              margin: const EdgeInsets.fromLTRB(
+                Space.l,
+                Space.s,
+                Space.l,
+                Space.s,
+              ),
+              decoration: BoxDecoration(
+                color: Palette.of(context).surface,
+                borderRadius: BorderRadius.circular(Space.radius),
+              ),
               header: Text(s.fieldSchedule),
               children: [
                 for (final c in _CadenceChoice.values)
@@ -595,19 +760,31 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
                         : null,
                     onTap: () => setState(() => _choice = c),
                   ),
-                CupertinoListTile(
-                  key: const ValueKey('flow.schedule'),
-                  title: Text(cadenceLabel(s, _cadence)),
-                  trailing: Text(
-                    s.chooseDate,
-                    style: const TextStyle(color: CupertinoColors.activeBlue),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Space.l),
+                  child: SettingsRow(
+                    key: const ValueKey('flow.schedule'),
+                    icon: CupertinoIcons.calendar,
+                    title: cadenceLabel(s, _cadence),
+                    subtitle: s.chooseDate,
+                    onTap: () => unawaited(_pickSchedule()),
                   ),
-                  onTap: () => unawaited(_pickSchedule()),
                 ),
               ],
             ),
             if (widget.direction == FlowDirection.outflow && debts.isNotEmpty)
               CupertinoListSection.insetGrouped(
+                backgroundColor: const Color(0x00000000),
+                margin: const EdgeInsets.fromLTRB(
+                  Space.l,
+                  Space.s,
+                  Space.l,
+                  Space.s,
+                ),
+                decoration: BoxDecoration(
+                  color: Palette.of(context).surface,
+                  borderRadius: BorderRadius.circular(Space.radius),
+                ),
                 header: Text(s.linkedTo),
                 footer: Text(s.linkedHint),
                 children: [
@@ -754,6 +931,8 @@ class _CardFiguresScreenState extends ConsumerState<CardFiguresScreen> {
           Text(label, style: TextStyle(color: _secondary(context))),
           const SizedBox(height: 6),
           CupertinoTextField(
+            padding: const EdgeInsets.all(Space.m),
+            decoration: fieldDecoration(context),
             key: ValueKey('figures.$key'),
             controller: c,
             placeholder: '0',
@@ -772,14 +951,17 @@ class _CardFiguresScreenState extends ConsumerState<CardFiguresScreen> {
       ),
     );
     return CupertinoPageScaffold(
+      backgroundColor: Palette.of(context).background,
       key: const ValueKey('screen.cardFigures'),
       navigationBar: CupertinoNavigationBar(
-        middle: Text(name),
+        backgroundColor: Palette.of(context).background,
+        border: null,
+        middle: BarText(name),
         trailing: CupertinoButton(
           key: const ValueKey('figures.save'),
           padding: EdgeInsets.zero,
           onPressed: _saving ? null : () => unawaited(_save()),
-          child: Text(s.save),
+          child: BarText(s.save),
         ),
       ),
       child: SafeArea(
@@ -833,33 +1015,52 @@ class _RemindersRowState extends ConsumerState<_RemindersRow> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
     final permitted = ref.watch(remindersProvider).value ?? false;
-    return CupertinoListSection.insetGrouped(
-      children: [
-        CupertinoListTile(
-          key: const ValueKey('reminders.row'),
-          title: Text(s.remindersTitle),
-          subtitle: permitted || _denied
-              ? Text(permitted ? s.remindersOn : s.remindersDenied, maxLines: 3)
-              : null,
-          trailing: permitted
-              ? const Icon(
-                  CupertinoIcons.bell_fill,
-                  color: CupertinoColors.activeGreen,
-                )
-              : CupertinoButton(
-                  key: const ValueKey('reminders.enable'),
-                  padding: EdgeInsets.zero,
-                  onPressed: () async {
-                    final granted = await ref
-                        .read(remindersProvider.notifier)
-                        .enable();
-                    if (mounted) setState(() => _denied = !granted);
-                  },
-                  child: Text(s.remindersEnable),
-                ),
-        ),
-      ],
+    return AppCard(
+      key: const ValueKey('reminders.row'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconBadge(
+            icon: permitted
+                ? CupertinoIcons.bell_fill
+                : CupertinoIcons.bell_slash,
+            color: permitted ? p.accent : p.textSecondary,
+          ),
+          const SizedBox(width: Space.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.remindersTitle, style: AppText.headline(p.text)),
+                if (permitted || _denied)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      permitted ? s.remindersOn : s.remindersDenied,
+                      style: AppText.caption(p.textSecondary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (!permitted)
+            Flexible(
+              child: PillButton(
+                key: const ValueKey('reminders.enable'),
+                label: s.remindersEnable,
+                filled: true,
+                onPressed: () async {
+                  final granted = await ref
+                      .read(remindersProvider.notifier)
+                      .enable();
+                  if (mounted) setState(() => _denied = !granted);
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

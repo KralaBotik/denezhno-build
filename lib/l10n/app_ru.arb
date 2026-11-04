@@ -333,5 +333,127 @@
         "type": "String"
       }
     }
-  }
+  },
+  "themeAuto": "Авто",
+  "themeLightShort": "Светлая",
+  "themeDarkShort": "Тёмная",
+  "settingsFinance": "Финансы",
+  "settingsData": "Данные",
+  "settingsAbout": "О приложении",
+  "versionLabel": "Версия",
+  "developerTitle": "Для разработчика",
+  "developerHint": "Техническое состояние хранилища. Пригодится, если что-то пойдёт не так: скопируйте сводку и отправьте разработчику.",
+  "reserveExplain": "Резерв — неприкосновенная сумма. Приложение вычитает её из «можно потратить», чтобы у вас всегда оставался запас на непредвиденное.",
+  "backupRowHint": "Зашифрованный файл со всеми данными",
+  "heroUntil": "Можно потратить до {date}",
+  "@heroUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "heroUntilMonthEnd": "Можно потратить до конца месяца",
+  "heroShortUntil": "До {date} не хватает",
+  "@heroShortUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "heroShortMonthEnd": "До конца месяца не хватает",
+  "statusPrecise": "Точный расчёт",
+  "statusPreliminary": "Предварительный расчёт",
+  "perDayShort": "≈ {amount} в день · {days} дн.",
+  "@perDayShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freshToday": "Остатки обновлены сегодня",
+  "freshYesterday": "Остатки обновлены вчера",
+  "freshDays": "Остатки обновлены {days} дн. назад",
+  "@freshDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freshNever": "Остатки ещё не вносились",
+  "updateShort": "Обновить",
+  "ownMoney": "Свои деньги",
+  "debts": "Долги",
+  "attentionTitle": "Требует внимания",
+  "preliminaryExplain": "Не хватает данных — реальная сумма может быть меньше. Заполните пункты ниже.",
+  "fixNoAccounts": "Добавьте счета и карты",
+  "fixNoSalary": "Укажите зарплату — дату и сумму",
+  "fixCardNoFigures": "Внесите цифры банка по «{name}»",
+  "@fixCardNoFigures": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fixOverdue": "Срок по «{name}» ({date}) прошёл — обновите цифры или отметьте оплату",
+  "@fixOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "fixStale": "Обновите остатки — данные от {date}",
+  "@fixStale": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noteMinimumOnly": "По «{name}» известен только минимальный платёж",
+  "@noteMinimumOnly": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notePossibleDuplicate": "Проверьте «{name}»: возможно, учтено дважды",
+  "@notePossibleDuplicate": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "seeAll": "Все",
+  "noUpcoming": "В ближайшие 30 дней платежей нет",
+  "savings": "Накопления",
+  "addShort": "Добавить",
+  "accountEdit": "Изменить",
+  "accountSaved": "Сохранено",
+  "updateThisBalance": "Обновить остаток",
+  "addPaymentOrIncome": "Что добавить?",
+  "debtLabel": "долг",
+  "updatedAgo": "обновлено {when}",
+  "@updatedAgo": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "creditLimitTitle": "Кредитный лимит",
+  "creditAvailable": "Доступно по лимиту"
 }

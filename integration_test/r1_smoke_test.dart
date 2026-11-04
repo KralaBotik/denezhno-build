@@ -81,6 +81,12 @@ void main() {
     // native Data Protection checks and Keychain access that actually ran.
     await tester.tap(find.byKey(const ValueKey('open.settings')));
     await settle('open settings');
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings.developer')),
+    );
+    await settle('scroll to developer');
+    await tester.tap(find.byKey(const ValueKey('settings.developer')));
+    await settle('open developer');
     final reportText = tester
         .widget<Text>(
           find.descendant(
@@ -97,6 +103,8 @@ void main() {
     expect(reportText, contains('<keychain.'));
     expect(reportText, isNot(contains('/var/')));
     expect(reportText, isNot(contains('Containers')));
+    await tester.tap(find.byType(CupertinoNavigationBarBackButton));
+    await settle('back from developer');
     await tester.tap(find.byType(CupertinoNavigationBarBackButton));
     await settle('back from settings');
     // R2: accounts on the real encrypted ledger (iOS SQLite3MC, DB isolate).
@@ -193,13 +201,7 @@ void main() {
       await step(
         'timeline trace',
         binding.traceAction(() async {
-          for (final section in [
-            'accounts',
-            'transactions',
-            'payments',
-            'forecast',
-            'home',
-          ]) {
+          for (final section in ['accounts', 'payments', 'home']) {
             await tester.tap(find.byKey(ValueKey('tab.$section')));
             await settle('tab $section');
           }

@@ -603,4 +603,165 @@ class AppLocalizationsRu extends AppLocalizations {
   String warnOverdueFigures(String name, String date) {
     return 'Срок по «$name» ($date) прошёл, а оплата не отмечена. Платёж учтён; внесите новые цифры банка или отметьте «Внёс».';
   }
+
+  @override
+  String get themeAuto => 'Авто';
+
+  @override
+  String get themeLightShort => 'Светлая';
+
+  @override
+  String get themeDarkShort => 'Тёмная';
+
+  @override
+  String get settingsFinance => 'Финансы';
+
+  @override
+  String get settingsData => 'Данные';
+
+  @override
+  String get settingsAbout => 'О приложении';
+
+  @override
+  String get versionLabel => 'Версия';
+
+  @override
+  String get developerTitle => 'Для разработчика';
+
+  @override
+  String get developerHint =>
+      'Техническое состояние хранилища. Пригодится, если что-то пойдёт не так: скопируйте сводку и отправьте разработчику.';
+
+  @override
+  String get reserveExplain =>
+      'Резерв — неприкосновенная сумма. Приложение вычитает её из «можно потратить», чтобы у вас всегда оставался запас на непредвиденное.';
+
+  @override
+  String get backupRowHint => 'Зашифрованный файл со всеми данными';
+
+  @override
+  String heroUntil(String date) {
+    return 'Можно потратить до $date';
+  }
+
+  @override
+  String get heroUntilMonthEnd => 'Можно потратить до конца месяца';
+
+  @override
+  String heroShortUntil(String date) {
+    return 'До $date не хватает';
+  }
+
+  @override
+  String get heroShortMonthEnd => 'До конца месяца не хватает';
+
+  @override
+  String get statusPrecise => 'Точный расчёт';
+
+  @override
+  String get statusPreliminary => 'Предварительный расчёт';
+
+  @override
+  String perDayShort(String amount, int days) {
+    return '≈ $amount в день · $days дн.';
+  }
+
+  @override
+  String get freshToday => 'Остатки обновлены сегодня';
+
+  @override
+  String get freshYesterday => 'Остатки обновлены вчера';
+
+  @override
+  String freshDays(int days) {
+    return 'Остатки обновлены $days дн. назад';
+  }
+
+  @override
+  String get freshNever => 'Остатки ещё не вносились';
+
+  @override
+  String get updateShort => 'Обновить';
+
+  @override
+  String get ownMoney => 'Свои деньги';
+
+  @override
+  String get debts => 'Долги';
+
+  @override
+  String get attentionTitle => 'Требует внимания';
+
+  @override
+  String get preliminaryExplain =>
+      'Не хватает данных — реальная сумма может быть меньше. Заполните пункты ниже.';
+
+  @override
+  String get fixNoAccounts => 'Добавьте счета и карты';
+
+  @override
+  String get fixNoSalary => 'Укажите зарплату — дату и сумму';
+
+  @override
+  String fixCardNoFigures(String name) {
+    return 'Внесите цифры банка по «$name»';
+  }
+
+  @override
+  String fixOverdue(String name, String date) {
+    return 'Срок по «$name» ($date) прошёл — обновите цифры или отметьте оплату';
+  }
+
+  @override
+  String fixStale(String date) {
+    return 'Обновите остатки — данные от $date';
+  }
+
+  @override
+  String noteMinimumOnly(String name) {
+    return 'По «$name» известен только минимальный платёж';
+  }
+
+  @override
+  String notePossibleDuplicate(String name) {
+    return 'Проверьте «$name»: возможно, учтено дважды';
+  }
+
+  @override
+  String get seeAll => 'Все';
+
+  @override
+  String get noUpcoming => 'В ближайшие 30 дней платежей нет';
+
+  @override
+  String get savings => 'Накопления';
+
+  @override
+  String get addShort => 'Добавить';
+
+  @override
+  String get accountEdit => 'Изменить';
+
+  @override
+  String get accountSaved => 'Сохранено';
+
+  @override
+  String get updateThisBalance => 'Обновить остаток';
+
+  @override
+  String get addPaymentOrIncome => 'Что добавить?';
+
+  @override
+  String get debtLabel => 'долг';
+
+  @override
+  String updatedAgo(String when) {
+    return 'обновлено $when';
+  }
+
+  @override
+  String get creditLimitTitle => 'Кредитный лимит';
+
+  @override
+  String get creditAvailable => 'Доступно по лимиту';
 }

@@ -14,6 +14,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../accounts/accounts_controller.dart';
 import '../forecast/forecast_controller.dart';
 import '../payments/payments_controller.dart';
+import '../../ui/theme.dart';
+import '../../ui/widgets.dart';
 
 /// Moving the encrypted file in and out of the app. Only ciphertext ever
 /// touches the file system (a temporary file deleted right after sharing).
@@ -263,53 +265,69 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
     final ready = ref.watch(
       appControllerProvider.select((st) => st.storage == StorageStatus.ready),
     );
     final canRestore = ref.watch(canRestoreProvider).value ?? false;
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Semantics(header: true, child: Text(s.backupTitle)),
-        const SizedBox(height: 4),
-        Text(s.backupHint, style: TextStyle(color: secondary)),
-        CupertinoButton(
-          key: const ValueKey('backup.create'),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          onPressed: ready && !_busy ? () => unawaited(_create()) : null,
-          child: Text(s.backupCreate),
-        ),
-        CupertinoButton(
-          key: const ValueKey('backup.restore'),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          onPressed: ready && canRestore && !_busy
-              ? () => unawaited(_restore())
-              : null,
-          child: Text(s.backupRestore),
-        ),
-        if (!canRestore)
-          Text(s.restoreOnlyEmpty, style: TextStyle(color: secondary)),
-        if (_busy) ...[
-          const SizedBox(height: 8),
-          Row(
+        AppCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CupertinoActivityIndicator(),
-              const SizedBox(width: 8),
-              Text(s.working),
+              IconBadge(icon: CupertinoIcons.lock_shield_fill, color: p.accent),
+              const SizedBox(width: Space.m),
+              Expanded(
+                child: Text(s.backupHint, style: AppText.secondary(p.text)),
+              ),
             ],
           ),
-        ],
+        ),
+        const SizedBox(height: Space.l),
+        CardGroup(
+          children: [
+            SettingsRow(
+              key: const ValueKey('backup.create'),
+              icon: CupertinoIcons.square_arrow_up,
+              title: s.backupCreate,
+              onTap: ready && !_busy ? () => unawaited(_create()) : null,
+            ),
+            SettingsRow(
+              key: const ValueKey('backup.restore'),
+              icon: CupertinoIcons.arrow_down_doc,
+              iconColor: canRestore ? p.accent : p.textTertiary,
+              title: s.backupRestore,
+              subtitle: canRestore ? null : s.restoreOnlyEmpty,
+              onTap: ready && canRestore && !_busy
+                  ? () => unawaited(_restore())
+                  : null,
+            ),
+          ],
+        ),
+        if (_busy)
+          Padding(
+            padding: const EdgeInsets.only(top: Space.l),
+            child: Row(
+              children: [
+                const CupertinoActivityIndicator(),
+                const SizedBox(width: Space.s),
+                Text(s.working, style: AppText.secondary(p.textSecondary)),
+              ],
+            ),
+          ),
         if (_message != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: Space.l),
             child: Semantics(
               liveRegion: true,
-              child: Text(
-                _message!,
-                key: const ValueKey('backup.message'),
-                style: TextStyle(
-                  color: _error ? CupertinoColors.systemRed : secondary,
+              child: AppCard(
+                color: _error ? p.negativeSoft : p.accentSoft,
+                child: Text(
+                  _message!,
+                  key: const ValueKey('backup.message'),
+                  style: AppText.secondary(_error ? p.negative : p.text),
                 ),
               ),
             ),
@@ -317,4 +335,15 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       ],
     );
   }
+}
+
+/// «Резервная копия»: create and restore, on its own page.
+class BackupScreen extends StatelessWidget {
+  const BackupScreen({super.key});
+  @override
+  Widget build(BuildContext context) => AppPage(
+    key: const ValueKey('screen.backup'),
+    title: AppLocalizations.of(context).backupTitle,
+    children: const [BackupSection()],
+  );
 }

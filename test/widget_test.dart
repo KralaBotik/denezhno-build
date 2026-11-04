@@ -34,18 +34,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('five tabs, settings and back navigation work in Russian', (
+  testWidgets('three tabs, settings and back navigation work in Russian', (
     tester,
   ) async {
     await launch(tester, MemoryPreferences());
-    expect(find.text('Денежно'), findsOneWidget);
-    for (final section in [
-      'accounts',
-      'transactions',
-      'payments',
-      'forecast',
-      'home',
-    ]) {
+    expect(find.text('Денежно'), findsWidgets);
+    expect(find.byKey(const ValueKey('tab.transactions')), findsNothing);
+    expect(find.byKey(const ValueKey('tab.forecast')), findsNothing);
+    for (final section in ['accounts', 'payments', 'home']) {
       await tester.tap(find.byKey(ValueKey('tab.$section')));
       await tester.pumpAndSettle();
       expect(find.byKey(ValueKey('screen.$section')), findsOneWidget);
@@ -88,13 +84,7 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     await launch(tester, MemoryPreferences());
-    for (final section in [
-      'accounts',
-      'transactions',
-      'payments',
-      'forecast',
-      'home',
-    ]) {
+    for (final section in ['accounts', 'payments', 'home']) {
       await tester.tap(find.byKey(ValueKey('tab.$section')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -115,9 +105,11 @@ void main() {
     store.fail = false;
     await tester.tap(find.text('Повторить'));
     await tester.pumpAndSettle();
+    // Storage is open again: the error card is gone, onboarding is shown.
     expect(
-      find.text('Настройки сохраняются на этом устройстве.'),
-      findsOneWidget,
+      find.textContaining('Защищённое хранилище недоступно'),
+      findsNothing,
     );
+    expect(find.text('Начните с ваших счетов'), findsOneWidget);
   });
 }

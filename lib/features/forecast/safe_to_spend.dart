@@ -22,22 +22,25 @@ final class NoSalary extends SpendWarning {
 
 /// A credit card with a debt but no figures from the bank.
 final class CardWithoutFigures extends SpendWarning {
-  const CardWithoutFigures(this.name);
+  const CardWithoutFigures(this.name, [this.accountId]);
   final String name;
+  final String? accountId;
 }
 
 /// Only the minimum payment is known: paying it keeps interest running.
 final class MinimumOnly extends SpendWarning {
-  const MinimumOnly(this.name);
+  const MinimumOnly(this.name, [this.accountId]);
   final String name;
+  final String? accountId;
 }
 
 /// The bank's due date for a card has passed and the payment is not marked
 /// as made: the figures are probably outdated (a new statement exists).
 final class OverdueCardFigures extends SpendWarning {
-  const OverdueCardFigures(this.name, this.dueOn);
+  const OverdueCardFigures(this.name, this.dueOn, [this.accountId]);
   final String name;
   final CalendarDate dueOn;
+  final String? accountId;
 }
 
 /// Balances older than [staleAfterDays].
@@ -225,7 +228,7 @@ SafeToSpend computeSafeToSpend({
     final f = payments.cardFigures[card.id];
     if (f == null) {
       if (card.amount.minorUnits > 0 && !plannedFor.contains(card.id)) {
-        warnings.add(CardWithoutFigures(card.name));
+        warnings.add(CardWithoutFigures(card.name, card.id));
       }
       continue;
     }
@@ -234,14 +237,14 @@ SafeToSpend computeSafeToSpend({
         ? (f.graceAmount, f.graceDueOn, false)
         : (f.minPayment, f.minDueOn, true);
     if (due == null || on == null || on > horizon) continue;
-    if (on < today) warnings.add(OverdueCardFigures(card.name, on));
+    if (on < today) warnings.add(OverdueCardFigures(card.name, on, card.id));
     final take = capped(card.id, due);
     if (take.minorUnits < due.minorUnits) {
       skipped.add(Deduction(card.name, due - take, on));
     }
     if (take.minorUnits == 0) continue;
     cards.add(Deduction(card.name, take, on));
-    if (minOnly) warnings.add(MinimumOnly(card.name));
+    if (minOnly) warnings.add(MinimumOnly(card.name, card.id));
   }
 
   // Unlinked loan payments next to cards with bank figures: maybe counted twice.

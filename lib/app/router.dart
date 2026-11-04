@@ -7,6 +7,8 @@ import '../features/accounts/accounts_screens.dart';
 import '../features/forecast/home_screen.dart';
 import '../features/payments/payments.dart';
 import '../features/payments/payments_screens.dart';
+import '../features/backup/backup_section.dart';
+import '../ui/theme.dart';
 import 'screens.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -26,7 +28,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                       AppSection.home => const HomeScreen(),
                       AppSection.accounts => const AccountsScreen(),
                       AppSection.payments => const PaymentsScreen(),
-                      _ => SectionScreen(section: section),
                     },
                   ),
                 ),
@@ -45,7 +46,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: updateBalancesPath,
         pageBuilder: (context, state) => CupertinoPage<void>(
           key: state.pageKey,
-          child: const UpdateBalancesScreen(),
+          child: UpdateBalancesScreen(
+            onlyAccountId: state.uri.queryParameters['account'],
+          ),
         ),
       ),
       GoRoute(
@@ -78,13 +81,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: CardFiguresScreen(accountId: state.extra! as String),
         ),
       ),
-      GoRoute(
-        path: '/settings',
-        pageBuilder: (context, state) => CupertinoPage<void>(
-          key: state.pageKey,
-          child: const SettingsScreen(),
+      for (final (path, page) in <(String, Widget)>[
+        (settingsPath, const SettingsScreen()),
+        (reservePath, const ReserveScreen()),
+        (backupPath, const BackupScreen()),
+        (developerPath, const DeveloperScreen()),
+      ])
+        GoRoute(
+          path: path,
+          pageBuilder: (context, state) =>
+              CupertinoPage<void>(key: state.pageKey, child: page),
         ),
-      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -97,7 +104,9 @@ class _TabShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+    final p = Palette.of(context);
     return CupertinoPageScaffold(
+      backgroundColor: p.background,
       child: Column(
         children: [
           Expanded(child: shell),
@@ -105,6 +114,10 @@ class _TabShell extends StatelessWidget {
           // size; screen content keeps the user's full TextScaler/VoiceOver.
           MediaQuery.withNoTextScaling(
             child: CupertinoTabBar(
+              backgroundColor: p.surface.withValues(alpha: 0.94),
+              activeColor: p.accent,
+              inactiveColor: p.textTertiary,
+              border: Border(top: BorderSide(color: p.separator, width: 0.5)),
               currentIndex: shell.currentIndex,
               onTap: (index) => shell.goBranch(
                 index,

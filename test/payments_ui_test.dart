@@ -22,6 +22,13 @@ class _Prefs implements PreferencesStore {
 
 class _Accounts implements AccountsStore {
   @override
+  Future<void> updateAccountDetails(
+    String accountId, {
+    required String name,
+    Money? creditLimit,
+  }) async {}
+
+  @override
   Future<void> setIncludedInForecast(String id, bool included) async {}
 
   @override

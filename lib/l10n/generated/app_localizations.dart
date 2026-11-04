@@ -1143,6 +1143,282 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Срок по «{name}» ({date}) прошёл, а оплата не отмечена. Платёж учтён; внесите новые цифры банка или отметьте «Внёс».'**
   String warnOverdueFigures(String name, String date);
+
+  /// No description provided for @themeAuto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Авто'**
+  String get themeAuto;
+
+  /// No description provided for @themeLightShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Светлая'**
+  String get themeLightShort;
+
+  /// No description provided for @themeDarkShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тёмная'**
+  String get themeDarkShort;
+
+  /// No description provided for @settingsFinance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Финансы'**
+  String get settingsFinance;
+
+  /// No description provided for @settingsData.
+  ///
+  /// In ru, this message translates to:
+  /// **'Данные'**
+  String get settingsData;
+
+  /// No description provided for @settingsAbout.
+  ///
+  /// In ru, this message translates to:
+  /// **'О приложении'**
+  String get settingsAbout;
+
+  /// No description provided for @versionLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Версия'**
+  String get versionLabel;
+
+  /// No description provided for @developerTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Для разработчика'**
+  String get developerTitle;
+
+  /// No description provided for @developerHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Техническое состояние хранилища. Пригодится, если что-то пойдёт не так: скопируйте сводку и отправьте разработчику.'**
+  String get developerHint;
+
+  /// No description provided for @reserveExplain.
+  ///
+  /// In ru, this message translates to:
+  /// **'Резерв — неприкосновенная сумма. Приложение вычитает её из «можно потратить», чтобы у вас всегда оставался запас на непредвиденное.'**
+  String get reserveExplain;
+
+  /// No description provided for @backupRowHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зашифрованный файл со всеми данными'**
+  String get backupRowHint;
+
+  /// No description provided for @heroUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно потратить до {date}'**
+  String heroUntil(String date);
+
+  /// No description provided for @heroUntilMonthEnd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно потратить до конца месяца'**
+  String get heroUntilMonthEnd;
+
+  /// No description provided for @heroShortUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'До {date} не хватает'**
+  String heroShortUntil(String date);
+
+  /// No description provided for @heroShortMonthEnd.
+  ///
+  /// In ru, this message translates to:
+  /// **'До конца месяца не хватает'**
+  String get heroShortMonthEnd;
+
+  /// No description provided for @statusPrecise.
+  ///
+  /// In ru, this message translates to:
+  /// **'Точный расчёт'**
+  String get statusPrecise;
+
+  /// No description provided for @statusPreliminary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Предварительный расчёт'**
+  String get statusPreliminary;
+
+  /// No description provided for @perDayShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'≈ {amount} в день · {days} дн.'**
+  String perDayShort(String amount, int days);
+
+  /// No description provided for @freshToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остатки обновлены сегодня'**
+  String get freshToday;
+
+  /// No description provided for @freshYesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остатки обновлены вчера'**
+  String get freshYesterday;
+
+  /// No description provided for @freshDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остатки обновлены {days} дн. назад'**
+  String freshDays(int days);
+
+  /// No description provided for @freshNever.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остатки ещё не вносились'**
+  String get freshNever;
+
+  /// No description provided for @updateShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить'**
+  String get updateShort;
+
+  /// No description provided for @ownMoney.
+  ///
+  /// In ru, this message translates to:
+  /// **'Свои деньги'**
+  String get ownMoney;
+
+  /// No description provided for @debts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Долги'**
+  String get debts;
+
+  /// No description provided for @attentionTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Требует внимания'**
+  String get attentionTitle;
+
+  /// No description provided for @preliminaryExplain.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не хватает данных — реальная сумма может быть меньше. Заполните пункты ниже.'**
+  String get preliminaryExplain;
+
+  /// No description provided for @fixNoAccounts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавьте счета и карты'**
+  String get fixNoAccounts;
+
+  /// No description provided for @fixNoSalary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите зарплату — дату и сумму'**
+  String get fixNoSalary;
+
+  /// No description provided for @fixCardNoFigures.
+  ///
+  /// In ru, this message translates to:
+  /// **'Внесите цифры банка по «{name}»'**
+  String fixCardNoFigures(String name);
+
+  /// No description provided for @fixOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок по «{name}» ({date}) прошёл — обновите цифры или отметьте оплату'**
+  String fixOverdue(String name, String date);
+
+  /// No description provided for @fixStale.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновите остатки — данные от {date}'**
+  String fixStale(String date);
+
+  /// No description provided for @noteMinimumOnly.
+  ///
+  /// In ru, this message translates to:
+  /// **'По «{name}» известен только минимальный платёж'**
+  String noteMinimumOnly(String name);
+
+  /// No description provided for @notePossibleDuplicate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверьте «{name}»: возможно, учтено дважды'**
+  String notePossibleDuplicate(String name);
+
+  /// No description provided for @seeAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get seeAll;
+
+  /// No description provided for @noUpcoming.
+  ///
+  /// In ru, this message translates to:
+  /// **'В ближайшие 30 дней платежей нет'**
+  String get noUpcoming;
+
+  /// No description provided for @savings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Накопления'**
+  String get savings;
+
+  /// No description provided for @addShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить'**
+  String get addShort;
+
+  /// No description provided for @accountEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get accountEdit;
+
+  /// No description provided for @accountSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено'**
+  String get accountSaved;
+
+  /// No description provided for @updateThisBalance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить остаток'**
+  String get updateThisBalance;
+
+  /// No description provided for @addPaymentOrIncome.
+  ///
+  /// In ru, this message translates to:
+  /// **'Что добавить?'**
+  String get addPaymentOrIncome;
+
+  /// No description provided for @debtLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'долг'**
+  String get debtLabel;
+
+  /// No description provided for @updatedAgo.
+  ///
+  /// In ru, this message translates to:
+  /// **'обновлено {when}'**
+  String updatedAgo(String when);
+
+  /// No description provided for @creditLimitTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кредитный лимит'**
+  String get creditLimitTitle;
+
+  /// No description provided for @creditAvailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступно по лимиту'**
+  String get creditAvailable;
 }
 
 class _AppLocalizationsDelegate

@@ -8,6 +8,7 @@ import 'package:denezhno/core/backup/backup_crypto.dart';
 import 'package:denezhno/features/backup/backup.dart';
 import 'package:denezhno/features/backup/backup_section.dart';
 import 'package:denezhno/features/settings/preferences.dart';
+import 'package:denezhno/ui/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,6 +84,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('open.settings')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings.backup')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.backup')), findsOneWidget);
     return (backup, io, prefs);
   }
 
@@ -167,10 +171,10 @@ void main() {
     tester,
   ) async {
     await openSettings(tester, empty: false);
-    final button = tester.widget<CupertinoButton>(
+    final row = tester.widget<SettingsRow>(
       find.byKey(const ValueKey('backup.restore')),
     );
-    expect(button.onPressed, isNull);
+    expect(row.onTap, isNull);
     expect(find.textContaining('только в пустое приложение'), findsOneWidget);
   });
 

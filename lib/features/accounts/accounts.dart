@@ -86,6 +86,14 @@ abstract interface class AccountsStore {
   /// Whether a money account counts in «можно потратить» (the opposite of
   /// «не трогать»). Only for non-debt accounts.
   Future<void> setIncludedInForecast(String accountId, bool included);
+
+  /// Renames an account and/or changes a credit card's limit. Metadata only:
+  /// balances and history are not touched.
+  Future<void> updateAccountDetails(
+    String accountId, {
+    required String name,
+    Money? creditLimit,
+  });
 }
 
 /// Household-wide settings that affect the forecast.

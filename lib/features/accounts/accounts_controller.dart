@@ -41,6 +41,13 @@ class AccountsController extends AsyncNotifier<List<AccountSummary>> {
     _reload();
   }
 
+  Future<void> updateDetails(String id, String name, Money? limit) async {
+    await ref
+        .read(accountsStoreProvider)
+        .updateAccountDetails(id, name: name, creditLimit: limit);
+    _reload();
+  }
+
   void _reload() {
     if (ref.mounted) ref.invalidateSelf();
   }
