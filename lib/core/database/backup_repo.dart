@@ -51,6 +51,73 @@ const backupTables = [
   'app_settings',
 ];
 
+/// Tables a payload of schema [version] contains.
+List<String> tablesForSchema(int version) => [
+  for (final t in backupTables)
+    if ((_tablesSince[t] ?? 0) <= version) t,
+];
+
+/// Builds the payload JSON from rows read by any means (drift, or the raw
+/// encrypted file before a migration).
+Uint8List buildPayload({
+  required int schemaVersion,
+  required Map<String, List<Map<String, Object?>>> tables,
+  required DateTime now,
+}) => Uint8List.fromList(
+  utf8.encode(
+    jsonEncode({
+      'format': 'denezhno-backup',
+      'payloadVersion': backupPayloadVersion,
+      'schemaVersion': schemaVersion,
+      'createdAtUtc': now.toUtc().millisecondsSinceEpoch,
+      'counts': {for (final e in tables.entries) e.key: e.value.length},
+      'tables': tables,
+    }),
+  ),
+);
+
+/// Checks a finished backup file the way a restore would read it: it
+/// decrypts with [password], the payload is complete (every table, counts
+/// match) and the journal in it is consistent (every entry balanced, no
+/// entry without lines). Returns what it holds. Plaintext is wiped.
+BackupSummary verifyBackupFile(Uint8List file, String password) {
+  final payload = decryptBackup(file, password);
+  try {
+    final parsed = BackupRepo.parse(payload);
+    final sums = <String, int>{};
+    for (final p in parsed.tables['postings']!) {
+      final entry = p['entry_id']! as String;
+      sums[entry] = (sums[entry] ?? 0) + (p['amount_minor']! as int);
+    }
+    for (final e in parsed.tables['journal_entries']!) {
+      if (sums[e['id']] == null) throw const IncompleteBackup();
+    }
+    if (sums.values.any((v) => v != 0)) throw const IncompleteBackup();
+    const own = {'debit', 'cash', 'savings', 'deposit', 'credit_card', 'loan'};
+    return BackupSummary(
+      schemaVersion: parsed.schemaVersion,
+      ownAccounts: parsed.tables['accounts']!
+          .where((a) => own.contains(a['kind']))
+          .length,
+      entries: parsed.tables['journal_entries']!.length,
+    );
+  } finally {
+    payload.fillRange(0, payload.length, 0);
+  }
+}
+
+/// What a verified backup holds (shown to the person).
+final class BackupSummary {
+  const BackupSummary({
+    required this.schemaVersion,
+    required this.ownAccounts,
+    required this.entries,
+  });
+  final int schemaVersion;
+  final int ownAccounts;
+  final int entries;
+}
+
 /// Builds and restores backup payloads. Rows are exported generically by
 /// SQL column name, so the payload follows the schema and does not depend
 /// on the phone, its key or its file paths.
@@ -76,15 +143,11 @@ final class BackupRepo {
         tables[name] = [for (final r in rows) r.data];
       }
     });
-    final payload = {
-      'format': 'denezhno-backup',
-      'payloadVersion': backupPayloadVersion,
-      'schemaVersion': AppDatabase.latestSchemaVersion,
-      'createdAtUtc': now.toUtc().millisecondsSinceEpoch,
-      'counts': {for (final e in tables.entries) e.key: e.value.length},
-      'tables': tables,
-    };
-    return Uint8List.fromList(utf8.encode(jsonEncode(payload)));
+    return buildPayload(
+      schemaVersion: AppDatabase.latestSchemaVersion,
+      tables: tables,
+      now: now,
+    );
   }
 
   /// True when the app holds no financial data yet (only the seed created
@@ -110,7 +173,7 @@ final class BackupRepo {
   /// restore into a new encrypted database file and switch to it only after
   /// full verification, keeping the old file (see docs/backup.md).
   Future<void> restoreIntoEmpty(Uint8List payload) async {
-    final data = _parse(payload);
+    final data = parse(payload);
     await db.transaction(() async {
       if (!await isEmpty()) throw const RestoreTargetNotEmpty();
       // Remove the seed (household, member, system and category accounts,
@@ -140,9 +203,9 @@ final class BackupRepo {
     });
   }
 
-  ({int schemaVersion, Map<String, List<Map<String, Object?>>> tables}) _parse(
-    Uint8List payload,
-  ) {
+  /// Reads and checks a payload (format, version, tables, counts).
+  static ({int schemaVersion, Map<String, List<Map<String, Object?>>> tables})
+  parse(Uint8List payload) {
     final Object? json;
     try {
       json = jsonDecode(utf8.decode(payload));

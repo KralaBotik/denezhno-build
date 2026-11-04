@@ -1225,4 +1225,43 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get paymentNotFound =>
       'Выплата не найдена — возможно, график изменился.';
+
+  @override
+  String get storageUpgrade => 'Нужно обновить данные — откройте «Главную».';
+
+  @override
+  String get upgradeTitle => 'Обновление данных';
+
+  @override
+  String get upgradeText =>
+      'В новой версии зарплата и аванс, операции и категории хранятся по-новому. Перед обновлением сохраните резервную копию: приложение проверит её сразу после создания. Ваши данные пока не изменены.';
+
+  @override
+  String get upgradeBackup => 'Создать и проверить копию';
+
+  @override
+  String upgradeBackupDone(int accounts, int entries) {
+    return 'Копия создана и проверена: счетов $accounts, записей журнала $entries. Сохраните файл в надёжное место.';
+  }
+
+  @override
+  String get upgradeBackupFailed =>
+      'Не удалось создать копию. Данные не изменены — попробуйте ещё раз.';
+
+  @override
+  String get upgradeContinue => 'Обновить данные';
+
+  @override
+  String get upgradeWithoutBackup => 'Обновить без копии?';
+
+  @override
+  String get upgradeWithoutBackupText =>
+      'На телефоне останется зашифрованная копия базы до обновления, но перенести её на другое устройство нельзя. Рекомендуем сначала создать копию.';
+
+  @override
+  String get upgradeAnyway => 'Обновить без копии';
+
+  @override
+  String get upgradeAutoCopy =>
+      'При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы.';
 }

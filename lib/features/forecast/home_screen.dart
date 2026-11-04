@@ -16,6 +16,7 @@ import '../accounts/accounts.dart';
 import '../accounts/accounts_controller.dart';
 import '../accounts/accounts_screens.dart';
 import '../payments/payments.dart';
+import '../backup/backup_section.dart' show UpgradeNotice;
 import '../income/income_controller.dart';
 import '../income/income_screens.dart';
 import '../payments/payments_controller.dart';
@@ -52,9 +53,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context);
     final p = Palette.of(context);
-    final ready = ref.watch(
-      appControllerProvider.select((st) => st.storage == StorageStatus.ready),
-    );
+    final status = ref.watch(appControllerProvider.select((st) => st.storage));
+    final ready = status == StorageStatus.ready;
     final forecast = ref.watch(safeToSpendProvider);
     final accounts = ref.watch(accountsProvider).value ?? const [];
     return AppPage(
@@ -73,7 +73,9 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       children: [
-        if (!ready)
+        if (status == StorageStatus.upgradeRequired)
+          const UpgradeNotice()
+        else if (!ready)
           const StorageNotice()
         else if (accounts.isEmpty)
           const _Onboarding()

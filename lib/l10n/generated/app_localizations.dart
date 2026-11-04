@@ -2163,6 +2163,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выплата не найдена — возможно, график изменился.'**
   String get paymentNotFound;
+
+  /// No description provided for @storageUpgrade.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нужно обновить данные — откройте «Главную».'**
+  String get storageUpgrade;
+
+  /// No description provided for @upgradeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновление данных'**
+  String get upgradeTitle;
+
+  /// No description provided for @upgradeText.
+  ///
+  /// In ru, this message translates to:
+  /// **'В новой версии зарплата и аванс, операции и категории хранятся по-новому. Перед обновлением сохраните резервную копию: приложение проверит её сразу после создания. Ваши данные пока не изменены.'**
+  String get upgradeText;
+
+  /// No description provided for @upgradeBackup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать и проверить копию'**
+  String get upgradeBackup;
+
+  /// No description provided for @upgradeBackupDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копия создана и проверена: счетов {accounts}, записей журнала {entries}. Сохраните файл в надёжное место.'**
+  String upgradeBackupDone(int accounts, int entries);
+
+  /// No description provided for @upgradeBackupFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать копию. Данные не изменены — попробуйте ещё раз.'**
+  String get upgradeBackupFailed;
+
+  /// No description provided for @upgradeContinue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить данные'**
+  String get upgradeContinue;
+
+  /// No description provided for @upgradeWithoutBackup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить без копии?'**
+  String get upgradeWithoutBackup;
+
+  /// No description provided for @upgradeWithoutBackupText.
+  ///
+  /// In ru, this message translates to:
+  /// **'На телефоне останется зашифрованная копия базы до обновления, но перенести её на другое устройство нельзя. Рекомендуем сначала создать копию.'**
+  String get upgradeWithoutBackupText;
+
+  /// No description provided for @upgradeAnyway.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить без копии'**
+  String get upgradeAnyway;
+
+  /// No description provided for @upgradeAutoCopy.
+  ///
+  /// In ru, this message translates to:
+  /// **'При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы.'**
+  String get upgradeAutoCopy;
 }
 
 class _AppLocalizationsDelegate

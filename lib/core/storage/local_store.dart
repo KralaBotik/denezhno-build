@@ -32,10 +32,12 @@ final class LocalStore
         PaymentsStore,
         HouseholdStore,
         BackupStore,
-        IncomeStore {
+        IncomeStore,
+        UpgradeStore {
   LocalStore(this.prepare);
   final Future<StorageLocation> Function() prepare;
   AppDatabase? _database;
+  bool _upgradeAllowed = false;
   Future<void> _tail = Future.value();
 
   Future<T> _serial<T>(Future<T> Function() action) {
@@ -49,6 +51,17 @@ final class LocalStore
     () => measure(MeasuredOperation.storageOpen, () async {
       if (_database == null) {
         final location = await storageStage('bootstrap', prepare);
+        // An older database is not migrated until the person had the chance
+        // to save a verified backup (R3 requirement).
+        if (!_upgradeAllowed && await location.file.exists()) {
+          final version = await storageStage(
+            'db.peek_version',
+            () => peekSchemaVersion(location.file, location.keyHex),
+          );
+          if (version > 0 && version < AppDatabase.latestSchemaVersion) {
+            throw UpgradeRequired(version);
+          }
+        }
         final db = AppDatabase(
           await storageStage(
             'db.connection',
@@ -171,12 +184,41 @@ final class LocalStore
   Future<Uint8List> exportBackup(String password) => _serial(() async {
     if (password.length < minBackupPasswordLength) throw const WeakPassword();
     final payload = await BackupRepo(_open()).exportPayload(DateTime.now());
+    return _encryptVerified(payload, password).file;
+  });
+
+  /// Encrypts, then checks the result exactly as a restore would read it.
+  VerifiedBackup _encryptVerified(Uint8List payload, String password) {
     try {
-      return encryptBackup(payload, password);
+      final file = encryptBackup(payload, password);
+      final summary = verifyBackupFile(file, password);
+      return VerifiedBackup(
+        file,
+        ownAccounts: summary.ownAccounts,
+        entries: summary.entries,
+      );
     } finally {
       payload.fillRange(0, payload.length, 0);
     }
-  });
+  }
+
+  @override
+  Future<VerifiedBackup> exportBeforeUpgrade(String password) => _serial(
+    () async {
+      if (password.length < minBackupPasswordLength) throw const WeakPassword();
+      if (_database != null) throw StateError('Already open');
+      final location = await prepare();
+      final payload = await exportPayloadBeforeMigration(
+        location.file,
+        location.keyHex,
+        DateTime.now(),
+      );
+      return _encryptVerified(payload, password);
+    },
+  );
+
+  @override
+  void allowUpgrade() => _upgradeAllowed = true;
 
   @override
   Future<bool> canRestore() => _serial(() => BackupRepo(_open()).isEmpty());

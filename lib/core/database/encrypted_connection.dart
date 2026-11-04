@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show QueryExecutor;
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'app_database.dart' show AppDatabase;
+import 'backup_repo.dart' show buildPayload, tablesForSchema;
 
 /// Runtime check, intentionally NOT an assert: release builds must fail closed.
 void configureEncryptedDatabase(Database db, String keyHex) {
@@ -85,3 +88,48 @@ Future<QueryExecutor> encryptedConnection(File file, String keyHex) async {
     logStatements: false,
   );
 }
+
+/// The schema version of an existing encrypted database, read without
+/// migrating or changing anything (in a background isolate).
+Future<int> peekSchemaVersion(File file, String keyHex) => Isolate.run(() {
+  final db = sqlite3.open(file.path);
+  try {
+    configureEncryptedDatabase(db, keyHex);
+    return db.select('PRAGMA user_version').single.values.single! as int;
+  } finally {
+    db.close();
+  }
+});
+
+/// A backup payload read directly from the database at its current
+/// (older) schema version — before any migration touches it. Read-only;
+/// runs in a background isolate. The caller encrypts it immediately.
+Future<Uint8List> exportPayloadBeforeMigration(
+  File file,
+  String keyHex,
+  DateTime now,
+) => Isolate.run(() {
+  final db = sqlite3.open(file.path);
+  try {
+    configureEncryptedDatabase(db, keyHex);
+    final version = db.select('PRAGMA user_version').single.values.single;
+    if (version is! int || version < 3) {
+      throw StateError('Unsupported schema for a backup');
+    }
+    db.execute('BEGIN');
+    try {
+      final tables = {
+        for (final t in tablesForSchema(version))
+          t: [
+            for (final r in db.select('SELECT * FROM "$t" ORDER BY rowid'))
+              {for (final c in r.keys) c: r[c]},
+          ],
+      };
+      return buildPayload(schemaVersion: version, tables: tables, now: now);
+    } finally {
+      db.execute('ROLLBACK');
+    }
+  } finally {
+    db.close();
+  }
+});

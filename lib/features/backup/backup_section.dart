@@ -101,6 +101,85 @@ final class SystemBackupIo implements BackupIo {
   }
 }
 
+/// Password for a backup (twice when creating; shared with the update
+/// screen).
+Future<String?> askBackupPassword(
+  BuildContext context, {
+  required bool create,
+}) async {
+  final s = AppLocalizations.of(context);
+  final first = TextEditingController();
+  final second = TextEditingController();
+  String? problem;
+  final result = await showCupertinoDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => CupertinoAlertDialog(
+        title: Text(create ? s.backupCreate : s.restoreEnterPassword),
+        content: Column(
+          children: [
+            if (create)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(s.backupPasswordWarning),
+              ),
+            CupertinoTextField(
+              key: const ValueKey('backup.password'),
+              controller: first,
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              placeholder: create ? s.backupPassword : s.restoreEnterPassword,
+            ),
+            if (create) ...[
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                key: const ValueKey('backup.password2'),
+                controller: second,
+                obscureText: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                placeholder: s.backupPasswordRepeat,
+              ),
+            ],
+            if (problem != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  problem!,
+                  style: const TextStyle(color: CupertinoColors.systemRed),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(s.cancel),
+          ),
+          CupertinoDialogAction(
+            key: const ValueKey('backup.ok'),
+            isDefaultAction: true,
+            onPressed: () {
+              if (create && first.text.length < minBackupPasswordLength) {
+                setLocal(() => problem = s.backupPasswordShort);
+              } else if (create && first.text != second.text) {
+                setLocal(() => problem = s.backupPasswordsDiffer);
+              } else if (first.text.isNotEmpty) {
+                Navigator.of(ctx).pop(first.text);
+              }
+            },
+            child: Text(s.save),
+          ),
+        ],
+      ),
+    ),
+  );
+  first.dispose();
+  second.dispose();
+  return result;
+}
+
 final backupIoProvider = Provider<BackupIo>((ref) => SystemBackupIo());
 
 /// Whether the app is still empty (restore is allowed only then).
@@ -129,79 +208,8 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     _error = error;
   });
 
-  Future<String?> _askPassword({required bool create}) async {
-    final s = AppLocalizations.of(context);
-    final first = TextEditingController();
-    final second = TextEditingController();
-    String? problem;
-    final result = await showCupertinoDialog<String>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => CupertinoAlertDialog(
-          title: Text(create ? s.backupCreate : s.restoreEnterPassword),
-          content: Column(
-            children: [
-              if (create)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(s.backupPasswordWarning),
-                ),
-              CupertinoTextField(
-                key: const ValueKey('backup.password'),
-                controller: first,
-                obscureText: true,
-                autocorrect: false,
-                enableSuggestions: false,
-                placeholder: create ? s.backupPassword : s.restoreEnterPassword,
-              ),
-              if (create) ...[
-                const SizedBox(height: 8),
-                CupertinoTextField(
-                  key: const ValueKey('backup.password2'),
-                  controller: second,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  placeholder: s.backupPasswordRepeat,
-                ),
-              ],
-              if (problem != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    problem!,
-                    style: const TextStyle(color: CupertinoColors.systemRed),
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(s.cancel),
-            ),
-            CupertinoDialogAction(
-              key: const ValueKey('backup.ok'),
-              isDefaultAction: true,
-              onPressed: () {
-                if (create && first.text.length < minBackupPasswordLength) {
-                  setLocal(() => problem = s.backupPasswordShort);
-                } else if (create && first.text != second.text) {
-                  setLocal(() => problem = s.backupPasswordsDiffer);
-                } else if (first.text.isNotEmpty) {
-                  Navigator.of(ctx).pop(first.text);
-                }
-              },
-              child: Text(s.save),
-            ),
-          ],
-        ),
-      ),
-    );
-    first.dispose();
-    second.dispose();
-    return result;
-  }
+  Future<String?> _askPassword({required bool create}) =>
+      askBackupPassword(context, create: create);
 
   Future<void> _create() async {
     final s = AppLocalizations.of(context);
@@ -346,4 +354,140 @@ class BackupScreen extends StatelessWidget {
     title: AppLocalizations.of(context).backupTitle,
     children: const [BackupSection()],
   );
+}
+
+/// Shown instead of the app when the database on the phone is from an
+/// older version (nothing is changed yet): a verified backup first, then
+/// «Обновить данные». Owner requirement for R3 migrations.
+class UpgradeNotice extends ConsumerStatefulWidget {
+  const UpgradeNotice({super.key});
+  @override
+  ConsumerState<UpgradeNotice> createState() => _UpgradeNoticeState();
+}
+
+class _UpgradeNoticeState extends ConsumerState<UpgradeNotice> {
+  bool _busy = false;
+  bool _saved = false;
+  String? _message;
+  bool _error = false;
+
+  Future<void> _backup() async {
+    final s = AppLocalizations.of(context);
+    final password = await askBackupPassword(context, create: true);
+    if (password == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final backup = await ref
+          .read(upgradeStoreProvider)
+          .exportBeforeUpgrade(password);
+      await ref
+          .read(backupIoProvider)
+          .share(backup.file, 'Denezhno-${CalendarDate.today().iso}.dnzb');
+      setState(() {
+        _saved = true;
+        _error = false;
+        _message = s.upgradeBackupDone(backup.ownAccounts, backup.entries);
+      });
+    } on Object {
+      setState(() {
+        _error = true;
+        _message = s.upgradeBackupFailed;
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _continue() async {
+    final s = AppLocalizations.of(context);
+    if (!_saved) {
+      final ok = await showCupertinoDialog<bool>(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: Text(s.upgradeWithoutBackup),
+          content: Text(s.upgradeWithoutBackupText),
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.cancel),
+            ),
+            CupertinoDialogAction(
+              key: const ValueKey('upgrade.anyway'),
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(s.upgradeAnyway),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    await ref.read(appControllerProvider.notifier).approveUpgrade();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    return AppCard(
+      key: const ValueKey('upgrade.notice'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconBadge(
+                icon: CupertinoIcons.arrow_up_circle_fill,
+                color: p.accent,
+              ),
+              const SizedBox(width: Space.m),
+              Expanded(
+                child: Text(s.upgradeTitle, style: AppText.headline(p.text)),
+              ),
+            ],
+          ),
+          const SizedBox(height: Space.m),
+          Text(s.upgradeText, style: AppText.secondary(p.text)),
+          const SizedBox(height: Space.l),
+          Wrap(
+            spacing: Space.s,
+            runSpacing: Space.s,
+            children: [
+              PillButton(
+                key: const ValueKey('upgrade.backup'),
+                label: s.upgradeBackup,
+                icon: CupertinoIcons.lock_shield_fill,
+                filled: !_saved,
+                onPressed: _busy ? null : () => unawaited(_backup()),
+              ),
+              PillButton(
+                key: const ValueKey('upgrade.continue'),
+                label: s.upgradeContinue,
+                icon: CupertinoIcons.arrow_right,
+                filled: _saved,
+                onPressed: _busy ? null : () => unawaited(_continue()),
+              ),
+            ],
+          ),
+          if (_busy)
+            const Padding(
+              padding: EdgeInsets.only(top: Space.m),
+              child: CupertinoActivityIndicator(),
+            ),
+          if (_message != null)
+            Padding(
+              padding: const EdgeInsets.only(top: Space.m),
+              child: Text(
+                _message!,
+                key: const ValueKey('upgrade.message'),
+                style: AppText.secondary(_error ? p.negative : p.accent),
+              ),
+            ),
+          const SizedBox(height: Space.m),
+          Text(s.upgradeAutoCopy, style: AppText.caption(p.textTertiary)),
+        ],
+      ),
+    );
+  }
 }

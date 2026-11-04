@@ -34,6 +34,9 @@ final backupStoreProvider = Provider<BackupStore>(
 final incomeStoreProvider = Provider<IncomeStore>(
   (ref) => ref.watch(localStoreProvider),
 );
+final upgradeStoreProvider = Provider<UpgradeStore>(
+  (ref) => ref.watch(localStoreProvider),
+);
 final appControllerProvider = NotifierProvider<AppController, AppState>(
   AppController.new,
 );
@@ -49,7 +52,16 @@ class LastStorageFailure extends Notifier<String?> {
   void record(String description) => state = description;
 }
 
-enum StorageStatus { opening, ready, paused, unavailable }
+enum StorageStatus {
+  opening,
+  ready,
+  paused,
+  unavailable,
+
+  /// The database is from an older version: a verified backup is offered
+  /// before it is migrated (nothing has been changed yet).
+  upgradeRequired,
+}
 
 final class AppState {
   const AppState({
@@ -84,6 +96,15 @@ class AppController extends Notifier<AppState> {
       if (!ref.mounted) return;
       try {
         await action();
+      } on UpgradeRequired {
+        // Not a failure: the old database is untouched and waits for the
+        // person's decision.
+        if (ref.mounted) {
+          state = AppState(
+            theme: state.theme,
+            storage: StorageStatus.upgradeRequired,
+          );
+        }
       } catch (error) {
         // Never surface SQL, keys, paths or platform exception messages: only
         // the allowlisted description from describeStorageFailure is kept.
@@ -118,6 +139,12 @@ class AppController extends Notifier<AppState> {
         state = AppState(theme: theme, storage: StorageStatus.ready);
       }
     });
+  }
+
+  /// The person chose to update the data (after the offered backup).
+  Future<void> approveUpgrade() {
+    ref.read(upgradeStoreProvider).allowUpgrade();
+    return resume();
   }
 
   Future<void> suspend() {

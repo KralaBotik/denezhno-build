@@ -61,6 +61,7 @@ class StorageNotice extends ConsumerWidget {
               StorageStatus.ready => s.storageReady,
               StorageStatus.paused => s.storagePaused,
               StorageStatus.unavailable => s.storageError,
+              StorageStatus.upgradeRequired => s.storageUpgrade,
             }, style: AppText.body(p.text)),
             if (error)
               Padding(
