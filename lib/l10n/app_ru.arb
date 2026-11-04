@@ -1,0 +1,337 @@
+{
+  "@@locale": "ru",
+  "appName": "Денежно",
+  "home": "Главная",
+  "accounts": "Счета",
+  "transactions": "Операции",
+  "payments": "Платежи",
+  "forecast": "Прогноз",
+  "settings": "Настройки",
+  "welcome": "Ваши финансы — под рукой",
+  "homeEmpty": "Здесь появится обзор ваших денег, расходов и ближайших платежей.",
+  "accountsEmpty": "Здесь будут ваши счета и их остатки.",
+  "transactionsEmpty": "Здесь будет история доходов, расходов и переводов.",
+  "paymentsEmpty": "Здесь будут обязательные платежи и напоминания.",
+  "forecastEmpty": "Здесь появится прогноз доступных средств.",
+  "notAvailableYet": "Учёт финансов пока недоступен.",
+  "appearance": "Оформление",
+  "themeSystem": "Как в системе",
+  "themeLight": "Светлое",
+  "themeDark": "Тёмное",
+  "storage": "Хранение",
+  "storageOpening": "Открываем защищённое хранилище…",
+  "storageReady": "Настройки сохраняются на этом устройстве.",
+  "storagePaused": "Хранилище закрыто до возвращения в приложение.",
+  "storageError": "Защищённое хранилище недоступно. Существующие данные сохранены. Разблокируйте устройство и повторите попытку.",
+  "retry": "Повторить",
+  "syncUnavailable": "Синхронизация пока недоступна.",
+  "selectedTheme": "Выбранное оформление",
+  "diagnostics": "Диагностика",
+  "diagnosticsHint": "Техническая сводка без ключей, путей и ваших данных. Её можно скопировать и отправить разработчику.",
+  "copyDiagnostics": "Скопировать диагностику",
+  "diagnosticsCopied": "Диагностика скопирована.",
+  "diagnosticsCopyFailed": "Не удалось скопировать диагностику.",
+  "addAccount": "Добавить счёт",
+  "updateBalances": "Обновить остатки",
+  "accountsEmptyTitle": "Пока нет счетов",
+  "accountsEmptyHint": "Добавьте карты, наличные, накопления, кредитки и кредиты — так приложение увидит все ваши деньги и долги.",
+  "accountsStorageClosed": "Счета появятся, когда откроется защищённое хранилище.",
+  "accountsLoadFailed": "Не удалось загрузить счета. Данные не изменены.",
+  "groupMoney": "Деньги",
+  "groupSavings": "Накопления",
+  "groupDebts": "Долги",
+  "totalOwnMoney": "Свои деньги",
+  "kindDebit": "Дебетовая карта",
+  "kindCash": "Наличные",
+  "kindSavings": "Накопительный счёт",
+  "kindDeposit": "Вклад",
+  "kindCreditCard": "Кредитная карта",
+  "kindLoan": "Кредит",
+  "updatedToday": "обновлено сегодня",
+  "updatedYesterday": "обновлено вчера",
+  "updatedDaysAgo": "обновлено {days} дн. назад",
+  "@updatedDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "creditLimitValue": "лимит {amount}",
+  "@creditLimitValue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "accountKind": "Тип",
+  "fieldName": "Название",
+  "fieldAmountAsset": "Сколько сейчас на счёте",
+  "fieldAmountCard": "Сколько сейчас должны банку",
+  "fieldAmountLoan": "Сколько осталось выплатить",
+  "fieldCreditLimit": "Кредитный лимит (необязательно)",
+  "protectedLabel": "Не трогать",
+  "protectedHint": "Не учитывать в «можно потратить» — для накоплений.",
+  "save": "Сохранить",
+  "cancel": "Отмена",
+  "invalidAmount": "Введите сумму, например 12 345,67",
+  "nameRequired": "Введите название",
+  "saveFailed": "Не удалось сохранить. Данные не изменены.",
+  "unchanged": "Не изменилось",
+  "currentAmount": "сейчас {amount}",
+  "@currentAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "updateHint": "Откройте приложения банков и впишите текущие суммы. Если сумма не изменилась — нажмите «Не изменилось». Пустые поля не меняются.",
+  "updateResultExpenses": "Остатки обновлены. Неучтённые расходы: {amount}",
+  "@updateResultExpenses": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "updateResultIncome": "Остатки обновлены. Неучтённые поступления: {amount}",
+  "@updateResultIncome": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "updateResultNone": "Остатки обновлены.",
+  "upcomingTitle": "Ближайшие 30 дней",
+  "upcomingEmpty": "Здесь появятся ближайшие платежи и поступления. Добавьте регулярный платёж, зарплату или цифры кредитки.",
+  "creditCardsTitle": "Кредитки: цифры банка",
+  "cardNoFigures": "Внесите цифры из приложения банка",
+  "cardGraceLine": "Чтобы не платить проценты: {amount} до {date}",
+  "@cardGraceLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMinLine": "Минимальный платёж: {amount} до {date}",
+  "@cardMinLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMinOnly": "минимальный платёж — сумма для льготного периода не указана",
+  "cardSettled": "внесено",
+  "recurringTitle": "Регулярные платежи",
+  "incomesTitle": "Доходы",
+  "addPayment": "Добавить платёж",
+  "addIncome": "Добавить доход",
+  "paymentTitle": "Платёж",
+  "incomeTitle": "Доход",
+  "delete": "Удалить",
+  "markPaid": "Оплачено",
+  "markReceived": "Получено",
+  "markDone": "Сделано",
+  "undoMark": "Отменить отметку",
+  "dueToday": "сегодня",
+  "dueTomorrow": "завтра",
+  "flowKindSalary": "Зарплата",
+  "flowKindOtherIncome": "Другой доход",
+  "flowKindSubscription": "Подписка",
+  "flowKindUtilities": "Коммунальные",
+  "flowKindLoanPayment": "Платёж по кредиту",
+  "flowKindRent": "Аренда",
+  "flowKindCommunication": "Связь и интернет",
+  "flowKindOtherPayment": "Другое",
+  "cadenceMonthly": "Каждый месяц",
+  "cadenceWeekly": "Каждую неделю",
+  "cadenceYearly": "Каждый год",
+  "cadenceOnce": "Один раз",
+  "monthlyOn": "{day}-го числа каждый месяц",
+  "@monthlyOn": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklyOn": "каждую неделю: {weekday}",
+  "@weeklyOn": {
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "yearlyOn": "{date} каждый год",
+  "@yearlyOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "onceOn": "{date}, один раз",
+  "@onceOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldKind": "Вид",
+  "fieldAmount": "Сумма",
+  "fieldSchedule": "Когда",
+  "chooseDate": "Выбрать",
+  "graceAmountField": "Внести, чтобы не платить проценты",
+  "minPaymentField": "Минимальный платёж",
+  "dueDateField": "До какого числа",
+  "cardFiguresHint": "Перепишите цифры с экрана кредитки в приложении банка. Цифры банка главные — мы их не пересчитываем. Можно указать только одну из сумм.",
+  "figuresNeedOne": "Укажите хотя бы одну сумму",
+  "settleCard": "Внёс",
+  "unsettleCard": "Ещё не внёс",
+  "remindersTitle": "Напоминания о платежах",
+  "remindersEnable": "Включить",
+  "remindersOn": "Включены: за 3 дня и в день платежа, в 10:00. Суммы в уведомлениях не показываются.",
+  "remindersDenied": "Уведомления запрещены. Разрешите их: Настройки iPhone → Денежно → Уведомления.",
+  "canSpendUntilSalary": "Можно потратить до зарплаты {date}",
+  "@canSpendUntilSalary": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "canSpendUntilMonthEnd": "Можно потратить до конца месяца",
+  "shortBy": "Не хватает {amount}",
+  "@shortBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "perDay": "≈ {amount} в день · дней: {days}",
+  "@perDay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "staleNote": "По данным на {date}. Обновите остатки, чтобы цифра была точной.",
+  "@staleNote": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "veryStaleNote": "Остатки давно не обновлялись — цифра может быть неточной.",
+  "howCalculated": "Как считаем",
+  "rowMoney": "Деньги на картах и наличные",
+  "rowPayments": "Платежи до этой даты: {count}",
+  "@rowPayments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rowCards": "Кредитки: внести до этой даты",
+  "rowGoals": "Отложить на цели",
+  "rowReserve": "Резерв (не трогаем)",
+  "rowResult": "Можно потратить",
+  "warnNoAccounts": "Добавьте счета — без них расчёт невозможен.",
+  "warnNoSalary": "Зарплата не указана — считаем до конца месяца. Добавьте её во вкладке «Платежи».",
+  "warnCardNoFigures": "По «{name}» нет цифр банка — платёж не учтён.",
+  "@warnCardNoFigures": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "warnMinimumOnly": "По «{name}» учтён только минимальный платёж — проценты продолжат начисляться.",
+  "@warnMinimumOnly": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeEmptyTitle": "Начните с ваших счетов",
+  "homeEmptyHint": "Добавьте карты, наличные и кредитки, затем зарплату и регулярные платежи — и здесь появится сумма, которую можно безопасно потратить до следующего дохода.",
+  "nextPayments": "Ближайшие платежи",
+  "reserveTitle": "Резерв",
+  "reserveHint": "Сумма, которую приложение никогда не предлагает тратить.",
+  "reserveEdit": "Изменить резерв",
+  "expectedIncomeNote": "Ожидаемые доходы не учитываются, пока не поступят.",
+  "warnPossibleDuplicate": "Платёж «{name}» не привязан к кредитке или кредиту — проверьте, не учтён ли он дважды вместе с цифрами банка.",
+  "@warnPossibleDuplicate": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "skippedDuplicatesNote": "Не учтено повторно: {names} — эти деньги уже учтены в цифрах банка или долг погашен.",
+  "@skippedDuplicatesNote": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "includedInForecast": "Учитывать в «можно потратить»",
+  "includedHint": "Выключите для накоплений и счетов, деньги с которых не идут на текущие траты.",
+  "notIncluded": "не в расчёте",
+  "linkedTo": "Погашает кредитку или кредит (необязательно)",
+  "linkedHint": "Если у кредитки есть цифры банка, этот платёж не будет учтён второй раз.",
+  "notLinked": "Не связан",
+  "backupTitle": "Резервная копия",
+  "backupHint": "Зашифрованный файл со всеми данными. Сохраните его в «Файлы» или отправьте себе. Восстановить можно на новом телефоне или после переустановки.",
+  "backupCreate": "Создать копию",
+  "backupRestore": "Восстановить из копии",
+  "backupPassword": "Пароль для копии (не меньше 8 символов)",
+  "backupPasswordRepeat": "Повторите пароль",
+  "backupPasswordWarning": "Без этого пароля копию восстановить невозможно — ни нам, ни кому-либо ещё. Запишите его.",
+  "backupPasswordsDiffer": "Пароли не совпадают",
+  "backupPasswordShort": "Пароль короче 8 символов",
+  "backupCreated": "Копия создана.",
+  "backupFailed": "Не удалось создать копию. Данные не изменены.",
+  "restoreOnlyEmpty": "Восстановление доступно только в пустое приложение: на новом телефоне или после переустановки. Текущие данные не будут перезаписаны.",
+  "restoreEnterPassword": "Пароль от копии",
+  "restoreDone": "Данные восстановлены.",
+  "restoreWrongPassword": "Неверный пароль или файл повреждён. Данные в приложении не изменены.",
+  "restoreNotBackup": "Это не резервная копия «Денежно».",
+  "restoreUnsupported": "Копия создана несовместимой версией приложения. Обновите приложение.",
+  "restoreIncomplete": "Копия неполная или повреждена. Данные в приложении не изменены.",
+  "restoreFailed": "Не удалось восстановить. Данные в приложении не изменены.",
+  "working": "Подождите…",
+  "warnOverdueFigures": "Срок по «{name}» ({date}) прошёл, а оплата не отмечена. Платёж учтён; внесите новые цифры банка или отметьте «Внёс».",
+  "@warnOverdueFigures": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

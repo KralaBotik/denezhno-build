@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+task_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="$task_root/.tooling/local/usr/bin:$task_root/.tooling/flutter/bin:$PATH"
+export PUB_CACHE="$task_root/.tooling/pub-cache"
+export XDG_CONFIG_HOME="$task_root/.tooling/config"
+export FLUTTER_SUPPRESS_ANALYTICS=true
+export DART_SUPPRESS_ANALYTICS=true
+cd "$task_root"
+if [[ $# -eq 0 ]]; then
+  echo 'Usage: tool/dev flutter <args> | tool/dev dart <args>' >&2
+  exit 2
+fi
+if [[ "$1" == flutter ]]; then
+  shift
+  exec flutter --suppress-analytics "$@"
+fi
+exec "$@"

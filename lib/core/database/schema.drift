@@ -1,0 +1,177 @@
+CREATE TABLE app_settings (
+  "key" TEXT NOT NULL PRIMARY KEY CHECK ("key" IN ('theme')),
+  value_json TEXT NOT NULL CHECK (
+    json_valid(value_json) AND json_type(value_json) = 'text'
+    AND json_extract(value_json, '$') IN ('system', 'light', 'dark')
+  ),
+  value_version INTEGER NOT NULL CHECK (typeof(value_version) = 'integer' AND value_version = 1)
+);
+
+CREATE TABLE schema_migrations (
+  version INTEGER NOT NULL PRIMARY KEY CHECK (version > 0),
+  schema_checksum TEXT NOT NULL CHECK (length(schema_checksum) = 64),
+  applied_at_utc INTEGER NOT NULL CHECK (typeof(applied_at_utc) = 'integer'),
+  app_version TEXT NOT NULL
+);
+
+-- ===== Schema v2 (R2 «Деньги и цели», шаг 1) =====
+-- Reference tables instead of CHECK enums: new kinds are inserts, not rebuilds.
+
+CREATE TABLE currencies (
+  code TEXT NOT NULL PRIMARY KEY CHECK (length(code) = 3 AND code = upper(code)),
+  fraction_digits INTEGER NOT NULL CHECK (typeof(fraction_digits) = 'integer' AND fraction_digits BETWEEN 0 AND 4)
+) AS CurrencyRow;
+
+CREATE TABLE account_kinds (
+  kind TEXT NOT NULL PRIMARY KEY,
+  nature TEXT NOT NULL CHECK (nature IN ('asset', 'liability', 'equity', 'system'))
+) AS AccountKindRow;
+
+CREATE TABLE entry_kinds (
+  kind TEXT NOT NULL PRIMARY KEY
+) AS EntryKindRow;
+
+CREATE TABLE data_sources (
+  source TEXT NOT NULL PRIMARY KEY
+) AS DataSourceRow;
+
+-- One book per household; one member until the family UI exists.
+CREATE TABLE households (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  base_currency TEXT NOT NULL REFERENCES currencies(code),
+  reserve_minor INTEGER NOT NULL CHECK (typeof(reserve_minor) = 'integer' AND reserve_minor >= 0),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer')
+) AS HouseholdRow;
+
+CREATE TABLE members (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer')
+) AS MemberRow;
+
+-- Balance of an account = sum of its postings. Assets positive, liabilities
+-- (credit cards, loans) negative.
+CREATE TABLE accounts (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  kind TEXT NOT NULL REFERENCES account_kinds(kind),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 60),
+  currency TEXT NOT NULL REFERENCES currencies(code),
+  owner_member_id TEXT REFERENCES members(id),
+  visibility TEXT NOT NULL CHECK (visibility IN ('shared', 'private')),
+  is_protected INTEGER NOT NULL CHECK (is_protected IN (0, 1)),
+  credit_limit_minor INTEGER CHECK (credit_limit_minor IS NULL OR (typeof(credit_limit_minor) = 'integer' AND credit_limit_minor >= 0)),
+  sort_order INTEGER NOT NULL CHECK (typeof(sort_order) = 'integer'),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  archived_at_utc INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer')
+) AS AccountRow;
+
+CREATE TABLE journal_entries (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  command_id TEXT NOT NULL UNIQUE CHECK (length(command_id) = 36),
+  kind TEXT NOT NULL REFERENCES entry_kinds(kind),
+  source TEXT NOT NULL REFERENCES data_sources(source),
+  actor_member_id TEXT REFERENCES members(id),
+  occurred_at_utc INTEGER NOT NULL CHECK (typeof(occurred_at_utc) = 'integer'),
+  recorded_at_utc INTEGER NOT NULL CHECK (typeof(recorded_at_utc) = 'integer')
+) AS JournalEntryRow;
+
+CREATE TABLE postings (
+  entry_id TEXT NOT NULL REFERENCES journal_entries(id),
+  line_no INTEGER NOT NULL CHECK (typeof(line_no) = 'integer' AND line_no >= 0),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer' AND amount_minor <> 0),
+  currency TEXT NOT NULL REFERENCES currencies(code),
+  PRIMARY KEY (entry_id, line_no)
+) AS PostingRow;
+
+CREATE INDEX postings_by_account ON postings (account_id);
+
+-- "The bank/user says the balance is X at time T". Differences are booked
+-- against the household's suspense account by the writer, never as expenses.
+CREATE TABLE balance_assertions (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer'),
+  currency TEXT NOT NULL REFERENCES currencies(code),
+  source TEXT NOT NULL REFERENCES data_sources(source),
+  entry_id TEXT REFERENCES journal_entries(id),
+  asserted_at_utc INTEGER NOT NULL CHECK (typeof(asserted_at_utc) = 'integer')
+) AS BalanceAssertionRow;
+
+CREATE INDEX balance_assertions_by_account ON balance_assertions (account_id, asserted_at_utc);
+
+-- Posted financial history is immutable: corrections are new entries.
+CREATE TRIGGER journal_entries_no_update BEFORE UPDATE ON journal_entries
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+CREATE TRIGGER journal_entries_no_delete BEFORE DELETE ON journal_entries
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+CREATE TRIGGER postings_no_update BEFORE UPDATE ON postings
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+CREATE TRIGGER postings_no_delete BEFORE DELETE ON postings
+BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
+CREATE TRIGGER balance_assertions_no_update BEFORE UPDATE ON balance_assertions
+BEGIN SELECT RAISE(ABORT, 'assertions are append-only'); END;
+CREATE TRIGGER balance_assertions_no_delete BEFORE DELETE ON balance_assertions
+BEGIN SELECT RAISE(ABORT, 'assertions are append-only'); END;
+
+-- ===== Schema v3 (R2 шаг 2: платежи, доходы, цифры банка по кредиткам) =====
+
+CREATE TABLE flow_kinds (
+  kind TEXT NOT NULL PRIMARY KEY,
+  direction TEXT NOT NULL CHECK (direction IN ('outflow', 'inflow'))
+) AS FlowKindRow;
+
+-- Plans, not history: a recurring payment or income. Editable; removing
+-- sets archived_at_utc. Dates are calendar dates (YYYY-MM-DD), not instants.
+CREATE TABLE planned_flows (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  household_id TEXT NOT NULL REFERENCES households(id),
+  kind TEXT NOT NULL REFERENCES flow_kinds(kind),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 60),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer' AND amount_minor > 0),
+  currency TEXT NOT NULL REFERENCES currencies(code),
+  account_id TEXT REFERENCES accounts(id),
+  cadence TEXT NOT NULL CHECK (cadence IN ('monthly', 'weekly', 'yearly', 'once')),
+  day INTEGER CHECK (day IS NULL OR typeof(day) = 'integer'),
+  month INTEGER CHECK (month IS NULL OR (typeof(month) = 'integer' AND month BETWEEN 1 AND 12)),
+  once_on TEXT CHECK (once_on IS NULL OR (length(once_on) = 10 AND date(once_on) = once_on)),
+  starts_on TEXT NOT NULL CHECK (length(starts_on) = 10 AND date(starts_on) = starts_on),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  archived_at_utc INTEGER CHECK (archived_at_utc IS NULL OR typeof(archived_at_utc) = 'integer'),
+  CHECK (
+    (cadence = 'monthly' AND day BETWEEN 1 AND 31 AND month IS NULL AND once_on IS NULL)
+    OR (cadence = 'weekly' AND day BETWEEN 1 AND 7 AND month IS NULL AND once_on IS NULL)
+    OR (cadence = 'yearly' AND day BETWEEN 1 AND 31 AND month IS NOT NULL AND once_on IS NULL)
+    OR (cadence = 'once' AND day IS NULL AND month IS NULL AND once_on IS NOT NULL)
+  )
+) AS PlannedFlowRow;
+
+-- «Оплачено / получено» for one occurrence of a plan.
+CREATE TABLE flow_marks (
+  flow_id TEXT NOT NULL REFERENCES planned_flows(id),
+  due_on TEXT NOT NULL CHECK (length(due_on) = 10 AND date(due_on) = due_on),
+  status TEXT NOT NULL CHECK (status IN ('done', 'skipped')),
+  marked_at_utc INTEGER NOT NULL CHECK (typeof(marked_at_utc) = 'integer'),
+  PRIMARY KEY (flow_id, due_on)
+) AS FlowMarkRow;
+
+-- Figures copied from the bank app for a credit card. The bank's figure is
+-- the truth; the newest row is current. settled_at_utc = «внёс».
+CREATE TABLE card_figures (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  grace_amount_minor INTEGER CHECK (grace_amount_minor IS NULL OR (typeof(grace_amount_minor) = 'integer' AND grace_amount_minor >= 0)),
+  grace_due_on TEXT CHECK (grace_due_on IS NULL OR (length(grace_due_on) = 10 AND date(grace_due_on) = grace_due_on)),
+  min_payment_minor INTEGER CHECK (min_payment_minor IS NULL OR (typeof(min_payment_minor) = 'integer' AND min_payment_minor >= 0)),
+  min_due_on TEXT CHECK (min_due_on IS NULL OR (length(min_due_on) = 10 AND date(min_due_on) = min_due_on)),
+  source TEXT NOT NULL REFERENCES data_sources(source),
+  recorded_at_utc INTEGER NOT NULL CHECK (typeof(recorded_at_utc) = 'integer'),
+  settled_at_utc INTEGER CHECK (settled_at_utc IS NULL OR typeof(settled_at_utc) = 'integer'),
+  CHECK (grace_amount_minor IS NOT NULL OR min_payment_minor IS NOT NULL),
+  CHECK ((grace_amount_minor IS NULL) = (grace_due_on IS NULL)),
+  CHECK ((min_payment_minor IS NULL) = (min_due_on IS NULL))
+) AS CardFiguresRow;
+
+CREATE INDEX card_figures_by_account ON card_figures (account_id, recorded_at_utc);

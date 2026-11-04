@@ -1,0 +1,142 @@
+name: CI
+
+# Linux checks on every push/PR; iOS build and Simulator test on macOS runners
+# only when started manually (workflow_dispatch).
+# Подписи, секретов и публикации здесь нет и быть не должно: сборка идёт с --no-codesign.
+
+on:
+  push:
+    branches: [main, 'r1.5/**', 'r2/**']
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A later push must not cancel a manual iOS run on the same branch.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Полный коммит тега Flutter из .flutter-version; менять вместе с ним.
+  FLUTTER_COMMIT: c197ca5199e9ee5661e865596c9c07294dfab51c
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+  DART_SUPPRESS_ANALYTICS: 'true'
+
+jobs:
+  linux-check:
+    name: Linux · analyze + unit/widget tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Install pinned Flutter
+        run: tool/ci/install-flutter.sh
+      - name: tool/check (pub get --enforce-lockfile, gen, format, analyze, test)
+        run: tool/check
+      - name: Generated files are committed and in sync
+        run: git diff --exit-code -- lib test drift_schemas
+
+  ios-build:
+    # Expensive macOS job: only when started manually (Actions → CI → Run
+    # workflow, or `gh workflow run CI --ref <branch>`). Never on push and never
+    # on pull requests, including those from forks.
+    if: github.event_name == 'workflow_dispatch'
+    name: macOS · iOS build (no codesign)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Runner environment
+        run: |
+          mkdir -p "$RUNNER_TEMP/report"
+          {
+            echo "## Runner"; sw_vers; uname -m
+            echo; echo "## Xcode"; xcode-select -p; xcodebuild -version
+            echo; echo "## Simulator runtimes"; xcrun simctl list runtimes
+          } | tee "$RUNNER_TEMP/report/environment.txt"
+      - name: Install pinned Flutter
+        run: tool/ci/install-flutter.sh
+      - name: Dependencies and generation
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter gen-l10n
+          dart run build_runner build
+          git diff --exit-code -- lib test drift_schemas
+      - name: flutter doctor
+        run: flutter doctor -v 2>&1 | tee "$RUNNER_TEMP/report/flutter-doctor.txt"
+      - name: Release build, unsigned
+        run: flutter build ios --release --no-codesign 2>&1 | tee "$RUNNER_TEMP/report/build-ios-release.log"
+      - name: Bundle inventory (frameworks, privacy manifests, entitlements)
+        run: |
+          app=build/ios/iphoneos/Runner.app
+          test -d "$app"
+          {
+            echo "## Info.plist MinimumOSVersion"
+            /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist"
+            echo; echo "## Frameworks"; ls -1 "$app/Frameworks" || true
+            echo; echo "## PrivacyInfo.xcprivacy"; find "$app" -name 'PrivacyInfo.xcprivacy' | sort
+            echo; echo "## Mach-O architectures"; lipo -archs "$app/Runner" || true
+            echo; echo "## Size (KiB)"; du -sk "$app"
+          } | tee "$RUNNER_TEMP/report/bundle-inventory.txt"
+      # Неподписанный IPA для ручной подписи (Sideloadly). Идёт ПОСЛЕ существующих шагов
+      # и использует тот же собранный Runner.app; Apple ID/сертификатов в CI нет.
+      - name: Package unsigned IPA and verify its contents
+        run: |
+          tool/ci/package-ipa.sh build/ios/iphoneos/Runner.app \
+            "$RUNNER_TEMP/ipa/Denezhno-unsigned-${GITHUB_SHA::7}.ipa" \
+            "$RUNNER_TEMP/report/ipa-inventory.txt"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: denezhno-unsigned-ipa
+          path: ${{ runner.temp }}/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: ios-build-report
+          path: ${{ runner.temp }}/report
+          retention-days: 14
+
+  ios-simulator-test:
+    # Expensive macOS job: only when started manually (Actions → CI → Run
+    # workflow, or `gh workflow run CI --ref <branch>`). Never on push and never
+    # on pull requests, including those from forks.
+    if: github.event_name == 'workflow_dispatch'
+    name: macOS · integration test on iOS Simulator
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Install pinned Flutter
+        run: tool/ci/install-flutter.sh
+      - name: Boot iPhone simulator
+        run: |
+          IFS='|' read -r udid name os < <(tool/ci/pick-simulator.sh)
+          echo "Simulator: $name, iOS $os, $udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          {
+            echo "SIM_UDID=$udid"
+            echo "SIM_NAME=${name// /_}"
+            echo "SIM_OS=$os"
+          } >> "$GITHUB_ENV"
+      - name: Dependencies
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter gen-l10n
+      - name: integration_test/r1_smoke_test.dart
+        timeout-minutes: 30
+        # Watchdog: повтор только при «тихом» зависании без результата (см. скрипт);
+        # настоящие падения теста не повторяются.
+        run: tool/ci/run-simulator-test.sh 720

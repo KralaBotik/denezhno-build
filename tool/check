@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+task_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$task_root"
+tool/dev flutter pub get --enforce-lockfile
+tool/dev flutter gen-l10n
+tool/dev dart run build_runner build
+tool/dev dart format --output=none --set-exit-if-changed lib test integration_test tool
+tool/dev flutter analyze
+tool/dev flutter test --concurrency=2

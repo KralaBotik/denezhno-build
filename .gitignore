@@ -1,0 +1,19 @@
+.tooling/
+.dart_tool/
+build/
+.flutter-plugins-dependencies
+coverage/
+*.log
+.idea/
+*.iml
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.mobileprovision
+*.key
+*.pem
