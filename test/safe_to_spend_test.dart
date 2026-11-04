@@ -32,7 +32,9 @@ PlannedFlow flow(String id, FlowKind kind, int rubles, Cadence c) =>
       name: id,
       amount: rub(rubles),
       cadence: c,
-      startsOn: d('2026-01-01'),
+      // Salary plans in these R2 examples are set up this month, so earlier
+      // months are not «not received» (overdue salary: position_test.dart).
+      startsOn: kind == FlowKind.salary ? d('2026-11-01') : d('2026-01-01'),
     );
 
 PaymentsSnapshot snap({
@@ -119,17 +121,17 @@ void main() {
     expect(r.perDay, rub(600));
   });
 
-  test('no salary → end of month, with a warning', () {
+  test('no salary → 14 days by default (owner decision), with a warning', () {
     final r = computeSafeToSpend(
-      accounts: [acc('Карта', AccountKind.debit, 2600)],
+      accounts: [acc('Карта', AccountKind.debit, 2800)],
       payments: snap(),
       reserve: rub(0),
       today: today,
     );
-    expect(r.horizon, d('2026-11-30'));
-    expect(r.horizonKind, HorizonKind.monthEnd);
-    expect(r.daysLeft, 26);
-    expect(r.perDay, rub(100));
+    expect(r.horizon, d('2026-11-18'));
+    expect(r.horizonKind, HorizonKind.period);
+    expect(r.daysLeft, 14);
+    expect(r.perDay, rub(200));
     expect(r.warnings.whereType<NoSalary>(), hasLength(1));
   });
 

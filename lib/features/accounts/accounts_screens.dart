@@ -13,6 +13,8 @@ import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import 'accounts.dart';
 import 'accounts_controller.dart';
+import '../payments/payments_controller.dart';
+import '../payments/payments_screens.dart' show cardFiguresPath, formatDate;
 
 const addAccountPath = '/add-account';
 const updateBalancesPath = '/update-balances';
@@ -1066,6 +1068,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             ],
           ),
         ],
+        if (a.kind == AccountKind.creditCard && !_editing) ...[
+          SectionHeader(s.bankFiguresTitle),
+          _BankFigures(accountId: a.id),
+        ],
         if (!a.kind.isLiability) ...[
           SectionHeader(s.includedInForecast),
           CardGroup(
@@ -1083,6 +1089,54 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The bank's two figures for a credit card, each on its own row and never
+/// mixed with the debt. Tap to enter or update them.
+class _BankFigures extends ConsumerWidget {
+  const _BankFigures({required this.accountId});
+  final String accountId;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    final f = ref.watch(paymentsProvider).value?.cardFigures[accountId];
+    void open() => context.push<void>(cardFiguresPath, extra: accountId);
+    return CardGroup(
+      key: const ValueKey('account.bankFigures'),
+      children: [
+        if (f == null)
+          SettingsRow(
+            icon: CupertinoIcons.exclamationmark_circle,
+            iconColor: p.warning,
+            title: s.bankFiguresMissing,
+            onTap: open,
+          )
+        else ...[
+          SettingsRow(
+            title: s.cardGraceRow,
+            value: f.graceAmount == null
+                ? '—'
+                : s.dueOnValue(
+                    formatMoney(f.graceAmount!),
+                    formatDate(f.graceDueOn!),
+                  ),
+            onTap: open,
+          ),
+          SettingsRow(
+            title: s.cardMinRow,
+            value: f.minPayment == null
+                ? '—'
+                : s.dueOnValue(
+                    formatMoney(f.minPayment!),
+                    formatDate(f.minDueOn!),
+                  ),
+            onTap: open,
           ),
         ],
       ],

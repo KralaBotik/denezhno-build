@@ -455,5 +455,148 @@
     }
   },
   "creditLimitTitle": "Кредитный лимит",
-  "creditAvailable": "Доступно по лимиту"
+  "creditAvailable": "Доступно по лимиту",
+  "heroPeriodDays": "{days, plural, one{Расчёт на {days} день} few{Расчёт на {days} дня} other{Расчёт на {days} дней}}",
+  "@heroPeriodDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heroPeriodUntil": "Расчёт до {date}",
+  "@heroPeriodUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "heroPeriodShortDays": "{days, plural, one{На {days} день не хватает} few{На {days} дня не хватает} other{На {days} дней не хватает}}",
+  "@heroPeriodShortDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heroPeriodShortUntil": "До {date} не хватает",
+  "@heroPeriodShortUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "periodChange": "Изменить",
+  "periodTitle": "Период расчёта",
+  "periodHint": "Дата следующей зарплаты неизвестна — выберите, на какой срок считать.",
+  "periodDaysOption": "{days, plural, one{{days} день} few{{days} дня} other{{days} дней}}",
+  "@periodDaysOption": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "periodUntilOption": "До даты…",
+  "obligationsUntil": "Обязательно до {date}",
+  "@obligationsUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "fixSalaryOverdue": "«{name}» {date} не отмечена как полученная. Пока не отмечена, считаем на выбранный период и не прибавляем её.",
+  "@fixSalaryOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "salaryReceived": "Получена",
+  "salaryEdit": "Изменить",
+  "fixCardUnknown": "«{name}»: долг {debt}, обязательный платёж неизвестен. Внесите цифры банка.",
+  "@fixCardUnknown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "debt": {
+        "type": "String"
+      }
+    }
+  },
+  "scenariosTitle": "Сценарии",
+  "scenarioAllDebts": "Если погасить все долги сейчас",
+  "scenarioAllDebtsShort": "Если погасить все долги сейчас — не хватит",
+  "scenarioAllDebtsNote": "Для понимания общей позиции, а не сумма на траты. Учтены только известные долги: {debt}.",
+  "@scenarioAllDebtsNote": {
+    "placeholders": {
+      "debt": {
+        "type": "String"
+      }
+    }
+  },
+  "scenarioMinimum": "Если по кредиткам платить только минимум",
+  "scenarioMinimumNote": "Сейчас останется больше, но банк начислит проценты на непогашенный долг.",
+  "rowCardsTitle": "Кредитки",
+  "cardDebtLine": "долг {amount}",
+  "@cardDebtLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cardGraceShort": "без процентов: {amount} до {date}",
+  "@cardGraceShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMinShort": "минимум: {amount} до {date}",
+  "@cardMinShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cardBasisGrace": "вычтено: сумма без процентов",
+  "cardBasisMinimum": "вычтен минимум — пойдут проценты",
+  "cardBasisNoFigures": "платёж неизвестен — не вычтено",
+  "cardBasisPlanned": "учтён плановый платёж",
+  "cardBasisAfter": "срок после конца расчёта — не вычтено",
+  "cardBasisSettled": "отмечено «внёс»",
+  "cardBasisNoDebt": "долга нет",
+  "cardDebtTitle": "Долг",
+  "bankFiguresTitle": "Цифры банка",
+  "bankFiguresMissing": "Не указаны — внесите из приложения банка",
+  "cardGraceRow": "Без процентов",
+  "cardMinRow": "Минимальный платёж",
+  "dueOnValue": "{amount} до {date}",
+  "@dueOnValue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

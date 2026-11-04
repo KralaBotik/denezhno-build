@@ -153,7 +153,8 @@ void main() {
       payments: FakePayments(),
     );
     expect(plain(tester, 'home.available'), '6${nb}000$nb₽');
-    expect(find.text('До конца месяца не хватает'), findsOneWidget);
+    // No salary date: an explicit 14-day period, never «до зарплаты».
+    expect(find.text('На 14 дней не хватает'), findsOneWidget);
     // Missing salary makes the figure preliminary, with a one-tap fix.
     expect(find.text('Предварительный расчёт'), findsOneWidget);
     expect(find.text('Укажите зарплату — дату и сумму'), findsOneWidget);
@@ -184,5 +185,166 @@ void main() {
     await tester.tap(find.byType(CupertinoNavigationBarBackButton));
     await tester.pumpAndSettle();
     expect(plain(tester, 'home.available'), '≈ 25${nb}000$nb₽');
+  });
+
+  testWidgets('Э1: overdue salary is not counted; «Получена» restores the '
+      'salary horizon', (tester) async {
+    final today = CalendarDate.today();
+    final payments = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'salary',
+          kind: FlowKind.salary,
+          name: 'Зарплата',
+          amount: Money(8000000),
+          cadence: Monthly(today.addDays(-3).day),
+          startsOn: today.addDays(-40),
+        ),
+      );
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 24000)],
+      payments: payments,
+    );
+    // 24 000 − 10 000 reserve, salary NOT added, 14-day period.
+    expect(plain(tester, 'home.available'), '≈ 14${nb}000$nb₽');
+    expect(find.text('Расчёт на 14 дней'), findsOneWidget);
+    expect(find.byKey(const ValueKey('fix.salaryOverdue')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('salary.received')));
+    await tester.tap(find.byKey(const ValueKey('salary.received')));
+    await tester.pumpAndSettle();
+    expect(payments.marks, contains(('salary', today.addDays(-3))));
+    expect(find.byKey(const ValueKey('fix.salaryOverdue')), findsNothing);
+    expect(find.textContaining('Можно потратить до '), findsOneWidget);
+  });
+
+  testWidgets('Э1: period can be changed to 7 / 30 days', (tester) async {
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 24000)],
+      payments: FakePayments(),
+    );
+    expect(find.text('Расчёт на 14 дней'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('home.period')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('period.7')));
+    await tester.pumpAndSettle();
+    expect(find.text('Расчёт на 7 дней'), findsOneWidget);
+    expect(find.text('≈ 2${nb}000$nb₽ в день · 7 дн.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('home.period')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('period.30')));
+    await tester.pumpAndSettle();
+    expect(find.text('Расчёт на 30 дней'), findsOneWidget);
+  });
+
+  testWidgets('Э1: card without figures — debt shown, not subtracted, '
+      'information scenario', (tester) async {
+    final today = CalendarDate.today();
+    final payments = FakePayments()
+      ..flows.addAll([
+        PlannedFlow(
+          id: 'salary',
+          kind: FlowKind.salary,
+          name: 'Зарплата',
+          amount: Money(8000000),
+          cadence: Once(today.addDays(10)),
+          startsOn: today,
+        ),
+        PlannedFlow(
+          id: 'net',
+          kind: FlowKind.communication,
+          name: 'Интернет',
+          amount: Money(70000),
+          cadence: Once(today.addDays(3)),
+          startsOn: today,
+        ),
+      ]);
+    await launch(
+      tester,
+      accounts: [
+        acc('Карта', AccountKind.debit, 30000),
+        acc('Кредитка Альфа', AccountKind.creditCard, 16000),
+      ],
+      payments: payments,
+    );
+    // 30 000 − 700 − 10 000; the card debt is NOT subtracted.
+    expect(plain(tester, 'home.available'), '≈ 19${nb}300$nb₽');
+    expect(plain(tester, 'home.debts'), '16${nb}000$nb₽');
+    expect(plain(tester, 'home.obligationsAmount'), '700$nb₽');
+    expect(
+      find.text(
+        '«Кредитка Альфа»: долг 16${nb}000$nb₽, обязательный платёж '
+        'неизвестен. Внесите цифры банка.',
+      ),
+      findsOneWidget,
+    );
+    final scenario = find.byKey(const ValueKey('scenario.allDebts'));
+    await tester.ensureVisible(scenario);
+    // 19 300 + 0 towards debts − 16 000 = 3 300; information only.
+    expect(
+      find.descendant(
+        of: scenario,
+        matching: find.text('Если погасить все долги сейчас'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: scenario,
+        matching: find.textContaining('а не сумма на траты'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('home.breakdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home.breakdown')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('row.card.Кредитка Альфа')),
+      findsOneWidget,
+    );
+    expect(find.text('платёж неизвестен — не вычтено'), findsOneWidget);
+  });
+
+  testWidgets('Э1: card with figures — grace subtracted, minimum is a '
+      'separate scenario with an interest warning', (tester) async {
+    final today = CalendarDate.today();
+    final payments = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'salary',
+          kind: FlowKind.salary,
+          name: 'Зарплата',
+          amount: Money(8000000),
+          cadence: Once(today.addDays(10)),
+          startsOn: today,
+        ),
+      )
+      ..figures['cc'] = CardFigures(
+        id: 'f',
+        accountId: 'cc',
+        graceAmount: Money(1500000),
+        graceDueOn: today.addDays(5),
+        minPayment: Money(90000),
+        minDueOn: today.addDays(5),
+      );
+    await launch(
+      tester,
+      accounts: [
+        acc('Карта', AccountKind.debit, 50000),
+        acc('cc', AccountKind.creditCard, 20000),
+      ],
+      payments: payments,
+    );
+    // 50 000 − 15 000 − 10 000 = 25 000.
+    expect(plain(tester, 'home.available'), '25${nb}000$nb₽');
+    expect(plain(tester, 'home.obligationsAmount'), '15${nb}000$nb₽');
+    final minimum = find.byKey(const ValueKey('scenario.minimum'));
+    await tester.ensureVisible(minimum);
+    expect(
+      find.descendant(of: minimum, matching: find.textContaining('проценты')),
+      findsOneWidget,
+    );
   });
 }

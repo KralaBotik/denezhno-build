@@ -283,6 +283,11 @@ class _PaymentsBody extends ConsumerWidget {
     final today = CalendarDate.today();
     final items = upcomingFor(snapshot, today);
     final controller = ref.read(paymentsProvider.notifier);
+    final debts = {
+      for (final a
+          in ref.watch(accountsProvider).value ?? const <AccountSummary>[])
+        if (a.kind == AccountKind.creditCard) a.id: a.amount,
+    };
     final outflows = snapshot.flows
         .where((f) => f.direction == FlowDirection.outflow)
         .toList();
@@ -396,7 +401,11 @@ class _PaymentsBody extends ConsumerWidget {
                       ? p.warning
                       : p.negative,
                   title: card.value,
-                  subtitle: _figuresText(s, snapshot.cardFigures[card.key]),
+                  subtitle: [
+                    if (debts[card.key] case final debt?)
+                      '${s.cardDebtTitle}: ${formatMoney(debt)}',
+                    _figuresText(s, snapshot.cardFigures[card.key]),
+                  ].join('\n'),
                   onTap: () =>
                       context.push<void>(cardFiguresPath, extra: card.key),
                 ),

@@ -18,7 +18,7 @@ import '../accounts/accounts_screens.dart';
 import '../payments/payments.dart';
 import '../payments/payments_controller.dart';
 import '../payments/payments_screens.dart'
-    show formatDate, flowEditPath, cardFiguresPath, PaymentRow;
+    show formatDate, flowEditPath, cardFiguresPath, PaymentRow, pickDate;
 import 'forecast_controller.dart';
 import 'safe_to_spend.dart';
 
@@ -30,6 +30,7 @@ bool isPreliminary(SafeToSpend v) =>
       (w) => switch (w) {
         NoAccounts() ||
         NoSalary() ||
+        SalaryOverdue() ||
         CardWithoutFigures() ||
         OverdueCardFigures() ||
         StaleBalances() => true,
@@ -174,12 +175,49 @@ class _Dashboard extends ConsumerWidget {
                   context.push<void>(flowEditPath, extra: FlowDirection.inflow),
             ),
           );
+        case SalaryOverdue(:final name, :final dueOn, :final flowId):
+          final plan = payments?.flows.where((f) => f.id == flowId).firstOrNull;
+          fixes.insert(
+            0,
+            NoticeTile(
+              key: const ValueKey('fix.salaryOverdue'),
+              icon: CupertinoIcons.money_rubl_circle,
+              text: s.fixSalaryOverdue(name, formatDate(dueOn)),
+              onTap: null,
+              actions: [
+                PillButton(
+                  key: const ValueKey('salary.received'),
+                  label: s.salaryReceived,
+                  icon: CupertinoIcons.checkmark_alt,
+                  filled: true,
+                  onPressed: () => unawaited(
+                    ref
+                        .read(paymentsProvider.notifier)
+                        .setFlowDone(flowId, dueOn, true),
+                  ),
+                ),
+                if (plan != null)
+                  PillButton(
+                    key: const ValueKey('salary.edit'),
+                    label: s.salaryEdit,
+                    onPressed: () =>
+                        context.push<void>(flowEditPath, extra: plan),
+                  ),
+              ],
+            ),
+          );
         case CardWithoutFigures(:final name, :final accountId):
+          final debt = value.cards
+              .where((c) => c.accountId == accountId)
+              .firstOrNull
+              ?.debt;
           fixes.add(
             NoticeTile(
               key: ValueKey('fix.card.$accountId'),
               icon: CupertinoIcons.creditcard,
-              text: s.fixCardNoFigures(name),
+              text: debt == null
+                  ? s.fixCardNoFigures(name)
+                  : s.fixCardUnknown(name, formatMoney(debt)),
               onTap: () => card(accountId),
             ),
           );
@@ -224,6 +262,50 @@ class _Dashboard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _HeroCard(value: value, accounts: accounts),
+        if (value.obligationsTotal.minorUnits > 0) ...[
+          const SizedBox(height: Space.m),
+          AppCard(
+            key: const ValueKey('home.obligations'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.l,
+              vertical: Space.m,
+            ),
+            child: Row(
+              children: [
+                IconBadge(
+                  icon: CupertinoIcons.calendar_badge_minus,
+                  color: p.warning,
+                  size: 30,
+                ),
+                const SizedBox(width: Space.m),
+                Expanded(
+                  child: Text(
+                    s.obligationsUntil(formatDate(value.horizon)),
+                    style: AppText.secondary(p.text),
+                  ),
+                ),
+                const SizedBox(width: Space.s),
+                Flexible(
+                  flex: 0,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: MoneyText(
+                        value.obligationsTotal,
+                        key: const ValueKey('home.obligationsAmount'),
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: Space.m),
         Row(
           children: [
@@ -239,7 +321,7 @@ class _Dashboard extends ConsumerWidget {
             Expanded(
               child: StatTile(
                 label: s.debts,
-                amount: totals.debts,
+                amount: value.totalDebt,
                 amountKey: const ValueKey('home.debts'),
                 onTap: () => context.go('/accounts'),
               ),
@@ -269,6 +351,7 @@ class _Dashboard extends ConsumerWidget {
           ),
         const SizedBox(height: Space.l),
         _Breakdown(value: value),
+        _Scenarios(value: value),
       ],
     );
   }
@@ -291,13 +374,51 @@ String freshnessPhrase(AppLocalizations s, List<AccountSummary> accounts) {
       : s.freshDays(days);
 }
 
-class _HeroCard extends StatelessWidget {
+class _HeroCard extends ConsumerWidget {
   const _HeroCard({required this.value, required this.accounts});
   final SafeToSpend value;
   final List<AccountSummary> accounts;
 
+  Future<void> _choosePeriod(BuildContext context, WidgetRef ref) async {
+    final s = AppLocalizations.of(context);
+    final controller = ref.read(forecastPeriodProvider.notifier);
+    final choice = await showCupertinoModalPopup<ForecastPeriod>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(s.periodTitle),
+        message: Text(s.periodHint),
+        actions: [
+          for (final d in const [7, 14, 30])
+            CupertinoActionSheetAction(
+              key: ValueKey('period.$d'),
+              onPressed: () => Navigator.of(ctx).pop(PeriodDays(d)),
+              child: Text(s.periodDaysOption(d)),
+            ),
+          CupertinoActionSheetAction(
+            key: const ValueKey('period.date'),
+            onPressed: () async {
+              final today = CalendarDate.today();
+              final picked = await pickDate(ctx, today.addDays(14));
+              if (picked != null && ctx.mounted) {
+                Navigator.of(ctx).pop(PeriodUntil(picked));
+              }
+            },
+            child: Text(s.periodUntilOption),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(s.cancel),
+        ),
+      ),
+    );
+    if (choice != null) controller.choose(choice);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(forecastPeriodProvider);
     final s = AppLocalizations.of(context);
     final p = Palette.of(context);
     const white = Color(0xFFFFFFFF);
@@ -306,9 +427,15 @@ class _HeroCard extends StatelessWidget {
     final preliminary = isPreliminary(value);
     final salary = value.horizonKind == HorizonKind.salary;
     final date = formatDate(value.horizon);
-    final title = short
-        ? (salary ? s.heroShortUntil(date) : s.heroShortMonthEnd)
-        : (salary ? s.heroUntil(date) : s.heroUntilMonthEnd);
+    final days = switch (period) {
+      PeriodDays(:final days) => days,
+      PeriodUntil() => null,
+    };
+    final title = salary
+        ? (short ? s.heroShortUntil(date) : s.heroUntil(date))
+        : days != null
+        ? (short ? s.heroPeriodShortDays(days) : s.heroPeriodDays(days))
+        : (short ? s.heroPeriodShortUntil(date) : s.heroPeriodUntil(date));
     final colors = short
         ? const [Color(0xFFC0473F), Color(0xFF7E2622)]
         : [p.heroStart, p.heroEnd];
@@ -337,7 +464,33 @@ class _HeroCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: Text(title, style: AppText.secondary(white70))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        key: const ValueKey('home.horizon'),
+                        style: AppText.secondary(white70),
+                      ),
+                      if (!salary)
+                        GestureDetector(
+                          key: const ValueKey('home.period'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => unawaited(_choosePeriod(context, ref)),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              '${s.periodChange} ›',
+                              style: AppText.caption(
+                                white,
+                              ).copyWith(decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 const SizedBox(width: Space.s),
                 Flexible(
                   child: StatusPill(
@@ -499,6 +652,16 @@ class _BreakdownState extends State<_Breakdown> {
                           ),
                         if (v.cardPayments.isNotEmpty)
                           row('row.cards', s.rowCards, v.cardPaymentsTotal),
+                        if (v.cards.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: Space.s),
+                            child: Text(
+                              s.rowCardsTitle,
+                              style: AppText.caption(p.textSecondary),
+                            ),
+                          ),
+                          for (final c in v.cards) _CardLine(card: c),
+                        ],
                         if (v.goals.minorUnits != 0)
                           row('row.goals', s.rowGoals, v.goals),
                         row('row.reserve', s.rowReserve, v.reserve),
@@ -529,6 +692,148 @@ class _BreakdownState extends State<_Breakdown> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One credit card in «Как считаем»: debt, the two bank figures and what was
+/// subtracted — never mixed into one number.
+class _CardLine extends StatelessWidget {
+  const _CardLine({required this.card});
+  final CardPosition card;
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    final basis = switch (card.basis) {
+      CardBasis.grace => s.cardBasisGrace,
+      CardBasis.minimumOnly => s.cardBasisMinimum,
+      CardBasis.noFigures => s.cardBasisNoFigures,
+      CardBasis.plannedPayment => s.cardBasisPlanned,
+      CardBasis.dueAfterHorizon => s.cardBasisAfter,
+      CardBasis.settled => s.cardBasisSettled,
+      CardBasis.noDebt => s.cardBasisNoDebt,
+    };
+    final warn =
+        card.basis == CardBasis.noFigures ||
+        card.basis == CardBasis.minimumOnly;
+    return Padding(
+      key: ValueKey('row.card.${card.accountId}'),
+      padding: const EdgeInsets.symmetric(vertical: Space.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${card.name} · ${s.cardDebtLine(formatMoney(card.debt))}',
+            style: AppText.secondary(p.text),
+          ),
+          if (card.graceAmount != null && card.graceDueOn != null)
+            Text(
+              s.cardGraceShort(
+                formatMoney(card.graceAmount!),
+                formatDate(card.graceDueOn!),
+              ),
+              style: AppText.caption(p.textSecondary),
+            ),
+          if (card.minPayment != null && card.minDueOn != null)
+            Text(
+              s.cardMinShort(
+                formatMoney(card.minPayment!),
+                formatDate(card.minDueOn!),
+              ),
+              style: AppText.caption(p.textSecondary),
+            ),
+          Text(
+            card.deducted.minorUnits > 0
+                ? '$basis: ${formatMoney(card.deducted)}'
+                : basis,
+            style: AppText.caption(warn ? p.warning : p.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Information only: the overall position. Never called a safe amount.
+class _Scenarios extends StatelessWidget {
+  const _Scenarios({required this.value});
+  final SafeToSpend value;
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    if (value.totalDebt.minorUnits <= 0 && value.minimumOnlyAvailable == null) {
+      return const SizedBox.shrink();
+    }
+    Widget item({
+      required Key key,
+      required String title,
+      required Money amount,
+      required String note,
+      bool warn = false,
+    }) => Padding(
+      key: key,
+      padding: const EdgeInsets.symmetric(vertical: Space.s),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(title, style: AppText.secondary(p.text))),
+              const SizedBox(width: Space.s),
+              Flexible(
+                flex: 0,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: MoneyText(
+                      amount,
+                      size: 16,
+                      color: amount.minorUnits < 0 ? p.negative : p.text,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(note, style: AppText.caption(warn ? p.warning : p.textTertiary)),
+        ],
+      ),
+    );
+    final all = value.ifAllDebtsPaid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(s.scenariosTitle),
+        CardGroup(
+          children: [
+            if (value.totalDebt.minorUnits > 0)
+              item(
+                key: const ValueKey('scenario.allDebts'),
+                title: all.minorUnits < 0
+                    ? s.scenarioAllDebtsShort
+                    : s.scenarioAllDebts,
+                amount: all.minorUnits < 0 ? -all : all,
+                note: s.scenarioAllDebtsNote(formatMoney(value.totalDebt)),
+              ),
+            if (value.minimumOnlyAvailable case final min?)
+              item(
+                key: const ValueKey('scenario.minimum'),
+                title: s.scenarioMinimum,
+                amount: min,
+                note: s.scenarioMinimumNote,
+                warn: true,
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

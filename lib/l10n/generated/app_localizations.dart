@@ -1419,6 +1419,228 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Доступно по лимиту'**
   String get creditAvailable;
+
+  /// No description provided for @heroPeriodDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'{days, plural, one{Расчёт на {days} день} few{Расчёт на {days} дня} other{Расчёт на {days} дней}}'**
+  String heroPeriodDays(int days);
+
+  /// No description provided for @heroPeriodUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расчёт до {date}'**
+  String heroPeriodUntil(String date);
+
+  /// No description provided for @heroPeriodShortDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'{days, plural, one{На {days} день не хватает} few{На {days} дня не хватает} other{На {days} дней не хватает}}'**
+  String heroPeriodShortDays(int days);
+
+  /// No description provided for @heroPeriodShortUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'До {date} не хватает'**
+  String heroPeriodShortUntil(String date);
+
+  /// No description provided for @periodChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get periodChange;
+
+  /// No description provided for @periodTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Период расчёта'**
+  String get periodTitle;
+
+  /// No description provided for @periodHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата следующей зарплаты неизвестна — выберите, на какой срок считать.'**
+  String get periodHint;
+
+  /// No description provided for @periodDaysOption.
+  ///
+  /// In ru, this message translates to:
+  /// **'{days, plural, one{{days} день} few{{days} дня} other{{days} дней}}'**
+  String periodDaysOption(int days);
+
+  /// No description provided for @periodUntilOption.
+  ///
+  /// In ru, this message translates to:
+  /// **'До даты…'**
+  String get periodUntilOption;
+
+  /// No description provided for @obligationsUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обязательно до {date}'**
+  String obligationsUntil(String date);
+
+  /// No description provided for @fixSalaryOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{name}» {date} не отмечена как полученная. Пока не отмечена, считаем на выбранный период и не прибавляем её.'**
+  String fixSalaryOverdue(String name, String date);
+
+  /// No description provided for @salaryReceived.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получена'**
+  String get salaryReceived;
+
+  /// No description provided for @salaryEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get salaryEdit;
+
+  /// No description provided for @fixCardUnknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{name}»: долг {debt}, обязательный платёж неизвестен. Внесите цифры банка.'**
+  String fixCardUnknown(String name, String debt);
+
+  /// No description provided for @scenariosTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сценарии'**
+  String get scenariosTitle;
+
+  /// No description provided for @scenarioAllDebts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если погасить все долги сейчас'**
+  String get scenarioAllDebts;
+
+  /// No description provided for @scenarioAllDebtsShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если погасить все долги сейчас — не хватит'**
+  String get scenarioAllDebtsShort;
+
+  /// No description provided for @scenarioAllDebtsNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Для понимания общей позиции, а не сумма на траты. Учтены только известные долги: {debt}.'**
+  String scenarioAllDebtsNote(String debt);
+
+  /// No description provided for @scenarioMinimum.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если по кредиткам платить только минимум'**
+  String get scenarioMinimum;
+
+  /// No description provided for @scenarioMinimumNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас останется больше, но банк начислит проценты на непогашенный долг.'**
+  String get scenarioMinimumNote;
+
+  /// No description provided for @rowCardsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кредитки'**
+  String get rowCardsTitle;
+
+  /// No description provided for @cardDebtLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'долг {amount}'**
+  String cardDebtLine(String amount);
+
+  /// No description provided for @cardGraceShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'без процентов: {amount} до {date}'**
+  String cardGraceShort(String amount, String date);
+
+  /// No description provided for @cardMinShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'минимум: {amount} до {date}'**
+  String cardMinShort(String amount, String date);
+
+  /// No description provided for @cardBasisGrace.
+  ///
+  /// In ru, this message translates to:
+  /// **'вычтено: сумма без процентов'**
+  String get cardBasisGrace;
+
+  /// No description provided for @cardBasisMinimum.
+  ///
+  /// In ru, this message translates to:
+  /// **'вычтен минимум — пойдут проценты'**
+  String get cardBasisMinimum;
+
+  /// No description provided for @cardBasisNoFigures.
+  ///
+  /// In ru, this message translates to:
+  /// **'платёж неизвестен — не вычтено'**
+  String get cardBasisNoFigures;
+
+  /// No description provided for @cardBasisPlanned.
+  ///
+  /// In ru, this message translates to:
+  /// **'учтён плановый платёж'**
+  String get cardBasisPlanned;
+
+  /// No description provided for @cardBasisAfter.
+  ///
+  /// In ru, this message translates to:
+  /// **'срок после конца расчёта — не вычтено'**
+  String get cardBasisAfter;
+
+  /// No description provided for @cardBasisSettled.
+  ///
+  /// In ru, this message translates to:
+  /// **'отмечено «внёс»'**
+  String get cardBasisSettled;
+
+  /// No description provided for @cardBasisNoDebt.
+  ///
+  /// In ru, this message translates to:
+  /// **'долга нет'**
+  String get cardBasisNoDebt;
+
+  /// No description provided for @cardDebtTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Долг'**
+  String get cardDebtTitle;
+
+  /// No description provided for @bankFiguresTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цифры банка'**
+  String get bankFiguresTitle;
+
+  /// No description provided for @bankFiguresMissing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указаны — внесите из приложения банка'**
+  String get bankFiguresMissing;
+
+  /// No description provided for @cardGraceRow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без процентов'**
+  String get cardGraceRow;
+
+  /// No description provided for @cardMinRow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Минимальный платёж'**
+  String get cardMinRow;
+
+  /// No description provided for @dueOnValue.
+  ///
+  /// In ru, this message translates to:
+  /// **'{amount} до {date}'**
+  String dueOnValue(String amount, String date);
 }
 
 class _AppLocalizationsDelegate

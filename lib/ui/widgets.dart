@@ -252,11 +252,15 @@ class NoticeTile extends StatelessWidget {
     required this.onTap,
     this.icon = CupertinoIcons.exclamationmark_circle,
     this.tone = NoticeTone.warning,
+    this.actions = const [],
   });
   final String text;
   final VoidCallback? onTap;
   final IconData icon;
   final NoticeTone tone;
+
+  /// Buttons under the text (e.g. «Получена» / «Изменить»).
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +275,22 @@ class NoticeTile extends StatelessWidget {
           children: [
             IconBadge(icon: icon, color: color, size: 32),
             const SizedBox(width: Space.m),
-            Expanded(child: Text(text, style: AppText.secondary(p.text))),
+            Expanded(
+              child: actions.isEmpty
+                  ? Text(text, style: AppText.secondary(p.text))
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(text, style: AppText.secondary(p.text)),
+                        const SizedBox(height: Space.s),
+                        Wrap(
+                          spacing: Space.s,
+                          runSpacing: Space.s,
+                          children: actions,
+                        ),
+                      ],
+                    ),
+            ),
             if (onTap != null)
               Icon(
                 CupertinoIcons.chevron_right,

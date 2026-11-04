@@ -85,8 +85,19 @@ void main() {
         final router = container.read(routerProvider);
         await shot('home');
         if (!complete) return;
-        await tester.tap(find.byKey(const ValueKey('home.breakdown')));
+        final breakdown = find.byKey(const ValueKey('home.breakdown'));
+        await tester.ensureVisible(breakdown);
+        await tester.pumpAndSettle();
+        await tester.tap(breakdown);
+        await tester.pumpAndSettle();
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
         await shot('home-breakdown');
+        await tester.drag(
+          find.byType(Scrollable).first,
+          const Offset(0, -3000),
+        );
+        await shot('home-scenarios');
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
         router.go('/accounts');
         await shot('accounts');
         router.go('/payments');

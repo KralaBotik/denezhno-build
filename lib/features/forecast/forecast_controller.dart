@@ -28,12 +28,28 @@ class ReserveController extends AsyncNotifier<Money> {
   }
 }
 
+/// The period used when the next salary date is unknown. Kept for the
+/// running app only (R3 Э1); it is stored in the database from Э3 (schema v5).
+final forecastPeriodProvider =
+    NotifierProvider<ForecastPeriodController, ForecastPeriod>(
+      ForecastPeriodController.new,
+    );
+
+class ForecastPeriodController extends Notifier<ForecastPeriod> {
+  @override
+  ForecastPeriod build() => defaultForecastPeriod;
+  // A setter would hide the intent at call sites.
+  // ignore: use_setters_to_change_properties
+  void choose(ForecastPeriod period) => state = period;
+}
+
 /// «Можно потратить» for today, recomputed whenever accounts, plans, card
 /// figures or the reserve change. Pure calculation in [computeSafeToSpend].
 final safeToSpendProvider = Provider<AsyncValue<SafeToSpend>>((ref) {
   final accounts = ref.watch(accountsProvider);
   final payments = ref.watch(paymentsProvider);
   final reserve = ref.watch(reserveProvider);
+  final period = ref.watch(forecastPeriodProvider);
   for (final v in [accounts, payments, reserve]) {
     if (v case AsyncError(:final error, :final stackTrace)) {
       return AsyncError(error, stackTrace);
@@ -47,6 +63,7 @@ final safeToSpendProvider = Provider<AsyncValue<SafeToSpend>>((ref) {
       payments: p,
       reserve: r,
       today: CalendarDate.today(),
+      period: period,
     ),
   );
 });

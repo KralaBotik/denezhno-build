@@ -764,4 +764,165 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get creditAvailable => 'Доступно по лимиту';
+
+  @override
+  String heroPeriodDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Расчёт на $days дней',
+      few: 'Расчёт на $days дня',
+      one: 'Расчёт на $days день',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String heroPeriodUntil(String date) {
+    return 'Расчёт до $date';
+  }
+
+  @override
+  String heroPeriodShortDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'На $days дней не хватает',
+      few: 'На $days дня не хватает',
+      one: 'На $days день не хватает',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String heroPeriodShortUntil(String date) {
+    return 'До $date не хватает';
+  }
+
+  @override
+  String get periodChange => 'Изменить';
+
+  @override
+  String get periodTitle => 'Период расчёта';
+
+  @override
+  String get periodHint =>
+      'Дата следующей зарплаты неизвестна — выберите, на какой срок считать.';
+
+  @override
+  String periodDaysOption(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days дней',
+      few: '$days дня',
+      one: '$days день',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get periodUntilOption => 'До даты…';
+
+  @override
+  String obligationsUntil(String date) {
+    return 'Обязательно до $date';
+  }
+
+  @override
+  String fixSalaryOverdue(String name, String date) {
+    return '«$name» $date не отмечена как полученная. Пока не отмечена, считаем на выбранный период и не прибавляем её.';
+  }
+
+  @override
+  String get salaryReceived => 'Получена';
+
+  @override
+  String get salaryEdit => 'Изменить';
+
+  @override
+  String fixCardUnknown(String name, String debt) {
+    return '«$name»: долг $debt, обязательный платёж неизвестен. Внесите цифры банка.';
+  }
+
+  @override
+  String get scenariosTitle => 'Сценарии';
+
+  @override
+  String get scenarioAllDebts => 'Если погасить все долги сейчас';
+
+  @override
+  String get scenarioAllDebtsShort =>
+      'Если погасить все долги сейчас — не хватит';
+
+  @override
+  String scenarioAllDebtsNote(String debt) {
+    return 'Для понимания общей позиции, а не сумма на траты. Учтены только известные долги: $debt.';
+  }
+
+  @override
+  String get scenarioMinimum => 'Если по кредиткам платить только минимум';
+
+  @override
+  String get scenarioMinimumNote =>
+      'Сейчас останется больше, но банк начислит проценты на непогашенный долг.';
+
+  @override
+  String get rowCardsTitle => 'Кредитки';
+
+  @override
+  String cardDebtLine(String amount) {
+    return 'долг $amount';
+  }
+
+  @override
+  String cardGraceShort(String amount, String date) {
+    return 'без процентов: $amount до $date';
+  }
+
+  @override
+  String cardMinShort(String amount, String date) {
+    return 'минимум: $amount до $date';
+  }
+
+  @override
+  String get cardBasisGrace => 'вычтено: сумма без процентов';
+
+  @override
+  String get cardBasisMinimum => 'вычтен минимум — пойдут проценты';
+
+  @override
+  String get cardBasisNoFigures => 'платёж неизвестен — не вычтено';
+
+  @override
+  String get cardBasisPlanned => 'учтён плановый платёж';
+
+  @override
+  String get cardBasisAfter => 'срок после конца расчёта — не вычтено';
+
+  @override
+  String get cardBasisSettled => 'отмечено «внёс»';
+
+  @override
+  String get cardBasisNoDebt => 'долга нет';
+
+  @override
+  String get cardDebtTitle => 'Долг';
+
+  @override
+  String get bankFiguresTitle => 'Цифры банка';
+
+  @override
+  String get bankFiguresMissing => 'Не указаны — внесите из приложения банка';
+
+  @override
+  String get cardGraceRow => 'Без процентов';
+
+  @override
+  String get cardMinRow => 'Минимальный платёж';
+
+  @override
+  String dueOnValue(String amount, String date) {
+    return '$amount до $date';
+  }
 }
