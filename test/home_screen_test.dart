@@ -133,7 +133,7 @@ void main() {
     expect(plain(tester, 'home.available'), '20${nb}000$nb₽');
     expect(find.text('≈ 2${nb}000$nb₽ в день · 10 дн.'), findsOneWidget);
     expect(find.textContaining('Можно потратить до '), findsOneWidget);
-    expect(find.text('Точный расчёт'), findsOneWidget);
+    expect(find.text('Данные заполнены'), findsOneWidget);
     // «Как считаем» is collapsed until tapped.
     expect(find.text('Платежи до этой даты: 1'), findsNothing);
     await tester.ensureVisible(find.byKey(const ValueKey('home.breakdown')));
@@ -214,6 +214,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('salary.received')));
     await tester.pumpAndSettle();
     expect(payments.marks, contains(('salary', today.addDays(-3))));
+    // Э1 limitation stated plainly: the mark does not change balances.
+    expect(find.byKey(const ValueKey('salary.markedDialog')), findsOneWidget);
+    expect(find.textContaining('не меняет остатки'), findsOneWidget);
+    await tester.tap(find.text('Готово'));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('fix.salaryOverdue')), findsNothing);
     expect(find.textContaining('Можно потратить до '), findsOneWidget);
   });
@@ -346,5 +351,40 @@ void main() {
       find.descendant(of: minimum, matching: find.textContaining('проценты')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Э1: «График» warns that the whole schedule changes', (
+    tester,
+  ) async {
+    final today = CalendarDate.today();
+    final payments = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'salary',
+          kind: FlowKind.salary,
+          name: 'Зарплата',
+          amount: Money(8000000),
+          cadence: Monthly(today.addDays(-3).day),
+          startsOn: today.addDays(-40),
+        ),
+      );
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 24000)],
+      payments: payments,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('salary.edit')));
+    await tester.tap(find.byKey(const ValueKey('salary.edit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('salary.scheduleDialog')), findsOneWidget);
+    expect(find.textContaining('во всех следующих месяцах'), findsOneWidget);
+    await tester.tap(find.text('Отмена'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.flowEdit')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('salary.edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('salary.scheduleOpen')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screen.flowEdit')), findsOneWidget);
   });
 }

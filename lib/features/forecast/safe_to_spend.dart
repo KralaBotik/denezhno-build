@@ -36,9 +36,6 @@ final class PeriodUntil extends ForecastPeriod {
 /// Owner decision (R3 plan): 14 days when the salary date is unknown.
 const defaultForecastPeriod = PeriodDays(14);
 
-/// How far back a missed salary is looked for.
-const salaryLookbackDays = 31;
-
 /// Something the person should know: the number is less certain than it
 /// looks. Shown next to the figure, never hidden.
 sealed class SpendWarning {
@@ -268,7 +265,9 @@ SafeToSpend computeSafeToSpend({
   CalendarDate? salary;
   final overdue = <SalaryOverdue>[];
   for (final f in payments.flows.where((f) => f.kind == FlowKind.salary)) {
-    final recent = occurrences(f, today.addDays(-salaryLookbackDays), today);
+    // The latest date of the plan up to today, however long ago (Э1: only the
+    // latest one; from Э3 every missed payment stays until it is resolved).
+    final recent = occurrences(f, f.startsOn, today);
     if (recent.isNotEmpty &&
         recent.last < today &&
         !payments.doneMarks.contains((f.id!, recent.last))) {

@@ -389,6 +389,15 @@ class _PaymentsBody extends ConsumerWidget {
                 ),
             ],
           ),
+        if (items.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Space.xs, Space.s, Space.xs, 0),
+            child: Text(
+              s.marksDontChangeBalances,
+              key: const ValueKey('payments.marksNote'),
+              style: AppText.caption(p.textTertiary),
+            ),
+          ),
         if (snapshot.creditCards.isNotEmpty) ...[
           SectionHeader(s.creditCardsTitle),
           CardGroup(

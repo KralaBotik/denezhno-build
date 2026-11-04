@@ -853,13 +853,13 @@ abstract class AppLocalizations {
   /// No description provided for @staleNote.
   ///
   /// In ru, this message translates to:
-  /// **'По данным на {date}. Обновите остатки, чтобы цифра была точной.'**
+  /// **'По данным на {date}. Обновите остатки, чтобы цифра была актуальной.'**
   String staleNote(String date);
 
   /// No description provided for @veryStaleNote.
   ///
   /// In ru, this message translates to:
-  /// **'Остатки давно не обновлялись — цифра может быть неточной.'**
+  /// **'Остатки давно не обновлялись — цифра может сильно отличаться от реальной.'**
   String get veryStaleNote;
 
   /// No description provided for @howCalculated.
@@ -1234,11 +1234,11 @@ abstract class AppLocalizations {
   /// **'До конца месяца не хватает'**
   String get heroShortMonthEnd;
 
-  /// No description provided for @statusPrecise.
+  /// No description provided for @statusComplete.
   ///
   /// In ru, this message translates to:
-  /// **'Точный расчёт'**
-  String get statusPrecise;
+  /// **'Данные заполнены'**
+  String get statusComplete;
 
   /// No description provided for @statusPreliminary.
   ///
@@ -1483,19 +1483,19 @@ abstract class AppLocalizations {
   /// No description provided for @fixSalaryOverdue.
   ///
   /// In ru, this message translates to:
-  /// **'«{name}» {date} не отмечена как полученная. Пока не отмечена, считаем на выбранный период и не прибавляем её.'**
+  /// **'«{name}» {date} не отмечена как полученная. Пока не отмечена, не прибавляем её и считаем на выбранный период.'**
   String fixSalaryOverdue(String name, String date);
 
   /// No description provided for @salaryReceived.
   ///
   /// In ru, this message translates to:
-  /// **'Получена'**
+  /// **'Отметить полученной'**
   String get salaryReceived;
 
   /// No description provided for @salaryEdit.
   ///
   /// In ru, this message translates to:
-  /// **'Изменить'**
+  /// **'График'**
   String get salaryEdit;
 
   /// No description provided for @fixCardUnknown.
@@ -1641,6 +1641,54 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'{amount} до {date}'**
   String dueOnValue(String amount, String date);
+
+  /// No description provided for @salaryMarkedTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмечено как полученное'**
+  String get salaryMarkedTitle;
+
+  /// No description provided for @salaryMarkedBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметка не меняет остатки счетов. Если деньги пришли на карту, обновите её остаток — тогда они появятся в расчёте.'**
+  String get salaryMarkedBody;
+
+  /// No description provided for @salaryMarkedUpdate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить остатки'**
+  String get salaryMarkedUpdate;
+
+  /// No description provided for @salaryMarkedDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово'**
+  String get salaryMarkedDone;
+
+  /// No description provided for @salaryScheduleTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить график?'**
+  String get salaryScheduleTitle;
+
+  /// No description provided for @salaryScheduleBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменение даты здесь сдвинет её во всех следующих месяцах. Перенести одну задержанную выплату можно будет в следующем обновлении, а пока расчёт идёт на выбранный период.'**
+  String get salaryScheduleBody;
+
+  /// No description provided for @salaryScheduleOpen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть график'**
+  String get salaryScheduleOpen;
+
+  /// No description provided for @marksDontChangeBalances.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».'**
+  String get marksDontChangeBalances;
 }
 
 class _AppLocalizationsDelegate

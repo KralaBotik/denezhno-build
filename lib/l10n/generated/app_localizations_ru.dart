@@ -431,12 +431,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String staleNote(String date) {
-    return 'По данным на $date. Обновите остатки, чтобы цифра была точной.';
+    return 'По данным на $date. Обновите остатки, чтобы цифра была актуальной.';
   }
 
   @override
   String get veryStaleNote =>
-      'Остатки давно не обновлялись — цифра может быть неточной.';
+      'Остатки давно не обновлялись — цифра может сильно отличаться от реальной.';
 
   @override
   String get howCalculated => 'Как считаем';
@@ -656,7 +656,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get heroShortMonthEnd => 'До конца месяца не хватает';
 
   @override
-  String get statusPrecise => 'Точный расчёт';
+  String get statusComplete => 'Данные заполнены';
 
   @override
   String get statusPreliminary => 'Предварительный расчёт';
@@ -831,14 +831,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String fixSalaryOverdue(String name, String date) {
-    return '«$name» $date не отмечена как полученная. Пока не отмечена, считаем на выбранный период и не прибавляем её.';
+    return '«$name» $date не отмечена как полученная. Пока не отмечена, не прибавляем её и считаем на выбранный период.';
   }
 
   @override
-  String get salaryReceived => 'Получена';
+  String get salaryReceived => 'Отметить полученной';
 
   @override
-  String get salaryEdit => 'Изменить';
+  String get salaryEdit => 'График';
 
   @override
   String fixCardUnknown(String name, String debt) {
@@ -925,4 +925,31 @@ class AppLocalizationsRu extends AppLocalizations {
   String dueOnValue(String amount, String date) {
     return '$amount до $date';
   }
+
+  @override
+  String get salaryMarkedTitle => 'Отмечено как полученное';
+
+  @override
+  String get salaryMarkedBody =>
+      'Отметка не меняет остатки счетов. Если деньги пришли на карту, обновите её остаток — тогда они появятся в расчёте.';
+
+  @override
+  String get salaryMarkedUpdate => 'Обновить остатки';
+
+  @override
+  String get salaryMarkedDone => 'Готово';
+
+  @override
+  String get salaryScheduleTitle => 'Изменить график?';
+
+  @override
+  String get salaryScheduleBody =>
+      'Изменение даты здесь сдвинет её во всех следующих месяцах. Перенести одну задержанную выплату можно будет в следующем обновлении, а пока расчёт идёт на выбранный период.';
+
+  @override
+  String get salaryScheduleOpen => 'Открыть график';
+
+  @override
+  String get marksDontChangeBalances =>
+      'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».';
 }

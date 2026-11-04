@@ -191,17 +191,16 @@ class _Dashboard extends ConsumerWidget {
                   icon: CupertinoIcons.checkmark_alt,
                   filled: true,
                   onPressed: () => unawaited(
-                    ref
-                        .read(paymentsProvider.notifier)
-                        .setFlowDone(flowId, dueOn, true),
+                    _markSalaryReceived(context, ref, flowId, dueOn),
                   ),
                 ),
                 if (plan != null)
                   PillButton(
                     key: const ValueKey('salary.edit'),
                     label: s.salaryEdit,
+                    icon: CupertinoIcons.calendar,
                     onPressed: () =>
-                        context.push<void>(flowEditPath, extra: plan),
+                        unawaited(_openSalarySchedule(context, plan)),
                   ),
               ],
             ),
@@ -357,6 +356,70 @@ class _Dashboard extends ConsumerWidget {
   }
 }
 
+/// Э1 limitation (until Э3): the mark is only a mark — it does not create an
+/// income entry and does not change any balance. Say so right away.
+Future<void> _markSalaryReceived(
+  BuildContext context,
+  WidgetRef ref,
+  String flowId,
+  CalendarDate dueOn,
+) async {
+  final s = AppLocalizations.of(context);
+  await ref.read(paymentsProvider.notifier).setFlowDone(flowId, dueOn, true);
+  if (!context.mounted) return;
+  final update = await showCupertinoDialog<bool>(
+    context: context,
+    builder: (ctx) => CupertinoAlertDialog(
+      key: const ValueKey('salary.markedDialog'),
+      title: Text(s.salaryMarkedTitle),
+      content: Text(s.salaryMarkedBody),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.salaryMarkedDone),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('salary.markedUpdate'),
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(s.salaryMarkedUpdate),
+        ),
+      ],
+    ),
+  );
+  if (update == true && context.mounted) {
+    await context.push<void>(updateBalancesPath);
+  }
+}
+
+/// Э1 limitation (until Э3): only the whole schedule can be edited; moving
+/// one delayed payment arrives with the income model. Warn before opening.
+Future<void> _openSalarySchedule(BuildContext context, PlannedFlow plan) async {
+  final s = AppLocalizations.of(context);
+  final open = await showCupertinoDialog<bool>(
+    context: context,
+    builder: (ctx) => CupertinoAlertDialog(
+      key: const ValueKey('salary.scheduleDialog'),
+      title: Text(s.salaryScheduleTitle),
+      content: Text(s.salaryScheduleBody),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.cancel),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('salary.scheduleOpen'),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(s.salaryScheduleOpen),
+        ),
+      ],
+    ),
+  );
+  if (open == true && context.mounted) {
+    await context.push<void>(flowEditPath, extra: plan);
+  }
+}
+
 /// Oldest «обновлено» among the counted money accounts, as a phrase.
 String freshnessPhrase(AppLocalizations s, List<AccountSummary> accounts) {
   DateTime? oldest;
@@ -495,7 +558,7 @@ class _HeroCard extends ConsumerWidget {
                 Flexible(
                   child: StatusPill(
                     key: const ValueKey('home.status'),
-                    label: preliminary ? s.statusPreliminary : s.statusPrecise,
+                    label: preliminary ? s.statusPreliminary : s.statusComplete,
                     icon: preliminary
                         ? CupertinoIcons.exclamationmark_circle_fill
                         : CupertinoIcons.checkmark_seal_fill,

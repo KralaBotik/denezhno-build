@@ -160,6 +160,17 @@ void main() {
       expect(r.warnings.whereType<SalaryOverdue>().single.name, 'Аванс');
     });
 
+    test('a long-overdue yearly payment is still detected', () {
+      // Yearly bonus due in April, never marked: 200+ days later.
+      final r = calc(
+        [acc('Карта', AccountKind.debit, 100)],
+        snap(flows: [flow('Премия', FlowKind.salary, 1, const Yearly(4, 15))]),
+      );
+      final w = r.warnings.whereType<SalaryOverdue>().single;
+      expect(w.dueOn, d('2026-04-15'));
+      expect(r.horizonKind, HorizonKind.period);
+    });
+
     test('periods: 7 / 30 days and a date', () {
       final a = [acc('Карта', AccountKind.debit, 3000)];
       expect(calc(a, snap(), period: const PeriodDays(7)).daysLeft, 7);
