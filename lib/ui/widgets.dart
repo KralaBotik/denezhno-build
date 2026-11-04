@@ -441,6 +441,7 @@ class SettingsRow extends StatelessWidget {
                 const SizedBox(width: Space.m),
               ],
               Expanded(
+                flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

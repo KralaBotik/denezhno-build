@@ -138,11 +138,14 @@ class SettingsScreen extends ConsumerWidget {
               key: const ValueKey('reserve.edit'),
               icon: CupertinoIcons.shield_lefthalf_fill,
               title: s.reserveTitle,
-              subtitle: s.reserveHint,
               value: reserve == null ? null : formatMoney(reserve),
               onTap: ready ? () => context.push<void>(reservePath) : null,
             ),
           ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Space.xs, Space.s, Space.xs, 0),
+          child: Text(s.reserveHint, style: AppText.caption(p.textTertiary)),
         ),
         SectionHeader(s.settingsData),
         CardGroup(
