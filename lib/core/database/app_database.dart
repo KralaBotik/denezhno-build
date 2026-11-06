@@ -103,11 +103,15 @@ class AppDatabase extends _$AppDatabase {
   static const schemaV4Checksum =
       '436482421afc66175266e62d7bcabf77cdb1cefffcc0430a41261fd97efc26fd';
 
-  /// SHA-256 of the current schema.drift (v5). A test recomputes it.
+  /// SHA-256 of schema.drift at v5 (R3 Э3). Historical.
   static const schemaV5Checksum =
       '230ed54b24710209f22b3c1812c7c98b1ecef9517ee762f3d9083fa1d5ce74f3';
 
-  static const latestSchemaVersion = 5;
+  /// SHA-256 of the current schema.drift (v6). A test recomputes it.
+  static const schemaV6Checksum =
+      'bd38f3bb4f02a8f2020ed2d37c8d7e35baacea4db1bd6af74c7d6d2dfc483c27';
+
+  static const latestSchemaVersion = 6;
 
   /// Checksum recorded for the current schema version.
   static String get latestChecksum => releasedChecksums[latestSchemaVersion]!;
@@ -120,6 +124,7 @@ class AppDatabase extends _$AppDatabase {
     3: schemaV3Checksum,
     4: schemaV4Checksum,
     5: schemaV5Checksum,
+    6: schemaV6Checksum,
   };
 
   /// Which schema entities each version introduced. Every entity belongs to
@@ -152,6 +157,14 @@ class AppDatabase extends _$AppDatabase {
       'income_receipts_no_delete',
       'forecast_settings',
     },
+    6: {
+      'flow_tracking',
+      'obligation_payments',
+      'obligation_payments_by_flow',
+      'obligation_payments_by_card',
+      'obligation_payments_no_update',
+      'obligation_payments_no_delete',
+    },
   };
 
   /// v2 introduced everything not listed for another version.
@@ -174,6 +187,7 @@ class AppDatabase extends _$AppDatabase {
       await _seedV3();
       await _seedV4();
       await _dataV5();
+      await _dataV6();
       await _recordVersion(
         latestSchemaVersion,
         releasedChecksums[latestSchemaVersion]!,
@@ -204,6 +218,7 @@ class AppDatabase extends _$AppDatabase {
           if (version == 3) await _seedV3();
           if (version == 4) await _seedV4();
           if (version == 5) await _dataV5();
+          if (version == 6) await _dataV6();
           await _recordVersion(version, releasedChecksums[version]!);
         }
         await customStatement('PRAGMA user_version = $to');
@@ -325,6 +340,45 @@ class AppDatabase extends _$AppDatabase {
     }
     if (from < 4) await _dataV4();
     if (from < 5) await _dataV5();
+    if (from < 6) await _dataV6();
+  }
+
+  /// Tracking dates for recurring payments (R3 risk Р1). From this date on,
+  /// every date of a plan stays an obligation until paid or skipped. For a
+  /// plan made before v6: the latest past date without any mark, if within
+  /// 31 days (what may still be unpaid), otherwise today. Earlier dates are
+  /// history (R2 did not require marks). Old «оплачено» marks are kept but
+  /// no longer release an obligation by themselves. Idempotent.
+  Future<void> _dataV6() async {
+    final today = CalendarDate.fromDateTime(clock());
+    final tracked = {
+      for (final t in await select(flowTracking).get()) t.flowId,
+    };
+    for (final f in await select(plannedFlows).get()) {
+      if (tracked.contains(f.id)) continue;
+      var from = today;
+      if (flowKindSeed[f.kind] == 'outflow' && f.archivedAtUtc == null) {
+        final marked = {
+          for (final m in await (select(
+            flowMarks,
+          )..where((m) => m.flowId.equals(f.id))).get())
+            m.dueOn,
+        };
+        final start = CalendarDate.parse(f.startsOn);
+        final window = today.addDays(-31);
+        final past = occurrences(
+          _legacyFlow(f),
+          start > window ? start : window,
+          today.addDays(-1),
+        );
+        if (past.isNotEmpty && !marked.contains(past.last.iso)) {
+          from = past.last;
+        }
+      }
+      await into(flowTracking).insert(
+        FlowTrackingCompanion.insert(flowId: f.id, trackedFrom: from.iso),
+      );
+    }
   }
 
   static PlannedFlow _legacyFlow(PlannedFlowRow f) => PlannedFlow(

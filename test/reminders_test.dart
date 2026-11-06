@@ -59,8 +59,10 @@ class _Accounts implements AccountsStore {
   @override
   Future<void> createAccount(NewAccount account) async {}
   @override
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> a) async =>
-      BalanceUpdateResult(changed: 0, unexplained: Money(0));
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> a, {
+    Set<String> notYetDebited = const {},
+  }) async => BalanceUpdateResult(changed: 0, unexplained: Money(0));
 }
 
 class FakeScheduler implements ReminderScheduler {

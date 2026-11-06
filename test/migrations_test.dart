@@ -50,7 +50,7 @@ void main() {
         expect(listed[i].intersection(listed[j]), isEmpty);
       }
     }
-    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3, 4, 5]);
+    expect(AppDatabase.releasedChecksums.keys, [1, 2, 3, 4, 5, 6]);
   });
 
   test('v1 snapshot upgrades to latest without losing settings', () async {
@@ -68,7 +68,7 @@ void main() {
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
     expect((await db.select(db.appSettings).get()).single.valueJson, '"dark"');
-    expect(await history(db), [1, 2, 3, 4, 5]);
+    expect(await history(db), [1, 2, 3, 4, 5, 6]);
     expect(await db.select(db.households).get(), hasLength(1));
     final system = await db.select(db.accounts).get();
     expect(
@@ -113,7 +113,7 @@ void main() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, latest);
-    expect(await history(db), [2, 3, 4, 5]);
+    expect(await history(db), [2, 3, 4, 5, 6]);
     expect(
       (await db.select(db.accounts).get())
           .where((a) => a.kind == 'credit_card')
@@ -156,6 +156,8 @@ void main() {
     expect(ok([1, 2, 3, 4, 5], 5), true);
     expect(ok([3, 4, 5], 5), true);
     expect(ok([3, 5], 5), false);
+    expect(ok([1, 2, 3, 4, 5, 6], 6), true);
+    expect(ok([5, 6], 6), true);
     expect(AppDatabase.isReleasedHistory([(3, 'x' * 64)], 3), false);
   });
 
@@ -183,7 +185,7 @@ void main() {
       );
       addTearDown(db.close);
       await verifier.migrateAndValidate(db, latest);
-      expect(await history(db), [1, 2, 3, 4, 5]);
+      expect(await history(db), [1, 2, 3, 4, 5, 6]);
 
       final after = await dump(
         (sql) async => [
@@ -273,6 +275,24 @@ void main() {
       expect(await db.select(db.accounts).get(), hasLength(19));
       expect(await db.select(db.incomeSources).get(), hasLength(2));
       expect(await db.select(db.incomeOccurrences).get(), hasLength(2));
+
+      // v6: every plan is tracked from a date. Outflows: the latest past
+      // date without a mark within 31 days (may still be unpaid), else
+      // today; incomes and archived plans: today. Nothing is paid yet.
+      final tracking = {
+        for (final t in await db.select(db.flowTracking).get())
+          t.flowId: t.trackedFrom,
+      };
+      expect(tracking, {
+        V3.salary: '2026-11-04',
+        V3.advance: '2026-11-04',
+        V3.internet: '2026-10-05', // 5 Oct unmarked (5 Nov was marked)
+        V3.cardPayment: '2026-10-12',
+        V3.bonus: '2026-11-04',
+      });
+      expect(await db.select(db.obligationPayments).get(), isEmpty);
+      await db.upgradeDataTo(5);
+      expect(await db.select(db.flowTracking).get(), hasLength(5));
     });
 
     test('the latest unmarked R2 salary date stays «waiting»; older ones are '

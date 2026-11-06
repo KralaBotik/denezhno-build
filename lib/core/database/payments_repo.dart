@@ -5,6 +5,7 @@ import '../calendar_date.dart';
 import '../ids.dart';
 import '../money/money.dart';
 import 'app_database.dart' hide CardFigures;
+import 'obligation_repo.dart';
 
 /// Plans (recurring payments/incomes), their «оплачено» marks and the bank's
 /// credit-card figures. These are plans and reference figures, not ledger
@@ -19,9 +20,34 @@ final class PaymentsRepo {
               ..where((f) => f.archivedAtUtc.isNull())
               ..orderBy([(f) => OrderingTerm.asc(f.createdAtUtc)]))
             .get();
-    final marks = await (db.select(
-      db.flowMarks,
-    )..where((m) => m.status.equals('done'))).get();
+    final marks = await db.select(db.flowMarks).get();
+    final history = await ObligationRepo(db).history();
+    final live = [
+      for (final p in history)
+        if (!p.cancelled) p,
+    ];
+    final paid = {
+      for (final p in live)
+        if (p.target case PlanDate(:final flowId, :final dueOn))
+          (flowId, dueOn): p,
+    };
+    final skipped = {
+      for (final m in marks)
+        if (m.status == 'skipped') (m.flowId, CalendarDate.parse(m.dueOn)),
+    };
+    final legacy = {
+      for (final m in marks)
+        if (m.status == 'done' &&
+            !paid.containsKey((m.flowId, CalendarDate.parse(m.dueOn))))
+          (m.flowId, CalendarDate.parse(m.dueOn)),
+    };
+    final paidByFigures = <String, int>{};
+    for (final p in live) {
+      if (p.target case CardDue(:final figuresId)) {
+        paidByFigures[figuresId] =
+            (paidByFigures[figuresId] ?? 0) + p.amount.minorUnits;
+      }
+    }
     final cards =
         await (db.select(db.accounts)
               ..where(
@@ -37,15 +63,25 @@ final class PaymentsRepo {
                 ..orderBy([(f) => OrderingTerm.desc(f.recordedAtUtc)])
                 ..limit(1))
               .getSingleOrNull();
-      if (row != null) figures[card.id] = _figures(row);
+      if (row != null) {
+        figures[card.id] = _figures(row, paidByFigures[row.id] ?? 0);
+      }
     }
     return PaymentsSnapshot(
       flows: [for (final f in flows) ?_flow(f)],
-      doneMarks: {
-        for (final m in marks) (m.flowId, CalendarDate.parse(m.dueOn)),
-      },
+      // Released only by an operation or an explicit skip — never by an
+      // old mark or a balance update (R3 risk Р1).
+      doneMarks: {...paid.keys, ...skipped},
       cardFigures: figures,
       creditCards: {for (final c in cards) c.id: c.name},
+      trackedFrom: {
+        for (final t in await db.select(db.flowTracking).get())
+          t.flowId: CalendarDate.parse(t.trackedFrom),
+      },
+      paid: paid,
+      skipped: skipped,
+      legacyMarks: legacy,
+      history: history,
     );
   }
 
@@ -69,14 +105,16 @@ final class PaymentsRepo {
     );
   }
 
-  static CardFigures _figures(CardFiguresRow r) => CardFigures(
+  static CardFigures _figures(CardFiguresRow r, int paid) => CardFigures(
     id: r.id,
     accountId: r.accountId,
     graceAmount: r.graceAmountMinor == null ? null : Money(r.graceAmountMinor!),
     graceDueOn: r.graceDueOn == null ? null : CalendarDate.parse(r.graceDueOn!),
     minPayment: r.minPaymentMinor == null ? null : Money(r.minPaymentMinor!),
     minDueOn: r.minDueOn == null ? null : CalendarDate.parse(r.minDueOn!),
-    settled: r.settledAtUtc != null,
+    paid: Money(paid),
+    settled: paid > 0 && paid >= (r.graceAmountMinor ?? r.minPaymentMinor ?? 0),
+    legacySettled: r.settledAtUtc != null,
   );
 
   Future<void> saveFlow(PlannedFlow flow, DateTime now) async {
@@ -120,13 +158,25 @@ final class PaymentsRepo {
         accountId: Value(flow.accountId),
       );
       if (flow.id == null) {
+        final id = newUuid();
         await db
             .into(db.plannedFlows)
             .insert(
               values.copyWith(
-                id: Value(newUuid()),
+                id: Value(id),
                 householdId: Value(household.id),
                 createdAtUtc: Value(now.toUtc().millisecondsSinceEpoch),
+              ),
+            );
+        // A new plan is an obligation from its start, never retroactively.
+        final today = CalendarDate.fromDateTime(now);
+        await db
+            .into(db.flowTracking)
+            .insert(
+              FlowTrackingCompanion.insert(
+                flowId: id,
+                trackedFrom:
+                    (flow.startsOn > today ? flow.startsOn : today).iso,
               ),
             );
       } else {
@@ -151,29 +201,6 @@ final class PaymentsRepo {
         );
     if (updated != 1) throw ArgumentError('Unknown plan');
   }
-
-  Future<void> setFlowDone(
-    String flowId,
-    CalendarDate dueOn,
-    bool done,
-    DateTime now,
-  ) => db.transaction(() async {
-    final key = (db.delete(db.flowMarks)
-      ..where((m) => m.flowId.equals(flowId) & m.dueOn.equals(dueOn.iso)));
-    await key.go();
-    if (done) {
-      await db
-          .into(db.flowMarks)
-          .insert(
-            FlowMarksCompanion.insert(
-              flowId: flowId,
-              dueOn: dueOn.iso,
-              status: 'done',
-              markedAtUtc: now.toUtc().millisecondsSinceEpoch,
-            ),
-          );
-    }
-  });
 
   Future<void> saveCardFigures(CardFigures f, DateTime now) async {
     for (final m in [f.graceAmount, f.minPayment]) {
@@ -208,17 +235,5 @@ final class PaymentsRepo {
             ),
           );
     });
-  }
-
-  Future<void> setCardSettled(String id, bool settled, DateTime now) async {
-    final updated =
-        await (db.update(db.cardFigures)..where((f) => f.id.equals(id))).write(
-          CardFiguresCompanion(
-            settledAtUtc: Value(
-              settled ? now.toUtc().millisecondsSinceEpoch : null,
-            ),
-          ),
-        );
-    if (updated != 1) throw ArgumentError('Unknown figures');
   }
 }

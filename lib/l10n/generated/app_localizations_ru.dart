@@ -951,7 +951,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get marksDontChangeBalances =>
-      'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».';
+      '«Оплачено» записывает списание со счёта и сразу меняет остаток. Ошибочную оплату можно отменить, нажав на отметку ещё раз.';
 
   @override
   String get salarySetup => 'Настроить зарплату и аванс';
@@ -1300,4 +1300,139 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get partLabelPlaceholder => 'Название';
+
+  @override
+  String get payTitle => 'Оплачено';
+
+  @override
+  String get payAmount => 'Сколько заплатили';
+
+  @override
+  String get payAccount => 'С какого счёта';
+
+  @override
+  String get payDate => 'Когда заплатили';
+
+  @override
+  String payDue(String date) {
+    return 'Срок: $date';
+  }
+
+  @override
+  String get payTransferNote =>
+      'Это перевод между вашими счетами: долг уменьшится, расходом это не считается.';
+
+  @override
+  String payBalanceChange(String account, String before, String after) {
+    return 'Остаток «$account»: было $before, станет $after';
+  }
+
+  @override
+  String payDebtChange(String account, String before, String after) {
+    return 'Долг «$account»: было $before, станет $after';
+  }
+
+  @override
+  String payAlreadyIn(String account, String when) {
+    return 'Остаток «$account» не изменится: списание уже есть в остатке, который вы подтвердили $when.';
+  }
+
+  @override
+  String sameDayQuestion(String account, String when) {
+    return 'Сегодня вы уже обновляли остаток «$account» ($when). Эта оплата уже была в том остатке?';
+  }
+
+  @override
+  String sameDayIncomeQuestion(String account, String when) {
+    return 'В этот день вы уже обновляли остаток «$account» ($when). Эти деньги уже были в том остатке?';
+  }
+
+  @override
+  String get sameDayYes => 'Да, уже была в остатке';
+
+  @override
+  String get sameDayNo => 'Нет, списание прошло позже';
+
+  @override
+  String get sameDayIncomeYes => 'Да, уже были в остатке';
+
+  @override
+  String get sameDayIncomeNo => 'Нет, пришли позже';
+
+  @override
+  String similarFound(String date, String amount, String what) {
+    return 'На этом счёте уже есть похожая операция: $date, $amount$what. Возможно, этот платёж уже записан.';
+  }
+
+  @override
+  String get similarConfirm => 'Это другая оплата — записать';
+
+  @override
+  String get payConfirm => 'Подтвердить оплату';
+
+  @override
+  String get paySkip => 'Платежа не будет';
+
+  @override
+  String get paySkipConfirm =>
+      'Отметить, что этого платежа не будет? Он перестанет учитываться в обязательных. Деньги со счёта не списываются.';
+
+  @override
+  String get payAlreadyPaid => 'Этот платёж уже оплачен.';
+
+  @override
+  String get payFailed => 'Не удалось записать оплату. Ничего не изменилось.';
+
+  @override
+  String paidInfo(String date, String amount, String account) {
+    return 'Оплачено $date · $amount$account';
+  }
+
+  @override
+  String get cancelPaymentAction => 'Отменить оплату';
+
+  @override
+  String get cancelPaymentText =>
+      'Отменить эту оплату? Операция будет сторнирована, остаток вернётся, платёж снова станет обязательным. Запись останется в истории.';
+
+  @override
+  String get skippedInfo => 'Отмечено: платежа не будет';
+
+  @override
+  String get unskipAction => 'Вернуть платёж';
+
+  @override
+  String get overdueLabel => 'просрочен';
+
+  @override
+  String get legacyMarkLabel => 'отмечено до обновления — подтвердите оплату';
+
+  @override
+  String fixPaymentOverdue(String name, String date) {
+    return '«$name» $date не оплачен — он остаётся в обязательных, пока вы его не оплатите или не отметите, что платежа не будет.';
+  }
+
+  @override
+  String get pendingTitle => 'Оплаты после прошлого обновления';
+
+  @override
+  String get pendingHint =>
+      'Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.';
+
+  @override
+  String pendingLine(String title, String amount, String date) {
+    return '$title · $amount · $date';
+  }
+
+  @override
+  String get pendingDebited => 'Уже списано';
+
+  @override
+  String get pendingNotYet => 'Ещё не списано';
+
+  @override
+  String get pendingNeedAnswer => 'Ответьте по каждой оплате выше';
+
+  @override
+  String get payNoAccounts => 'Сначала добавьте счёт, с которого платите';
 }

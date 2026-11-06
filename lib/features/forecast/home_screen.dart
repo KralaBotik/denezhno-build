@@ -19,6 +19,7 @@ import '../payments/payments.dart';
 import '../backup/backup_section.dart' show UpgradeNotice;
 import '../income/income_controller.dart';
 import '../income/income_screens.dart';
+import '../payments/pay_screen.dart';
 import '../payments/payments_controller.dart';
 import '../payments/payments_screens.dart'
     show formatDate, cardFiguresPath, PaymentRow, pickDate;
@@ -39,6 +40,7 @@ bool isPreliminary(SafeToSpend v) =>
         OverdueCardFigures() ||
         StaleBalances() => true,
         MinimumOnly() ||
+        PaymentOverdue() ||
         PossibleDuplicate() ||
         SalaryDelayed() ||
         SalaryPartial() => false,
@@ -296,6 +298,37 @@ class _Dashboard extends ConsumerWidget {
               ),
               onTap: () =>
                   context.push<void>(incomePaymentPath, extra: payment.key),
+            ),
+          );
+        case PaymentOverdue(:final name, :final dueOn, :final flowId):
+          fixes.insert(
+            0,
+            NoticeTile(
+              key: ValueKey('fix.paymentOverdue.$flowId.$dueOn'),
+              icon: CupertinoIcons.exclamationmark_circle,
+              text: s.fixPaymentOverdue(name, formatDate(dueOn)),
+              onTap: null,
+              actions: [
+                PillButton(
+                  key: ValueKey('overdue.pay.$flowId.$dueOn'),
+                  label: s.payTitle,
+                  icon: CupertinoIcons.checkmark_alt,
+                  filled: true,
+                  onPressed: () => context.push<void>(
+                    payPath,
+                    extra: PlanDate(flowId, dueOn),
+                  ),
+                ),
+                PillButton(
+                  key: ValueKey('overdue.skip.$flowId.$dueOn'),
+                  label: s.paySkip,
+                  onPressed: () => unawaited(
+                    ref
+                        .read(paymentsProvider.notifier)
+                        .setSkipped(flowId, dueOn, true),
+                  ),
+                ),
+              ],
             ),
           );
         case CardWithoutFigures(:final name, :final accountId):

@@ -48,8 +48,10 @@ class FakeAccountsStore implements AccountsStore {
     ),
   );
   @override
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> m) async =>
-      BalanceUpdateResult(changed: m.length, unexplained: Money(0));
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> m, {
+    Set<String> notYetDebited = const {},
+  }) async => BalanceUpdateResult(changed: m.length, unexplained: Money(0));
   @override
   Future<void> setIncludedInForecast(String id, bool included) async {}
 }
@@ -79,12 +81,60 @@ class FakePaymentsStore implements PaymentsStore {
   Future<void> archiveFlow(String id) async =>
       flows.removeWhere((f) => f.id == id);
   @override
-  Future<void> setFlowDone(String id, CalendarDate due, bool done) async =>
-      done ? marks.add((id, due)) : marks.remove((id, due));
+  Future<void> setFlowSkipped(
+    String id,
+    CalendarDate due,
+    bool skipped,
+  ) async => skipped ? marks.add((id, due)) : marks.remove((id, due));
+
+  final paidLog = <(PayTarget, Money, String)>[];
+
+  @override
+  Future<PaymentCheck> previewPayment(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    SameDayPlacement placement = SameDayPlacement.auto,
+  }) async => PaymentCheck(
+    OperationPreview(
+      balances: {accountId: (Money(0), -amount)},
+      inConfirmedBalance: false,
+      confirmedAt: null,
+      sameDayChoice: false,
+      placement: SameDayPlacement.afterConfirmedBalance,
+      unexplainedChange: Money(0),
+    ),
+    const [],
+  );
+
+  @override
+  Future<void> pay(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    required SameDayPlacement placement,
+    bool confirmedNotDuplicate = false,
+  }) async {
+    paidLog.add((target, amount, accountId));
+    if (target case PlanDate(:final flowId, :final dueOn)) {
+      marks.add((flowId, dueOn));
+    }
+  }
+
+  @override
+  Future<void> cancelObligationPayment(String paymentId) async {}
+
+  /// Payments recorded after the last confirmation (for the question in
+  /// «Обновить остатки»).
+  final pending = <PendingDebit>[];
+
+  @override
+  Future<List<PendingDebit>> pendingDebits() async => List.of(pending);
+
   @override
   Future<void> saveCardFigures(CardFigures f) async => figures[f.accountId] = f;
-  @override
-  Future<void> setCardSettled(String id, bool settled) async {}
 }
 
 class FakeHouseholdStore implements HouseholdStore {

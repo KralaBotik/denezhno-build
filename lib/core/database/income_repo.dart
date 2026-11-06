@@ -473,11 +473,14 @@ final class IncomeRepo {
   }) => db.transaction(() async {
     final row = await _materialize(key, now);
     if (row.state != 'open') throw const InvalidOperation('not waiting');
-    final recorded = await Journal(db).record(
-      await _op(key, amount, accountId, date),
-      now: now,
-      placement: placement,
-    );
+    final op = await _op(key, amount, accountId, date);
+    // Same day as a confirmed balance: the person must have answered.
+    if (placement == SameDayPlacement.auto &&
+        (await Journal(db).preview(op, now: now)).sameDayChoice) {
+      throw const InvalidOperation('same-day placement must be chosen');
+    }
+    final recorded = await Journal(db)
+        .record(op, now: now, placement: placement);
     final at = now.toUtc().millisecondsSinceEpoch;
     await db
         .into(db.incomeReceipts)

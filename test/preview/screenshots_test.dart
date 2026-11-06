@@ -10,6 +10,7 @@ import 'package:denezhno/app/controller.dart';
 import 'package:denezhno/app/router.dart';
 import 'package:denezhno/core/calendar_date.dart';
 import 'package:denezhno/features/income/income.dart';
+import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/payments/reminders.dart';
 import 'package:denezhno/features/payments/reminders_controller.dart';
 import 'package:denezhno/features/settings/preferences.dart';
@@ -163,6 +164,7 @@ void main() {
           ('/update-balances', 'update-balances', null),
           ('/add-account', 'add-account', null),
           ('/income/schedule', 'salary-schedule', null),
+          ('/pay', 'pay', PlanDate('net', CalendarDate.today().addDays(1))),
           (
             '/income/payment',
             'income-payment',

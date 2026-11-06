@@ -52,6 +52,7 @@ void main() {
     ('/income/schedule', 'work'),
     ('/income/payment', 'advanceKey'),
     ('/income/receive', 'advanceKey'),
+    ('/pay', 'netDate'),
   ];
 
   for (final size in sizes.entries) {
@@ -113,7 +114,9 @@ void main() {
                 unawaited(
                   router.push<void>(
                     path,
-                    extra: extra == 'advanceKey'
+                    extra: extra == 'netDate'
+                        ? PlanDate('net', CalendarDate.today().addDays(1))
+                        : extra == 'advanceKey'
                         ? PaymentKey(
                             sourceId: 'work',
                             partId: 'advance',

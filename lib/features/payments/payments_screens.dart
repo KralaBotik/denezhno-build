@@ -15,6 +15,7 @@ import '../accounts/accounts_controller.dart';
 import '../income/income_controller.dart';
 import '../income/income_screens.dart';
 import 'payments.dart';
+import 'pay_screen.dart';
 import 'payments_controller.dart';
 import 'reminders_controller.dart';
 import '../../ui/theme.dart';
@@ -156,9 +157,15 @@ class PaymentRow extends StatelessWidget {
                 Text(
                   [
                     formatDue(s, item.dueOn, today),
+                    if (item.overdue) s.overdueLabel,
                     if (item.isMinimumOnly) s.cardMinOnly,
+                    if (item.legacyMarked) s.legacyMarkLabel,
                   ].join(' · '),
-                  style: AppText.caption(p.textSecondary),
+                  style: AppText.caption(
+                    item.overdue || item.legacyMarked
+                        ? p.warning
+                        : p.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -191,6 +198,99 @@ class PaymentRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The round button of a payment: unpaid → «Оплачено» (an operation);
+/// paid → when/what, with «Отменить оплату»; skipped → «Вернуть платёж».
+Future<void> paymentAction(
+  BuildContext context,
+  WidgetRef ref,
+  UpcomingItem item,
+  PaymentsSnapshot snapshot,
+) async {
+  final s = AppLocalizations.of(context);
+  final controller = ref.read(paymentsProvider.notifier);
+  if (!item.done) {
+    await context.push<void>(payPath, extra: item.target);
+    return;
+  }
+  if (item.skipped) {
+    final undo = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(s.skippedInfo),
+        actions: [
+          CupertinoActionSheetAction(
+            key: const ValueKey('sheet.unskip'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(s.unskipAction),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(s.cancel),
+        ),
+      ),
+    );
+    if (undo == true) {
+      await controller.setSkipped(item.flowId!, item.dueOn, false);
+    }
+    return;
+  }
+  final paid =
+      item.payment ??
+      snapshot.history
+          .where((h) => !h.cancelled && h.target == item.target)
+          .lastOrNull;
+  if (paid == null) return;
+  final accounts = ref.read(accountsProvider).value ?? const [];
+  final from = accounts.where((a) => a.id == paid.accountId).firstOrNull;
+  final cancel = await showCupertinoModalPopup<bool>(
+    context: context,
+    builder: (ctx) => CupertinoActionSheet(
+      title: Text(
+        s.paidInfo(
+          formatDate(paid.paidOn),
+          formatMoney(paid.amount),
+          from == null ? '' : ' · ${from.name}',
+        ),
+      ),
+      actions: [
+        CupertinoActionSheetAction(
+          key: const ValueKey('sheet.cancelPayment'),
+          isDestructiveAction: true,
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(s.cancelPaymentAction),
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        isDefaultAction: true,
+        onPressed: () => Navigator.of(ctx).pop(),
+        child: Text(s.cancel),
+      ),
+    ),
+  );
+  if (cancel != true || !context.mounted) return;
+  final sure = await showCupertinoDialog<bool>(
+    context: context,
+    builder: (ctx) => CupertinoAlertDialog(
+      content: Text(s.cancelPaymentText),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.cancel),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('cancelPayment.confirm'),
+          isDestructiveAction: true,
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(s.cancelPaymentAction),
+        ),
+      ],
+    ),
+  );
+  if (sure == true) await controller.cancel(paid.id);
 }
 
 /// «Платежи»: the next 30 days, credit-card figures, recurring payments and
@@ -299,7 +399,6 @@ class _PaymentsBody extends ConsumerWidget {
       ref.watch(incomeProvider).value?.payments ?? const [],
       today,
     );
-    final controller = ref.read(paymentsProvider.notifier);
     final debts = {
       for (final a
           in ref.watch(accountsProvider).value ?? const <AccountSummary>[])
@@ -377,42 +476,43 @@ class _PaymentsBody extends ConsumerWidget {
                       ),
                       item: i,
                       today: today,
-                      trailing: CupertinoButton(
-                        key: ValueKey(
-                          'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
-                        ),
-                        padding: const EdgeInsets.only(left: Space.s),
-                        minimumSize: const Size(44, 44),
-                        onPressed: () => unawaited(
-                          i.source == UpcomingSource.flow
-                              ? controller.setFlowDone(
-                                  i.flowId!,
-                                  i.dueOn,
-                                  !i.done,
-                                )
-                              : controller.setCardSettled(
-                                  i.cardFiguresId!,
-                                  !i.done,
+                      // Incomes other than salary: no «получено» here.
+                      trailing: i.direction == FlowDirection.inflow
+                          ? null
+                          : CupertinoButton(
+                              key: ValueKey(
+                                'mark.${i.flowId ?? i.cardFiguresId}.${i.dueOn}',
+                              ),
+                              padding: const EdgeInsets.only(left: Space.s),
+                              minimumSize: const Size(44, 44),
+                              onPressed: () => unawaited(
+                                paymentAction(context, ref, i, snapshot),
+                              ),
+                              child: Semantics(
+                                label: i.done
+                                    ? s.undoMark
+                                    : i.direction == FlowDirection.inflow
+                                    ? s.markReceived
+                                    : s.markPaid,
+                                button: true,
+                                child: ExcludeSemantics(
+                                  child: Icon(
+                                    i.skipped
+                                        ? CupertinoIcons.minus_circle
+                                        : i.done
+                                        ? CupertinoIcons
+                                              .check_mark_circled_solid
+                                        : CupertinoIcons.circle,
+                                    color: i.done
+                                        ? p.accent
+                                        : i.overdue
+                                        ? p.warning
+                                        : p.textTertiary,
+                                    size: 26,
+                                  ),
                                 ),
-                        ),
-                        child: Semantics(
-                          label: i.done
-                              ? s.undoMark
-                              : i.direction == FlowDirection.inflow
-                              ? s.markReceived
-                              : s.markPaid,
-                          button: true,
-                          child: ExcludeSemantics(
-                            child: Icon(
-                              i.done
-                                  ? CupertinoIcons.check_mark_circled_solid
-                                  : CupertinoIcons.circle,
-                              color: i.done ? p.accent : p.textTertiary,
-                              size: 26,
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
                     ),
                   ),
               ]..sort((a, b) => a.$1.compareTo(b.$1)))

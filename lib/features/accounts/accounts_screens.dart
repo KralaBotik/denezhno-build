@@ -13,6 +13,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import 'accounts.dart';
 import 'accounts_controller.dart';
+import '../payments/payments.dart' show PendingDebit;
 import '../payments/payments_controller.dart';
 import '../payments/payments_screens.dart' show cardFiguresPath, formatDate;
 
@@ -726,6 +727,28 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
   bool _saving = false;
   String? _saveError;
 
+  /// Payments recorded after their account's last confirmation, and the
+  /// person's answer for each: taken by the bank already (true) or not yet
+  /// (false). No default — an unanswered one blocks saving (R3 risk Р1).
+  List<PendingDebit> _pending = const [];
+  final _answers = <String, bool>{};
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      ref.read(paymentsProvider.notifier).pending().then((list) {
+        if (mounted) setState(() => _pending = list);
+      }, onError: (Object _) {}),
+    );
+  }
+
+  /// Pending payments of the accounts being updated now.
+  List<PendingDebit> _relevant(Set<String> accounts) => [
+    for (final d in _pending)
+      if (accounts.contains(d.accountId)) d,
+  ];
+
   TextEditingController _controllerFor(String id) =>
       _controllers.putIfAbsent(id, TextEditingController.new);
 
@@ -751,11 +774,23 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
     }
     setState(() => _saveError = null);
     if (_errors.isNotEmpty || amounts.isEmpty) return;
+    final relevant = _relevant(amounts.keys.toSet());
+    if (relevant.any((d) => !_answers.containsKey(d.paymentId))) {
+      setState(() => _saveError = s.pendingNeedAnswer);
+      return;
+    }
     setState(() => _saving = true);
     try {
       final result = await ref
           .read(accountsProvider.notifier)
-          .updateBalances(amounts);
+          .updateBalances(
+            amounts,
+            notYetDebited: {
+              for (final d in relevant)
+                if (_answers[d.paymentId] == false) d.paymentId,
+            },
+          );
+      ref.invalidate(paymentsProvider);
       if (mounted) context.pop(result);
     } on Object {
       if (mounted) {
@@ -791,6 +826,72 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
           children: [
             Text(s.updateHint, style: AppText.secondary(p.textSecondary)),
             const SizedBox(height: Space.l),
+            if (_relevant({for (final a in accounts) a.id}).isNotEmpty) ...[
+              AppCard(
+                key: const ValueKey('pending.card'),
+                color: p.warningSoft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(s.pendingTitle, style: AppText.headline(p.text)),
+                    const SizedBox(height: Space.xs),
+                    Text(
+                      s.pendingHint,
+                      style: AppText.caption(p.textSecondary),
+                    ),
+                    for (final d in _relevant({for (final a in accounts) a.id}))
+                      Padding(
+                        key: ValueKey('pending.${d.paymentId}'),
+                        padding: const EdgeInsets.only(top: Space.m),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              s.pendingLine(
+                                d.title,
+                                formatMoney(d.amount),
+                                formatDate(d.paidOn),
+                              ),
+                              style: AppText.secondary(p.text),
+                            ),
+                            const SizedBox(height: Space.xs),
+                            CupertinoSlidingSegmentedControl<bool>(
+                              key: ValueKey('pending.${d.paymentId}.answer'),
+                              groupValue: _answers[d.paymentId],
+                              onValueChanged: (v) {
+                                if (v != null) {
+                                  setState(() => _answers[d.paymentId] = v);
+                                }
+                              },
+                              children: {
+                                true: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  child: Text(
+                                    s.pendingDebited,
+                                    key: ValueKey('pending.${d.paymentId}.yes'),
+                                  ),
+                                ),
+                                false: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  child: Text(
+                                    s.pendingNotYet,
+                                    key: ValueKey('pending.${d.paymentId}.no'),
+                                  ),
+                                ),
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Space.l),
+            ],
             for (final a in accounts)
               Padding(
                 padding: const EdgeInsets.only(bottom: Space.m),

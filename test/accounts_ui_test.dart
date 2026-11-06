@@ -1,11 +1,15 @@
 import 'package:denezhno/app/app.dart';
 import 'package:denezhno/app/controller.dart';
+import 'package:denezhno/core/calendar_date.dart';
 import 'package:denezhno/core/money/money.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
+import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/fakes.dart' show FakePaymentsStore;
 
 const nb = ' ';
 
@@ -45,6 +49,7 @@ class FakeAccounts implements AccountsStore {
 
   final list = <AccountSummary>[];
   final updates = <Map<String, Money>>[];
+  final notYet = <Set<String>>[];
   bool failWrites = false;
   @override
   Future<List<AccountSummary>> accounts() async => List.of(list);
@@ -65,8 +70,12 @@ class FakeAccounts implements AccountsStore {
   }
 
   @override
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> m) async {
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> m, {
+    Set<String> notYetDebited = const {},
+  }) async {
     updates.add(m);
+    notYet.add(notYetDebited);
     var net = Money(0);
     for (var i = 0; i < list.length; i++) {
       final a = list[i];
@@ -89,7 +98,11 @@ class FakeAccounts implements AccountsStore {
 }
 
 void main() {
-  Future<void> openAccounts(WidgetTester tester, FakeAccounts store) async {
+  Future<void> openAccounts(
+    WidgetTester tester,
+    FakeAccounts store, {
+    FakePaymentsStore? payments,
+  }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -98,6 +111,8 @@ void main() {
         overrides: [
           preferencesStoreProvider.overrideWithValue(_Prefs()),
           accountsStoreProvider.overrideWithValue(store),
+          if (payments != null)
+            paymentsStoreProvider.overrideWithValue(payments),
         ],
         child: const DenezhnoApp(),
       ),
@@ -261,5 +276,42 @@ void main() {
     await tester.tap(find.byType(CupertinoNavigationBarBackButton));
     await tester.pumpAndSettle();
     expect(find.textContaining('не в расчёте'), findsOneWidget);
+  });
+
+  testWidgets('update balances asks about payments recorded since the last '
+      'confirmation: no default, answer required', (tester) async {
+    final store = FakeAccounts()
+      ..list.add(
+        AccountSummary(
+          id: 'sber',
+          name: 'Сбер',
+          kind: AccountKind.debit,
+          amount: Money(700000),
+          isProtected: false,
+          lastUpdatedAt: DateTime.now(),
+        ),
+      );
+    final payments = FakePaymentsStore()
+      ..pending.add(
+        PendingDebit(
+          paymentId: 'pay1',
+          title: 'Аренда',
+          amount: Money(300000),
+          accountId: 'sber',
+          paidOn: CalendarDate.today(),
+        ),
+      );
+    await openAccounts(tester, store, payments: payments);
+    await tapKey(tester, 'accounts.update');
+    expect(find.byKey(const ValueKey('pending.pay1')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('balance.sber')), '10000');
+    await tapKey(tester, 'updateBalances.save');
+    // Not answered: nothing is written.
+    expect(store.updates, isEmpty);
+    expect(find.text('Ответьте по каждой оплате выше'), findsOneWidget);
+    await tapKey(tester, 'pending.pay1.no');
+    await tapKey(tester, 'updateBalances.save');
+    expect(store.updates.single, {'sber': Money(1000000)});
+    expect(store.notYet.single, {'pay1'});
   });
 }

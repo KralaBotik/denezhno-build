@@ -28,10 +28,13 @@ class AccountsController extends AsyncNotifier<List<AccountSummary>> {
     _reload();
   }
 
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> amounts) async {
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> amounts, {
+    Set<String> notYetDebited = const {},
+  }) async {
     final result = await ref
         .read(accountsStoreProvider)
-        .updateBalances(amounts);
+        .updateBalances(amounts, notYetDebited: notYetDebited);
     _reload();
     return result;
   }

@@ -606,7 +606,7 @@
   "salaryScheduleTitle": "Изменить график?",
   "salaryScheduleBody": "Изменение даты здесь сдвинет её во всех следующих месяцах. Перенести одну задержанную выплату можно будет в следующем обновлении, а пока расчёт идёт на выбранный период.",
   "salaryScheduleOpen": "Открыть график",
-  "marksDontChangeBalances": "Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».",
+  "marksDontChangeBalances": "«Оплачено» записывает списание со счёта и сразу меняет остаток. Ошибочную оплату можно отменить, нажав на отметку ещё раз.",
   "salarySetup": "Настроить зарплату и аванс",
   "salarySetupHint": "Даты и суммы выплат — чтобы считать «до зарплаты»",
   "addIncomeSource": "Добавить ещё работодателя",
@@ -834,5 +834,154 @@
   "partDayShort": "Число",
   "partDayPlaceholder": "1–31",
   "partAmountPlaceholder": "0",
-  "partLabelPlaceholder": "Название"
+  "partLabelPlaceholder": "Название",
+  "payTitle": "Оплачено",
+  "payAmount": "Сколько заплатили",
+  "payAccount": "С какого счёта",
+  "payDate": "Когда заплатили",
+  "payDue": "Срок: {date}",
+  "@payDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "payTransferNote": "Это перевод между вашими счетами: долг уменьшится, расходом это не считается.",
+  "payBalanceChange": "Остаток «{account}»: было {before}, станет {after}",
+  "@payBalanceChange": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "payDebtChange": "Долг «{account}»: было {before}, станет {after}",
+  "@payDebtChange": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "payAlreadyIn": "Остаток «{account}» не изменится: списание уже есть в остатке, который вы подтвердили {when}.",
+  "@payAlreadyIn": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "sameDayQuestion": "Сегодня вы уже обновляли остаток «{account}» ({when}). Эта оплата уже была в том остатке?",
+  "@sameDayQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "sameDayIncomeQuestion": "В этот день вы уже обновляли остаток «{account}» ({when}). Эти деньги уже были в том остатке?",
+  "@sameDayIncomeQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "sameDayYes": "Да, уже была в остатке",
+  "sameDayNo": "Нет, списание прошло позже",
+  "sameDayIncomeYes": "Да, уже были в остатке",
+  "sameDayIncomeNo": "Нет, пришли позже",
+  "similarFound": "На этом счёте уже есть похожая операция: {date}, {amount}{what}. Возможно, этот платёж уже записан.",
+  "@similarFound": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "similarConfirm": "Это другая оплата — записать",
+  "payConfirm": "Подтвердить оплату",
+  "paySkip": "Платежа не будет",
+  "paySkipConfirm": "Отметить, что этого платежа не будет? Он перестанет учитываться в обязательных. Деньги со счёта не списываются.",
+  "payAlreadyPaid": "Этот платёж уже оплачен.",
+  "payFailed": "Не удалось записать оплату. Ничего не изменилось.",
+  "paidInfo": "Оплачено {date} · {amount}{account}",
+  "@paidInfo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelPaymentAction": "Отменить оплату",
+  "cancelPaymentText": "Отменить эту оплату? Операция будет сторнирована, остаток вернётся, платёж снова станет обязательным. Запись останется в истории.",
+  "skippedInfo": "Отмечено: платежа не будет",
+  "unskipAction": "Вернуть платёж",
+  "overdueLabel": "просрочен",
+  "legacyMarkLabel": "отмечено до обновления — подтвердите оплату",
+  "fixPaymentOverdue": "«{name}» {date} не оплачен — он остаётся в обязательных, пока вы его не оплатите или не отметите, что платежа не будет.",
+  "@fixPaymentOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingTitle": "Оплаты после прошлого обновления",
+  "pendingHint": "Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.",
+  "pendingLine": "{title} · {amount} · {date}",
+  "@pendingLine": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingDebited": "Уже списано",
+  "pendingNotYet": "Ещё не списано",
+  "pendingNeedAnswer": "Ответьте по каждой оплате выше",
+  "payNoAccounts": "Сначала добавьте счёт, с которого платите"
 }

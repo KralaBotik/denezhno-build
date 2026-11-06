@@ -124,7 +124,7 @@ final class RecordedOperation {
 
 /// Thrown for an operation that cannot be booked (unknown or archived
 /// account or category, wrong direction, amount ≤ 0, date in the future).
-final class InvalidOperation implements Exception {
+base class InvalidOperation implements Exception {
   const InvalidOperation(this.reason);
   final String reason;
   @override

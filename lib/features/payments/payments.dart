@@ -1,5 +1,6 @@
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
+import '../operations/operations.dart' show OperationPreview, SameDayPlacement;
 
 enum FlowDirection { outflow, inflow }
 
@@ -127,6 +128,8 @@ final class CardFigures {
     this.minPayment,
     this.minDueOn,
     this.settled = false,
+    this.paid,
+    this.legacySettled = false,
   });
   final String id;
   final String accountId;
@@ -134,7 +137,101 @@ final class CardFigures {
   final CalendarDate? graceDueOn;
   final Money? minPayment;
   final CalendarDate? minDueOn;
+
+  /// Paid in full by transfers to the card (operations, R3 Р1).
   final bool settled;
+
+  /// Transferred to the card for these figures so far (operations).
+  final Money? paid;
+
+  /// Marked «внёс» before R3 without an operation: does not release the
+  /// obligation by itself (needs a confirmed payment).
+  final bool legacySettled;
+
+  /// What is still due for these figures: the grace amount (or the minimum)
+  /// minus what was already transferred. Null when there is no figure.
+  Money? get remainingDue {
+    final due = graceAmount ?? minPayment;
+    if (due == null) return null;
+    final left = due - (paid ?? Money(0));
+    return left.minorUnits < 0 ? Money(0) : left;
+  }
+}
+
+/// What is being paid: one date of a plan, or a credit card's figures.
+sealed class PayTarget {
+  const PayTarget();
+}
+
+final class PlanDate extends PayTarget {
+  const PlanDate(this.flowId, this.dueOn);
+  final String flowId;
+  final CalendarDate dueOn;
+  @override
+  bool operator ==(Object other) =>
+      other is PlanDate && other.flowId == flowId && other.dueOn == dueOn;
+  @override
+  int get hashCode => Object.hash(flowId, dueOn);
+}
+
+final class CardDue extends PayTarget {
+  const CardDue(this.figuresId);
+  final String figuresId;
+  @override
+  bool operator ==(Object other) =>
+      other is CardDue && other.figuresId == figuresId;
+  @override
+  int get hashCode => figuresId.hashCode;
+}
+
+/// A payment of an obligation booked as a journal operation.
+final class ObligationPayment {
+  const ObligationPayment({
+    required this.id,
+    required this.target,
+    required this.entryId,
+    required this.amount,
+    required this.paidOn,
+    required this.cancelled,
+    this.accountId,
+  });
+  final String id;
+  final PayTarget target;
+  final String entryId;
+  final Money amount;
+  final CalendarDate paidOn;
+
+  /// The operation was reversed («оплата отменена»).
+  final bool cancelled;
+
+  /// The account the money left.
+  final String? accountId;
+}
+
+/// An operation on the same account, with the same amount, a few days
+/// around: maybe this payment is already recorded.
+final class SimilarOperation {
+  const SimilarOperation(this.date, this.amount, this.description);
+  final CalendarDate date;
+  final Money amount;
+  final String? description;
+}
+
+/// A payment recorded after the account's last confirmed balance: when the
+/// balance is updated, the person says whether the bank already took it.
+final class PendingDebit {
+  const PendingDebit({
+    required this.paymentId,
+    required this.title,
+    required this.amount,
+    required this.accountId,
+    required this.paidOn,
+  });
+  final String paymentId;
+  final String title;
+  final Money amount;
+  final String accountId;
+  final CalendarDate paidOn;
 }
 
 enum UpcomingSource { flow, cardGrace }
@@ -151,6 +248,10 @@ final class UpcomingItem {
     this.flowId,
     this.cardFiguresId,
     this.isMinimumOnly = false,
+    this.overdue = false,
+    this.skipped = false,
+    this.legacyMarked = false,
+    this.payment,
   });
   final UpcomingSource source;
   final String title;
@@ -163,6 +264,22 @@ final class UpcomingItem {
 
   /// The bank's grace amount is unknown; only the minimum payment is.
   final bool isMinimumOnly;
+
+  /// The date has passed and it is not paid or skipped.
+  final bool overdue;
+
+  /// «Платежа не будет».
+  final bool skipped;
+
+  /// Marked «оплачено» before R3 without an operation: needs confirmation.
+  final bool legacyMarked;
+
+  /// The operation that paid it (for «отменить оплату»).
+  final ObligationPayment? payment;
+
+  PayTarget get target => source == UpcomingSource.flow
+      ? PlanDate(flowId!, dueOn)
+      : CardDue(cardFiguresId!);
 }
 
 /// Builds «Ближайшие» for [from]..[to]. Card figures contribute the grace
@@ -174,31 +291,51 @@ List<UpcomingItem> upcoming({
   required Map<String, String> cardNames,
   required CalendarDate from,
   required CalendarDate to,
+  Map<String, CalendarDate> trackedFrom = const {},
+  Map<(String, CalendarDate), ObligationPayment> paid = const {},
+  Set<(String, CalendarDate)> skipped = const {},
+  Set<(String, CalendarDate)> legacyMarks = const {},
 }) {
   final items = <UpcomingItem>[
     for (final f in flows)
-      for (final d in occurrences(f, from, to))
-        UpcomingItem(
-          source: UpcomingSource.flow,
-          title: f.name,
-          amount: f.amount,
-          dueOn: d,
-          direction: f.direction,
-          done: doneMarks.contains((f.id!, d)),
-          flowId: f.id,
-        ),
+      // Payments: also every earlier date since tracking that is still
+      // unresolved («просрочен»). Incomes: from [from] only.
+      for (final d in occurrences(
+        f,
+        f.direction == FlowDirection.outflow &&
+                (trackedFrom[f.id] ?? from) < from
+            ? trackedFrom[f.id]!
+            : from,
+        to,
+      ))
+        if (d >= from || !doneMarks.contains((f.id!, d)))
+          UpcomingItem(
+            source: UpcomingSource.flow,
+            title: f.name,
+            amount: f.amount,
+            dueOn: d,
+            direction: f.direction,
+            done: doneMarks.contains((f.id!, d)),
+            flowId: f.id,
+            overdue: d < from && !doneMarks.contains((f.id!, d)),
+            skipped: skipped.contains((f.id!, d)),
+            legacyMarked: legacyMarks.contains((f.id!, d)),
+            payment: paid[(f.id!, d)],
+          ),
     for (final c in cardFigures.values)
       if (_cardDue(c) case (final amount, final due, final minOnly)
-          when from <= due && due <= to)
+          when (from <= due || !c.settled) && due <= to)
         UpcomingItem(
           source: UpcomingSource.cardGrace,
           title: cardNames[c.accountId] ?? '',
-          amount: amount,
+          amount: c.settled ? amount : (c.remainingDue ?? amount),
           dueOn: due,
           direction: FlowDirection.outflow,
           done: c.settled,
           cardFiguresId: c.id,
           isMinimumOnly: minOnly,
+          overdue: due < from && !c.settled,
+          legacyMarked: c.legacySettled && !c.settled,
         ),
   ];
   items.sort((a, b) {
@@ -225,9 +362,32 @@ final class PaymentsSnapshot {
     required this.doneMarks,
     required this.cardFigures,
     required this.creditCards,
+    this.trackedFrom = const {},
+    this.paid = const {},
+    this.skipped = const {},
+    this.legacyMarks = const {},
+    this.history = const [],
   });
   final List<PlannedFlow> flows;
+
+  /// Dates that are no longer obligations: paid by an operation, or skipped.
   final Set<(String, CalendarDate)> doneMarks;
+
+  /// Plan id → the first date that is an obligation (R3 Р1). Plans without
+  /// an entry (old tests, fakes) are tracked from today.
+  final Map<String, CalendarDate> trackedFrom;
+
+  /// Live (not cancelled) payments of plan dates.
+  final Map<(String, CalendarDate), ObligationPayment> paid;
+
+  /// Dates explicitly skipped («платежа не будет»).
+  final Set<(String, CalendarDate)> skipped;
+
+  /// Marked «оплачено» before R3 without an operation: still obligations.
+  final Set<(String, CalendarDate)> legacyMarks;
+
+  /// Every payment, including cancelled ones.
+  final List<ObligationPayment> history;
 
   /// Newest figures per credit-card account id.
   final Map<String, CardFigures> cardFigures;
@@ -240,7 +400,40 @@ abstract interface class PaymentsStore {
   Future<PaymentsSnapshot> payments();
   Future<void> saveFlow(PlannedFlow flow);
   Future<void> archiveFlow(String id);
-  Future<void> setFlowDone(String flowId, CalendarDate dueOn, bool done);
   Future<void> saveCardFigures(CardFigures figures);
-  Future<void> setCardSettled(String figuresId, bool settled);
+
+  /// «Платежа не будет» for one date of a plan (or undo it).
+  Future<void> setFlowSkipped(String flowId, CalendarDate dueOn, bool skipped);
+
+  /// What paying will do — shown before anything is written.
+  Future<PaymentCheck> previewPayment(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    SameDayPlacement placement,
+  });
+
+  /// Books the payment as an operation and links it, atomically.
+  Future<void> pay(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    required SameDayPlacement placement,
+    bool confirmedNotDuplicate,
+  });
+
+  /// Reverses a payment recorded by mistake.
+  Future<void> cancelObligationPayment(String paymentId);
+
+  /// Payments recorded after their account's last confirmed balance.
+  Future<List<PendingDebit>> pendingDebits();
+}
+
+/// What paying will do, and similar operations already on the account.
+final class PaymentCheck {
+  const PaymentCheck(this.operation, this.similar);
+  final OperationPreview operation;
+  final List<SimilarOperation> similar;
 }

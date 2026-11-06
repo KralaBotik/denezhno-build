@@ -106,6 +106,15 @@ final class OverdueCardFigures extends SpendWarning {
   final String? accountId;
 }
 
+/// A date of a recurring payment has passed and it is neither paid (by an
+/// operation) nor skipped: it stays in «обязательно» until resolved.
+final class PaymentOverdue extends SpendWarning {
+  const PaymentOverdue(this.name, this.dueOn, this.flowId);
+  final String name;
+  final CalendarDate dueOn;
+  final String flowId;
+}
+
 /// Balances older than [staleAfterDays].
 final class StaleBalances extends SpendWarning {
   const StaleBalances(this.oldest);
@@ -363,12 +372,21 @@ SafeToSpend computeSafeToSpend({
     return take;
   }
 
-  // 3. Planned payments due from today up to and including the horizon day.
+  // 3. Planned payments: every date from the plan's tracking date up to and
+  // including the horizon that is not paid by an operation or skipped. A
+  // date that has passed stays an obligation («просрочен») until resolved;
+  // each date is counted once (R3 risk Р1).
   final deductions = <Deduction>[];
   for (final f in payments.flows) {
     if (f.direction != FlowDirection.outflow) continue;
-    for (final d in occurrences(f, today, horizon)) {
+    final tracked = payments.trackedFrom[f.id] ?? today;
+    for (final d in occurrences(
+      f,
+      tracked < today ? tracked : today,
+      horizon,
+    )) {
       if (payments.doneMarks.contains((f.id!, d))) continue;
+      if (d < today) warnings.add(PaymentOverdue(f.name, d, f.id!));
       final linked = f.accountId;
       if (linked != null && remainingDebt.containsKey(linked)) {
         // The bank's figures for this card are the source of truth.
@@ -428,9 +446,24 @@ SafeToSpend computeSafeToSpend({
       positions.add(position(CardBasis.settled));
       continue;
     }
-    final (Money? due, CalendarDate? on, bool minOnly) = f.graceAmount != null
+    final (
+      Money? figure,
+      CalendarDate? on,
+      bool minOnly,
+    ) = f.graceAmount != null
         ? (f.graceAmount, f.graceDueOn, false)
         : (f.minPayment, f.minDueOn, true);
+    // Already transferred to the card for these figures (operations).
+    final paidToCard = f.paid ?? Money(0);
+    final Money? due = figure == null
+        ? null
+        : (figure - paidToCard).minorUnits < 0
+        ? Money(0)
+        : figure - paidToCard;
+    if (due != null && due.minorUnits == 0) {
+      positions.add(position(CardBasis.settled));
+      continue;
+    }
     if (due == null || on == null || on > horizon) {
       positions.add(position(CardBasis.dueAfterHorizon));
       continue;
@@ -454,8 +487,11 @@ SafeToSpend computeSafeToSpend({
     } else if (f.minPayment case final min?) {
       // «Только минимум» scenario: the minimum due before the horizon (capped
       // by the debt) instead of the «без процентов» amount.
+      final minLeft = (min - paidToCard).minorUnits < 0
+          ? Money(0)
+          : min - paidToCard;
       final minDue = f.minDueOn != null && f.minDueOn! <= horizon
-          ? (min.minorUnits < debtBefore.minorUnits ? min : debtBefore)
+          ? (minLeft.minorUnits < debtBefore.minorUnits ? minLeft : debtBefore)
           : Money(0);
       if (take.minorUnits > minDue.minorUnits) {
         minimumSaving = minimumSaving + (take - minDue);

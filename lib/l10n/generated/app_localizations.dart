@@ -1687,7 +1687,7 @@ abstract class AppLocalizations {
   /// No description provided for @marksDontChangeBalances.
   ///
   /// In ru, this message translates to:
-  /// **'Отметка «оплачено» или «получено» не меняет остатки — обновите их на вкладке «Счета».'**
+  /// **'«Оплачено» записывает списание со счёта и сразу меняет остаток. Ошибочную оплату можно отменить, нажав на отметку ещё раз.'**
   String get marksDontChangeBalances;
 
   /// No description provided for @salarySetup.
@@ -2295,6 +2295,228 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Название'**
   String get partLabelPlaceholder;
+
+  /// No description provided for @payTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оплачено'**
+  String get payTitle;
+
+  /// No description provided for @payAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько заплатили'**
+  String get payAmount;
+
+  /// No description provided for @payAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'С какого счёта'**
+  String get payAccount;
+
+  /// No description provided for @payDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Когда заплатили'**
+  String get payDate;
+
+  /// No description provided for @payDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок: {date}'**
+  String payDue(String date);
+
+  /// No description provided for @payTransferNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это перевод между вашими счетами: долг уменьшится, расходом это не считается.'**
+  String get payTransferNote;
+
+  /// No description provided for @payBalanceChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остаток «{account}»: было {before}, станет {after}'**
+  String payBalanceChange(String account, String before, String after);
+
+  /// No description provided for @payDebtChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Долг «{account}»: было {before}, станет {after}'**
+  String payDebtChange(String account, String before, String after);
+
+  /// No description provided for @payAlreadyIn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остаток «{account}» не изменится: списание уже есть в остатке, который вы подтвердили {when}.'**
+  String payAlreadyIn(String account, String when);
+
+  /// No description provided for @sameDayQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня вы уже обновляли остаток «{account}» ({when}). Эта оплата уже была в том остатке?'**
+  String sameDayQuestion(String account, String when);
+
+  /// No description provided for @sameDayIncomeQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этот день вы уже обновляли остаток «{account}» ({when}). Эти деньги уже были в том остатке?'**
+  String sameDayIncomeQuestion(String account, String when);
+
+  /// No description provided for @sameDayYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Да, уже была в остатке'**
+  String get sameDayYes;
+
+  /// No description provided for @sameDayNo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет, списание прошло позже'**
+  String get sameDayNo;
+
+  /// No description provided for @sameDayIncomeYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Да, уже были в остатке'**
+  String get sameDayIncomeYes;
+
+  /// No description provided for @sameDayIncomeNo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет, пришли позже'**
+  String get sameDayIncomeNo;
+
+  /// No description provided for @similarFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'На этом счёте уже есть похожая операция: {date}, {amount}{what}. Возможно, этот платёж уже записан.'**
+  String similarFound(String date, String amount, String what);
+
+  /// No description provided for @similarConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это другая оплата — записать'**
+  String get similarConfirm;
+
+  /// No description provided for @payConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить оплату'**
+  String get payConfirm;
+
+  /// No description provided for @paySkip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Платежа не будет'**
+  String get paySkip;
+
+  /// No description provided for @paySkipConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметить, что этого платежа не будет? Он перестанет учитываться в обязательных. Деньги со счёта не списываются.'**
+  String get paySkipConfirm;
+
+  /// No description provided for @payAlreadyPaid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот платёж уже оплачен.'**
+  String get payAlreadyPaid;
+
+  /// No description provided for @payFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось записать оплату. Ничего не изменилось.'**
+  String get payFailed;
+
+  /// No description provided for @paidInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оплачено {date} · {amount}{account}'**
+  String paidInfo(String date, String amount, String account);
+
+  /// No description provided for @cancelPaymentAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить оплату'**
+  String get cancelPaymentAction;
+
+  /// No description provided for @cancelPaymentText.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить эту оплату? Операция будет сторнирована, остаток вернётся, платёж снова станет обязательным. Запись останется в истории.'**
+  String get cancelPaymentText;
+
+  /// No description provided for @skippedInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмечено: платежа не будет'**
+  String get skippedInfo;
+
+  /// No description provided for @unskipAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуть платёж'**
+  String get unskipAction;
+
+  /// No description provided for @overdueLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'просрочен'**
+  String get overdueLabel;
+
+  /// No description provided for @legacyMarkLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'отмечено до обновления — подтвердите оплату'**
+  String get legacyMarkLabel;
+
+  /// No description provided for @fixPaymentOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{name}» {date} не оплачен — он остаётся в обязательных, пока вы его не оплатите или не отметите, что платежа не будет.'**
+  String fixPaymentOverdue(String name, String date);
+
+  /// No description provided for @pendingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оплаты после прошлого обновления'**
+  String get pendingTitle;
+
+  /// No description provided for @pendingHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.'**
+  String get pendingHint;
+
+  /// No description provided for @pendingLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'{title} · {amount} · {date}'**
+  String pendingLine(String title, String amount, String date);
+
+  /// No description provided for @pendingDebited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уже списано'**
+  String get pendingDebited;
+
+  /// No description provided for @pendingNotYet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё не списано'**
+  String get pendingNotYet;
+
+  /// No description provided for @pendingNeedAnswer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответьте по каждой оплате выше'**
+  String get pendingNeedAnswer;
+
+  /// No description provided for @payNoAccounts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала добавьте счёт, с которого платите'**
+  String get payNoAccounts;
 }
 
 class _AppLocalizationsDelegate

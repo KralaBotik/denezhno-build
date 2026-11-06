@@ -13,7 +13,7 @@ const backupPayloadVersion = 1;
 /// from a newer schema is refused; an older one is inserted as is and then
 /// brought to the current version by the migration's own data steps
 /// ([AppDatabase.upgradeDataTo]).
-const restorableSchemaVersions = {3, 4, 5};
+const restorableSchemaVersions = {3, 4, 5, 6};
 
 /// Tables each payload version contains (older payloads lack newer tables).
 const _tablesSince = {
@@ -25,6 +25,8 @@ const _tablesSince = {
   'income_occurrences': 5,
   'income_receipts': 5,
   'forecast_settings': 5,
+  'flow_tracking': 6,
+  'obligation_payments': 6,
 };
 
 /// Every table with user data, in foreign-key order (parents first).
@@ -43,6 +45,8 @@ const backupTables = [
   'planned_flows',
   'flow_marks',
   'card_figures',
+  'flow_tracking',
+  'obligation_payments',
   'income_sources',
   'income_schedule_parts',
   'income_occurrences',

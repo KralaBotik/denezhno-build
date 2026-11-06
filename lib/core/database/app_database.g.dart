@@ -10581,6 +10581,765 @@ class ForecastSettingsCompanion extends UpdateCompanion<ForecastSettingsRow> {
   }
 }
 
+class FlowTracking extends Table with TableInfo<FlowTracking, FlowTrackingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  FlowTracking(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _flowIdMeta = const VerificationMeta('flowId');
+  late final GeneratedColumn<String> flowId = GeneratedColumn<String>(
+    'flow_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY REFERENCES planned_flows(id)',
+  );
+  static const VerificationMeta _trackedFromMeta = const VerificationMeta(
+    'trackedFrom',
+  );
+  late final GeneratedColumn<String> trackedFrom = GeneratedColumn<String>(
+    'tracked_from',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [flowId, trackedFrom];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'flow_tracking';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FlowTrackingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('flow_id')) {
+      context.handle(
+        _flowIdMeta,
+        flowId.isAcceptableOrUnknown(data['flow_id']!, _flowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_flowIdMeta);
+    }
+    if (data.containsKey('tracked_from')) {
+      context.handle(
+        _trackedFromMeta,
+        trackedFrom.isAcceptableOrUnknown(
+          data['tracked_from']!,
+          _trackedFromMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_trackedFromMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {flowId};
+  @override
+  FlowTrackingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FlowTrackingRow(
+      flowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flow_id'],
+      )!,
+      trackedFrom: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tracked_from'],
+      )!,
+    );
+  }
+
+  @override
+  FlowTracking createAlias(String alias) {
+    return FlowTracking(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class FlowTrackingRow extends DataClass implements Insertable<FlowTrackingRow> {
+  final String flowId;
+  final String trackedFrom;
+  const FlowTrackingRow({required this.flowId, required this.trackedFrom});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['flow_id'] = Variable<String>(flowId);
+    map['tracked_from'] = Variable<String>(trackedFrom);
+    return map;
+  }
+
+  FlowTrackingCompanion toCompanion(bool nullToAbsent) {
+    return FlowTrackingCompanion(
+      flowId: Value(flowId),
+      trackedFrom: Value(trackedFrom),
+    );
+  }
+
+  factory FlowTrackingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FlowTrackingRow(
+      flowId: serializer.fromJson<String>(json['flow_id']),
+      trackedFrom: serializer.fromJson<String>(json['tracked_from']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'flow_id': serializer.toJson<String>(flowId),
+      'tracked_from': serializer.toJson<String>(trackedFrom),
+    };
+  }
+
+  FlowTrackingRow copyWith({String? flowId, String? trackedFrom}) =>
+      FlowTrackingRow(
+        flowId: flowId ?? this.flowId,
+        trackedFrom: trackedFrom ?? this.trackedFrom,
+      );
+  FlowTrackingRow copyWithCompanion(FlowTrackingCompanion data) {
+    return FlowTrackingRow(
+      flowId: data.flowId.present ? data.flowId.value : this.flowId,
+      trackedFrom: data.trackedFrom.present
+          ? data.trackedFrom.value
+          : this.trackedFrom,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FlowTrackingRow(')
+          ..write('flowId: $flowId, ')
+          ..write('trackedFrom: $trackedFrom')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(flowId, trackedFrom);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FlowTrackingRow &&
+          other.flowId == this.flowId &&
+          other.trackedFrom == this.trackedFrom);
+}
+
+class FlowTrackingCompanion extends UpdateCompanion<FlowTrackingRow> {
+  final Value<String> flowId;
+  final Value<String> trackedFrom;
+  final Value<int> rowid;
+  const FlowTrackingCompanion({
+    this.flowId = const Value.absent(),
+    this.trackedFrom = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FlowTrackingCompanion.insert({
+    required String flowId,
+    required String trackedFrom,
+    this.rowid = const Value.absent(),
+  }) : flowId = Value(flowId),
+       trackedFrom = Value(trackedFrom);
+  static Insertable<FlowTrackingRow> custom({
+    Expression<String>? flowId,
+    Expression<String>? trackedFrom,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (flowId != null) 'flow_id': flowId,
+      if (trackedFrom != null) 'tracked_from': trackedFrom,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FlowTrackingCompanion copyWith({
+    Value<String>? flowId,
+    Value<String>? trackedFrom,
+    Value<int>? rowid,
+  }) {
+    return FlowTrackingCompanion(
+      flowId: flowId ?? this.flowId,
+      trackedFrom: trackedFrom ?? this.trackedFrom,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (flowId.present) {
+      map['flow_id'] = Variable<String>(flowId.value);
+    }
+    if (trackedFrom.present) {
+      map['tracked_from'] = Variable<String>(trackedFrom.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FlowTrackingCompanion(')
+          ..write('flowId: $flowId, ')
+          ..write('trackedFrom: $trackedFrom, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class ObligationPayments extends Table
+    with TableInfo<ObligationPayments, ObligationPaymentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  ObligationPayments(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36)',
+  );
+  static const VerificationMeta _flowIdMeta = const VerificationMeta('flowId');
+  late final GeneratedColumn<String> flowId = GeneratedColumn<String>(
+    'flow_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES planned_flows(id)',
+  );
+  static const VerificationMeta _dueOnMeta = const VerificationMeta('dueOn');
+  late final GeneratedColumn<String> dueOn = GeneratedColumn<String>(
+    'due_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (due_on IS NULL OR(length(due_on) = 10 AND date(due_on) = due_on))',
+  );
+  static const VerificationMeta _cardFiguresIdMeta = const VerificationMeta(
+    'cardFiguresId',
+  );
+  late final GeneratedColumn<String> cardFiguresId = GeneratedColumn<String>(
+    'card_figures_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES card_figures(id)',
+  );
+  static const VerificationMeta _entryIdMeta = const VerificationMeta(
+    'entryId',
+  );
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL UNIQUE REFERENCES journal_entries(id)',
+  );
+  static const VerificationMeta _amountMinorMeta = const VerificationMeta(
+    'amountMinor',
+  );
+  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
+    'amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (typeof(amount_minor) = \'integer\' AND amount_minor > 0)',
+  );
+  static const VerificationMeta _paidOnMeta = const VerificationMeta('paidOn');
+  late final GeneratedColumn<String> paidOn = GeneratedColumn<String>(
+    'paid_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (length(paid_on) = 10 AND date(paid_on) = paid_on)',
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  late final GeneratedColumn<int> createdAtUtc = GeneratedColumn<int>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (typeof(created_at_utc) = \'integer\')',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    flowId,
+    dueOn,
+    cardFiguresId,
+    entryId,
+    amountMinor,
+    paidOn,
+    createdAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'obligation_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ObligationPaymentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('flow_id')) {
+      context.handle(
+        _flowIdMeta,
+        flowId.isAcceptableOrUnknown(data['flow_id']!, _flowIdMeta),
+      );
+    }
+    if (data.containsKey('due_on')) {
+      context.handle(
+        _dueOnMeta,
+        dueOn.isAcceptableOrUnknown(data['due_on']!, _dueOnMeta),
+      );
+    }
+    if (data.containsKey('card_figures_id')) {
+      context.handle(
+        _cardFiguresIdMeta,
+        cardFiguresId.isAcceptableOrUnknown(
+          data['card_figures_id']!,
+          _cardFiguresIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('entry_id')) {
+      context.handle(
+        _entryIdMeta,
+        entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryIdMeta);
+    }
+    if (data.containsKey('amount_minor')) {
+      context.handle(
+        _amountMinorMeta,
+        amountMinor.isAcceptableOrUnknown(
+          data['amount_minor']!,
+          _amountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMinorMeta);
+    }
+    if (data.containsKey('paid_on')) {
+      context.handle(
+        _paidOnMeta,
+        paidOn.isAcceptableOrUnknown(data['paid_on']!, _paidOnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_paidOnMeta);
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ObligationPaymentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ObligationPaymentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      flowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flow_id'],
+      ),
+      dueOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}due_on'],
+      ),
+      cardFiguresId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}card_figures_id'],
+      ),
+      entryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_id'],
+      )!,
+      amountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_minor'],
+      )!,
+      paidOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paid_on'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  ObligationPayments createAlias(String alias) {
+    return ObligationPayments(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK((flow_id IS NOT NULL AND due_on IS NOT NULL AND card_figures_id IS NULL)OR(flow_id IS NULL AND due_on IS NULL AND card_figures_id IS NOT NULL))',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class ObligationPaymentRow extends DataClass
+    implements Insertable<ObligationPaymentRow> {
+  final String id;
+  final String? flowId;
+  final String? dueOn;
+  final String? cardFiguresId;
+  final String entryId;
+  final int amountMinor;
+  final String paidOn;
+  final int createdAtUtc;
+  const ObligationPaymentRow({
+    required this.id,
+    this.flowId,
+    this.dueOn,
+    this.cardFiguresId,
+    required this.entryId,
+    required this.amountMinor,
+    required this.paidOn,
+    required this.createdAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || flowId != null) {
+      map['flow_id'] = Variable<String>(flowId);
+    }
+    if (!nullToAbsent || dueOn != null) {
+      map['due_on'] = Variable<String>(dueOn);
+    }
+    if (!nullToAbsent || cardFiguresId != null) {
+      map['card_figures_id'] = Variable<String>(cardFiguresId);
+    }
+    map['entry_id'] = Variable<String>(entryId);
+    map['amount_minor'] = Variable<int>(amountMinor);
+    map['paid_on'] = Variable<String>(paidOn);
+    map['created_at_utc'] = Variable<int>(createdAtUtc);
+    return map;
+  }
+
+  ObligationPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return ObligationPaymentsCompanion(
+      id: Value(id),
+      flowId: flowId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flowId),
+      dueOn: dueOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueOn),
+      cardFiguresId: cardFiguresId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cardFiguresId),
+      entryId: Value(entryId),
+      amountMinor: Value(amountMinor),
+      paidOn: Value(paidOn),
+      createdAtUtc: Value(createdAtUtc),
+    );
+  }
+
+  factory ObligationPaymentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ObligationPaymentRow(
+      id: serializer.fromJson<String>(json['id']),
+      flowId: serializer.fromJson<String?>(json['flow_id']),
+      dueOn: serializer.fromJson<String?>(json['due_on']),
+      cardFiguresId: serializer.fromJson<String?>(json['card_figures_id']),
+      entryId: serializer.fromJson<String>(json['entry_id']),
+      amountMinor: serializer.fromJson<int>(json['amount_minor']),
+      paidOn: serializer.fromJson<String>(json['paid_on']),
+      createdAtUtc: serializer.fromJson<int>(json['created_at_utc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'flow_id': serializer.toJson<String?>(flowId),
+      'due_on': serializer.toJson<String?>(dueOn),
+      'card_figures_id': serializer.toJson<String?>(cardFiguresId),
+      'entry_id': serializer.toJson<String>(entryId),
+      'amount_minor': serializer.toJson<int>(amountMinor),
+      'paid_on': serializer.toJson<String>(paidOn),
+      'created_at_utc': serializer.toJson<int>(createdAtUtc),
+    };
+  }
+
+  ObligationPaymentRow copyWith({
+    String? id,
+    Value<String?> flowId = const Value.absent(),
+    Value<String?> dueOn = const Value.absent(),
+    Value<String?> cardFiguresId = const Value.absent(),
+    String? entryId,
+    int? amountMinor,
+    String? paidOn,
+    int? createdAtUtc,
+  }) => ObligationPaymentRow(
+    id: id ?? this.id,
+    flowId: flowId.present ? flowId.value : this.flowId,
+    dueOn: dueOn.present ? dueOn.value : this.dueOn,
+    cardFiguresId: cardFiguresId.present
+        ? cardFiguresId.value
+        : this.cardFiguresId,
+    entryId: entryId ?? this.entryId,
+    amountMinor: amountMinor ?? this.amountMinor,
+    paidOn: paidOn ?? this.paidOn,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+  );
+  ObligationPaymentRow copyWithCompanion(ObligationPaymentsCompanion data) {
+    return ObligationPaymentRow(
+      id: data.id.present ? data.id.value : this.id,
+      flowId: data.flowId.present ? data.flowId.value : this.flowId,
+      dueOn: data.dueOn.present ? data.dueOn.value : this.dueOn,
+      cardFiguresId: data.cardFiguresId.present
+          ? data.cardFiguresId.value
+          : this.cardFiguresId,
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      amountMinor: data.amountMinor.present
+          ? data.amountMinor.value
+          : this.amountMinor,
+      paidOn: data.paidOn.present ? data.paidOn.value : this.paidOn,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ObligationPaymentRow(')
+          ..write('id: $id, ')
+          ..write('flowId: $flowId, ')
+          ..write('dueOn: $dueOn, ')
+          ..write('cardFiguresId: $cardFiguresId, ')
+          ..write('entryId: $entryId, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('paidOn: $paidOn, ')
+          ..write('createdAtUtc: $createdAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    flowId,
+    dueOn,
+    cardFiguresId,
+    entryId,
+    amountMinor,
+    paidOn,
+    createdAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ObligationPaymentRow &&
+          other.id == this.id &&
+          other.flowId == this.flowId &&
+          other.dueOn == this.dueOn &&
+          other.cardFiguresId == this.cardFiguresId &&
+          other.entryId == this.entryId &&
+          other.amountMinor == this.amountMinor &&
+          other.paidOn == this.paidOn &&
+          other.createdAtUtc == this.createdAtUtc);
+}
+
+class ObligationPaymentsCompanion
+    extends UpdateCompanion<ObligationPaymentRow> {
+  final Value<String> id;
+  final Value<String?> flowId;
+  final Value<String?> dueOn;
+  final Value<String?> cardFiguresId;
+  final Value<String> entryId;
+  final Value<int> amountMinor;
+  final Value<String> paidOn;
+  final Value<int> createdAtUtc;
+  final Value<int> rowid;
+  const ObligationPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.flowId = const Value.absent(),
+    this.dueOn = const Value.absent(),
+    this.cardFiguresId = const Value.absent(),
+    this.entryId = const Value.absent(),
+    this.amountMinor = const Value.absent(),
+    this.paidOn = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ObligationPaymentsCompanion.insert({
+    required String id,
+    this.flowId = const Value.absent(),
+    this.dueOn = const Value.absent(),
+    this.cardFiguresId = const Value.absent(),
+    required String entryId,
+    required int amountMinor,
+    required String paidOn,
+    required int createdAtUtc,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       entryId = Value(entryId),
+       amountMinor = Value(amountMinor),
+       paidOn = Value(paidOn),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<ObligationPaymentRow> custom({
+    Expression<String>? id,
+    Expression<String>? flowId,
+    Expression<String>? dueOn,
+    Expression<String>? cardFiguresId,
+    Expression<String>? entryId,
+    Expression<int>? amountMinor,
+    Expression<String>? paidOn,
+    Expression<int>? createdAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (flowId != null) 'flow_id': flowId,
+      if (dueOn != null) 'due_on': dueOn,
+      if (cardFiguresId != null) 'card_figures_id': cardFiguresId,
+      if (entryId != null) 'entry_id': entryId,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (paidOn != null) 'paid_on': paidOn,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ObligationPaymentsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? flowId,
+    Value<String?>? dueOn,
+    Value<String?>? cardFiguresId,
+    Value<String>? entryId,
+    Value<int>? amountMinor,
+    Value<String>? paidOn,
+    Value<int>? createdAtUtc,
+    Value<int>? rowid,
+  }) {
+    return ObligationPaymentsCompanion(
+      id: id ?? this.id,
+      flowId: flowId ?? this.flowId,
+      dueOn: dueOn ?? this.dueOn,
+      cardFiguresId: cardFiguresId ?? this.cardFiguresId,
+      entryId: entryId ?? this.entryId,
+      amountMinor: amountMinor ?? this.amountMinor,
+      paidOn: paidOn ?? this.paidOn,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (flowId.present) {
+      map['flow_id'] = Variable<String>(flowId.value);
+    }
+    if (dueOn.present) {
+      map['due_on'] = Variable<String>(dueOn.value);
+    }
+    if (cardFiguresId.present) {
+      map['card_figures_id'] = Variable<String>(cardFiguresId.value);
+    }
+    if (entryId.present) {
+      map['entry_id'] = Variable<String>(entryId.value);
+    }
+    if (amountMinor.present) {
+      map['amount_minor'] = Variable<int>(amountMinor.value);
+    }
+    if (paidOn.present) {
+      map['paid_on'] = Variable<String>(paidOn.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<int>(createdAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ObligationPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('flowId: $flowId, ')
+          ..write('dueOn: $dueOn, ')
+          ..write('cardFiguresId: $cardFiguresId, ')
+          ..write('entryId: $entryId, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('paidOn: $paidOn, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10674,6 +11433,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'income_receipts_no_delete',
   );
   late final ForecastSettings forecastSettings = ForecastSettings(this);
+  late final FlowTracking flowTracking = FlowTracking(this);
+  late final ObligationPayments obligationPayments = ObligationPayments(this);
+  late final Index obligationPaymentsByFlow = Index(
+    'obligation_payments_by_flow',
+    'CREATE INDEX obligation_payments_by_flow ON obligation_payments (flow_id, due_on)',
+  );
+  late final Index obligationPaymentsByCard = Index(
+    'obligation_payments_by_card',
+    'CREATE INDEX obligation_payments_by_card ON obligation_payments (card_figures_id)',
+  );
+  late final Trigger obligationPaymentsNoUpdate = Trigger(
+    'CREATE TRIGGER obligation_payments_no_update BEFORE UPDATE ON obligation_payments BEGIN SELECT RAISE (ABORT, \'payments are append-only\');END',
+    'obligation_payments_no_update',
+  );
+  late final Trigger obligationPaymentsNoDelete = Trigger(
+    'CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments BEGIN SELECT RAISE (ABORT, \'payments are append-only\');END',
+    'obligation_payments_no_delete',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10719,6 +11496,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     incomeReceiptsNoUpdate,
     incomeReceiptsNoDelete,
     forecastSettings,
+    flowTracking,
+    obligationPayments,
+    obligationPaymentsByFlow,
+    obligationPaymentsByCard,
+    obligationPaymentsNoUpdate,
+    obligationPaymentsNoDelete,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -10788,6 +11571,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'income_receipts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'obligation_payments',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'obligation_payments',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [],
@@ -15722,6 +16519,27 @@ final class $JournalEntriesReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<ObligationPayments, List<ObligationPaymentRow>>
+  _obligationPaymentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.obligationPayments,
+        aliasName: 'journal_entries__id__obligation_payments__entry_id',
+      );
+
+  $ObligationPaymentsProcessedTableManager get obligationPaymentsRefs {
+    final manager = $ObligationPaymentsTableManager(
+      $_db,
+      $_db.obligationPayments,
+    ).filter((f) => f.entryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _obligationPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $JournalEntriesFilterComposer
@@ -15911,6 +16729,31 @@ class $JournalEntriesFilterComposer
           }) => $IncomeReceiptsFilterComposer(
             $db: $db,
             $table: $db.incomeReceipts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> obligationPaymentsRefs(
+    Expression<bool> Function($ObligationPaymentsFilterComposer f) f,
+  ) {
+    final $ObligationPaymentsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.entryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsFilterComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -16234,6 +17077,31 @@ class $JournalEntriesAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> obligationPaymentsRefs<T extends Object>(
+    Expression<T> Function($ObligationPaymentsAnnotationComposer a) f,
+  ) {
+    final $ObligationPaymentsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.entryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsAnnotationComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $JournalEntriesTableManager
@@ -16257,6 +17125,7 @@ class $JournalEntriesTableManager
             bool postingsRefs,
             bool balanceAssertionsRefs,
             bool incomeReceiptsRefs,
+            bool obligationPaymentsRefs,
           })
         > {
   $JournalEntriesTableManager(_$AppDatabase db, JournalEntries table)
@@ -16331,6 +17200,7 @@ class $JournalEntriesTableManager
                 postingsRefs = false,
                 balanceAssertionsRefs = false,
                 incomeReceiptsRefs = false,
+                obligationPaymentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -16338,6 +17208,7 @@ class $JournalEntriesTableManager
                     if (postingsRefs) db.postings,
                     if (balanceAssertionsRefs) db.balanceAssertions,
                     if (incomeReceiptsRefs) db.incomeReceipts,
+                    if (obligationPaymentsRefs) db.obligationPayments,
                   ],
                   addJoins:
                       <
@@ -16464,6 +17335,26 @@ class $JournalEntriesTableManager
                           referencedColumn: 'entry_id',
                           typedResults: items,
                         ),
+                      if (obligationPaymentsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          JournalEntryRow,
+                          JournalEntries,
+                          ObligationPaymentRow,
+                          ObligationPayments
+                        >(
+                          currentTable: table,
+                          referencedTable: $JournalEntriesReferences
+                              ._obligationPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $JournalEntriesReferences(
+                                db,
+                                table,
+                                p0,
+                              ).obligationPaymentsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'entry_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -16492,6 +17383,7 @@ typedef $JournalEntriesProcessedTableManager =
         bool postingsRefs,
         bool balanceAssertionsRefs,
         bool incomeReceiptsRefs,
+        bool obligationPaymentsRefs,
       })
     >;
 typedef $PostingsCreateCompanionBuilder = PostingsCompanion Function({
@@ -17981,6 +18873,45 @@ final class $PlannedFlowsReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<FlowTracking, List<FlowTrackingRow>>
+  _flowTrackingRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.flowTracking,
+    aliasName: 'planned_flows__id__flow_tracking__flow_id',
+  );
+
+  $FlowTrackingProcessedTableManager get flowTrackingRefs {
+    final manager = $FlowTrackingTableManager(
+      $_db,
+      $_db.flowTracking,
+    ).filter((f) => f.flowId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_flowTrackingRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<ObligationPayments, List<ObligationPaymentRow>>
+  _obligationPaymentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.obligationPayments,
+        aliasName: 'planned_flows__id__obligation_payments__flow_id',
+      );
+
+  $ObligationPaymentsProcessedTableManager get obligationPaymentsRefs {
+    final manager = $ObligationPaymentsTableManager(
+      $_db,
+      $_db.obligationPayments,
+    ).filter((f) => f.flowId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _obligationPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $PlannedFlowsFilterComposer
@@ -18175,6 +19106,56 @@ class $PlannedFlowsFilterComposer
           }) => $IncomeSourcesFilterComposer(
             $db: $db,
             $table: $db.incomeSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> flowTrackingRefs(
+    Expression<bool> Function($FlowTrackingFilterComposer f) f,
+  ) {
+    final $FlowTrackingFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.flowTracking,
+      getReferencedColumn: (t) => t.flowId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FlowTrackingFilterComposer(
+            $db: $db,
+            $table: $db.flowTracking,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> obligationPaymentsRefs(
+    Expression<bool> Function($ObligationPaymentsFilterComposer f) f,
+  ) {
+    final $ObligationPaymentsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.flowId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsFilterComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -18523,6 +19504,56 @@ class $PlannedFlowsAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> flowTrackingRefs<T extends Object>(
+    Expression<T> Function($FlowTrackingAnnotationComposer a) f,
+  ) {
+    final $FlowTrackingAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.flowTracking,
+      getReferencedColumn: (t) => t.flowId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FlowTrackingAnnotationComposer(
+            $db: $db,
+            $table: $db.flowTracking,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> obligationPaymentsRefs<T extends Object>(
+    Expression<T> Function($ObligationPaymentsAnnotationComposer a) f,
+  ) {
+    final $ObligationPaymentsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.flowId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsAnnotationComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $PlannedFlowsTableManager
@@ -18545,6 +19576,8 @@ class $PlannedFlowsTableManager
             bool accountId,
             bool flowMarksRefs,
             bool incomeSourcesRefs,
+            bool flowTrackingRefs,
+            bool obligationPaymentsRefs,
           })
         > {
   $PlannedFlowsTableManager(_$AppDatabase db, PlannedFlows table)
@@ -18642,12 +19675,16 @@ class $PlannedFlowsTableManager
                 accountId = false,
                 flowMarksRefs = false,
                 incomeSourcesRefs = false,
+                flowTrackingRefs = false,
+                obligationPaymentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (flowMarksRefs) db.flowMarks,
                     if (incomeSourcesRefs) db.incomeSources,
+                    if (flowTrackingRefs) db.flowTracking,
+                    if (obligationPaymentsRefs) db.obligationPayments,
                   ],
                   addJoins:
                       <
@@ -18755,6 +19792,46 @@ class $PlannedFlowsTableManager
                           referencedColumn: 'migrated_from_flow_id',
                           typedResults: items,
                         ),
+                      if (flowTrackingRefs)
+                        await $_getPrefetchedDataByColumns<
+                          PlannedFlowRow,
+                          PlannedFlows,
+                          FlowTrackingRow,
+                          FlowTracking
+                        >(
+                          currentTable: table,
+                          referencedTable: $PlannedFlowsReferences
+                              ._flowTrackingRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $PlannedFlowsReferences(
+                                db,
+                                table,
+                                p0,
+                              ).flowTrackingRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'flow_id',
+                          typedResults: items,
+                        ),
+                      if (obligationPaymentsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          PlannedFlowRow,
+                          PlannedFlows,
+                          ObligationPaymentRow,
+                          ObligationPayments
+                        >(
+                          currentTable: table,
+                          referencedTable: $PlannedFlowsReferences
+                              ._obligationPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $PlannedFlowsReferences(
+                                db,
+                                table,
+                                p0,
+                              ).obligationPaymentsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'flow_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -18782,6 +19859,8 @@ typedef $PlannedFlowsProcessedTableManager =
         bool accountId,
         bool flowMarksRefs,
         bool incomeSourcesRefs,
+        bool flowTrackingRefs,
+        bool obligationPaymentsRefs,
       })
     >;
 typedef $FlowMarksCreateCompanionBuilder = FlowMarksCompanion Function({
@@ -19138,6 +20217,27 @@ final class $CardFiguresReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<ObligationPayments, List<ObligationPaymentRow>>
+  _obligationPaymentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.obligationPayments,
+        aliasName: 'card_figures__id__obligation_payments__card_figures_id',
+      );
+
+  $ObligationPaymentsProcessedTableManager get obligationPaymentsRefs {
+    final manager = $ObligationPaymentsTableManager(
+      $_db,
+      $_db.obligationPayments,
+    ).filter((f) => f.cardFiguresId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _obligationPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $CardFiguresFilterComposer extends Composer<_$AppDatabase, CardFigures> {
@@ -19227,6 +20327,31 @@ class $CardFiguresFilterComposer extends Composer<_$AppDatabase, CardFigures> {
           ),
     );
     return composer;
+  }
+
+  Expression<bool> obligationPaymentsRefs(
+    Expression<bool> Function($ObligationPaymentsFilterComposer f) f,
+  ) {
+    final $ObligationPaymentsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.cardFiguresId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsFilterComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -19406,6 +20531,31 @@ class $CardFiguresAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> obligationPaymentsRefs<T extends Object>(
+    Expression<T> Function($ObligationPaymentsAnnotationComposer a) f,
+  ) {
+    final $ObligationPaymentsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.obligationPayments,
+      getReferencedColumn: (t) => t.cardFiguresId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $ObligationPaymentsAnnotationComposer(
+            $db: $db,
+            $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $CardFiguresTableManager
@@ -19421,7 +20571,11 @@ class $CardFiguresTableManager
           $CardFiguresUpdateCompanionBuilder,
           (CardFiguresRow, $CardFiguresReferences),
           CardFiguresRow,
-          PrefetchHooks Function({bool accountId, bool source})
+          PrefetchHooks Function({
+            bool accountId,
+            bool source,
+            bool obligationPaymentsRefs,
+          })
         > {
   $CardFiguresTableManager(_$AppDatabase db, CardFigures table)
     : super(
@@ -19490,58 +20644,84 @@ class $CardFiguresTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({accountId = false, source = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (accountId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.accountId,
-                        referencedTable: $CardFiguresReferences._accountIdTable(
-                          db,
-                        ),
-                        referencedColumn: $CardFiguresReferences
-                            ._accountIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-                    if (source) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.source,
-                        referencedTable: $CardFiguresReferences._sourceTable(
-                          db,
-                        ),
-                        referencedColumn: $CardFiguresReferences
-                            ._sourceTable(db)
-                            .source,
-                      ) as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                source = false,
+                obligationPaymentsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (obligationPaymentsRefs) db.obligationPayments,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.accountId,
+                            referencedTable: $CardFiguresReferences
+                                ._accountIdTable(db),
+                            referencedColumn: $CardFiguresReferences
+                                ._accountIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (source) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.source,
+                            referencedTable: $CardFiguresReferences
+                                ._sourceTable(db),
+                            referencedColumn: $CardFiguresReferences
+                                ._sourceTable(db)
+                                .source,
+                          ) as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (obligationPaymentsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          CardFiguresRow,
+                          CardFigures,
+                          ObligationPaymentRow,
+                          ObligationPayments
+                        >(
+                          currentTable: table,
+                          referencedTable: $CardFiguresReferences
+                              ._obligationPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $CardFiguresReferences(
+                                db,
+                                table,
+                                p0,
+                              ).obligationPaymentsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'card_figures_id',
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -19558,7 +20738,11 @@ typedef $CardFiguresProcessedTableManager =
       $CardFiguresUpdateCompanionBuilder,
       (CardFiguresRow, $CardFiguresReferences),
       CardFiguresRow,
-      PrefetchHooks Function({bool accountId, bool source})
+      PrefetchHooks Function({
+        bool accountId,
+        bool source,
+        bool obligationPaymentsRefs,
+      })
     >;
 typedef $CategoryGroupsCreateCompanionBuilder =
     CategoryGroupsCompanion Function({
@@ -24127,6 +25311,819 @@ typedef $ForecastSettingsProcessedTableManager =
       ForecastSettingsRow,
       PrefetchHooks Function({bool householdId})
     >;
+typedef $FlowTrackingCreateCompanionBuilder = FlowTrackingCompanion Function({
+  required String flowId,
+  required String trackedFrom,
+  Value<int> rowid,
+});
+typedef $FlowTrackingUpdateCompanionBuilder = FlowTrackingCompanion Function({
+  Value<String> flowId,
+  Value<String> trackedFrom,
+  Value<int> rowid,
+});
+
+final class $FlowTrackingReferences
+    extends BaseReferences<_$AppDatabase, FlowTracking, FlowTrackingRow> {
+  $FlowTrackingReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static PlannedFlows _flowIdTable(_$AppDatabase db) =>
+      db.plannedFlows.createAlias('flow_tracking__flow_id__planned_flows__id');
+
+  $PlannedFlowsProcessedTableManager get flowId {
+    final $_column = $_itemColumn<String>('flow_id')!;
+
+    final manager = $PlannedFlowsTableManager(
+      $_db,
+      $_db.plannedFlows,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_flowIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $FlowTrackingFilterComposer
+    extends Composer<_$AppDatabase, FlowTracking> {
+  $FlowTrackingFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $PlannedFlowsFilterComposer get flowId {
+    final $PlannedFlowsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsFilterComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FlowTrackingOrderingComposer
+    extends Composer<_$AppDatabase, FlowTracking> {
+  $FlowTrackingOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $PlannedFlowsOrderingComposer get flowId {
+    final $PlannedFlowsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsOrderingComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FlowTrackingAnnotationComposer
+    extends Composer<_$AppDatabase, FlowTracking> {
+  $FlowTrackingAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get trackedFrom => $composableBuilder(
+    column: $table.trackedFrom,
+    builder: (column) => column,
+  );
+
+  $PlannedFlowsAnnotationComposer get flowId {
+    final $PlannedFlowsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsAnnotationComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FlowTrackingTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          FlowTracking,
+          FlowTrackingRow,
+          $FlowTrackingFilterComposer,
+          $FlowTrackingOrderingComposer,
+          $FlowTrackingAnnotationComposer,
+          $FlowTrackingCreateCompanionBuilder,
+          $FlowTrackingUpdateCompanionBuilder,
+          (FlowTrackingRow, $FlowTrackingReferences),
+          FlowTrackingRow,
+          PrefetchHooks Function({bool flowId})
+        > {
+  $FlowTrackingTableManager(_$AppDatabase db, FlowTracking table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $FlowTrackingFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $FlowTrackingOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $FlowTrackingAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> flowId = const Value.absent(),
+                Value<String> trackedFrom = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FlowTrackingCompanion(
+                flowId: flowId,
+                trackedFrom: trackedFrom,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String flowId,
+                required String trackedFrom,
+                Value<int> rowid = const Value.absent(),
+              }) => FlowTrackingCompanion.insert(
+                flowId: flowId,
+                trackedFrom: trackedFrom,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<FlowTracking, FlowTrackingRow>(table),
+                  $FlowTrackingReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({flowId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (flowId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.flowId,
+                        referencedTable: $FlowTrackingReferences._flowIdTable(
+                          db,
+                        ),
+                        referencedColumn: $FlowTrackingReferences
+                            ._flowIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $FlowTrackingProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      FlowTracking,
+      FlowTrackingRow,
+      $FlowTrackingFilterComposer,
+      $FlowTrackingOrderingComposer,
+      $FlowTrackingAnnotationComposer,
+      $FlowTrackingCreateCompanionBuilder,
+      $FlowTrackingUpdateCompanionBuilder,
+      (FlowTrackingRow, $FlowTrackingReferences),
+      FlowTrackingRow,
+      PrefetchHooks Function({bool flowId})
+    >;
+typedef $ObligationPaymentsCreateCompanionBuilder =
+    ObligationPaymentsCompanion Function({
+      required String id,
+      Value<String?> flowId,
+      Value<String?> dueOn,
+      Value<String?> cardFiguresId,
+      required String entryId,
+      required int amountMinor,
+      required String paidOn,
+      required int createdAtUtc,
+      Value<int> rowid,
+    });
+typedef $ObligationPaymentsUpdateCompanionBuilder =
+    ObligationPaymentsCompanion Function({
+      Value<String> id,
+      Value<String?> flowId,
+      Value<String?> dueOn,
+      Value<String?> cardFiguresId,
+      Value<String> entryId,
+      Value<int> amountMinor,
+      Value<String> paidOn,
+      Value<int> createdAtUtc,
+      Value<int> rowid,
+    });
+
+final class $ObligationPaymentsReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          ObligationPayments,
+          ObligationPaymentRow
+        > {
+  $ObligationPaymentsReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static PlannedFlows _flowIdTable(_$AppDatabase db) => db.plannedFlows
+      .createAlias('obligation_payments__flow_id__planned_flows__id');
+
+  $PlannedFlowsProcessedTableManager? get flowId {
+    final $_column = $_itemColumn<String>('flow_id');
+    if ($_column == null) return null;
+    final manager = $PlannedFlowsTableManager(
+      $_db,
+      $_db.plannedFlows,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_flowIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static CardFigures _cardFiguresIdTable(_$AppDatabase db) => db.cardFigures
+      .createAlias('obligation_payments__card_figures_id__card_figures__id');
+
+  $CardFiguresProcessedTableManager? get cardFiguresId {
+    final $_column = $_itemColumn<String>('card_figures_id');
+    if ($_column == null) return null;
+    final manager = $CardFiguresTableManager(
+      $_db,
+      $_db.cardFigures,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_cardFiguresIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static JournalEntries _entryIdTable(_$AppDatabase db) => db.journalEntries
+      .createAlias('obligation_payments__entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager get entryId {
+    final $_column = $_itemColumn<String>('entry_id')!;
+
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_entryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $ObligationPaymentsFilterComposer
+    extends Composer<_$AppDatabase, ObligationPayments> {
+  $ObligationPaymentsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dueOn => $composableBuilder(
+    column: $table.dueOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paidOn => $composableBuilder(
+    column: $table.paidOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $PlannedFlowsFilterComposer get flowId {
+    final $PlannedFlowsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsFilterComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CardFiguresFilterComposer get cardFiguresId {
+    final $CardFiguresFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cardFiguresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresFilterComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesFilterComposer get entryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $ObligationPaymentsOrderingComposer
+    extends Composer<_$AppDatabase, ObligationPayments> {
+  $ObligationPaymentsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dueOn => $composableBuilder(
+    column: $table.dueOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paidOn => $composableBuilder(
+    column: $table.paidOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $PlannedFlowsOrderingComposer get flowId {
+    final $PlannedFlowsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsOrderingComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CardFiguresOrderingComposer get cardFiguresId {
+    final $CardFiguresOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cardFiguresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresOrderingComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesOrderingComposer get entryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $ObligationPaymentsAnnotationComposer
+    extends Composer<_$AppDatabase, ObligationPayments> {
+  $ObligationPaymentsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get dueOn =>
+      $composableBuilder(column: $table.dueOn, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paidOn =>
+      $composableBuilder(column: $table.paidOn, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  $PlannedFlowsAnnotationComposer get flowId {
+    final $PlannedFlowsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowId,
+      referencedTable: $db.plannedFlows,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PlannedFlowsAnnotationComposer(
+            $db: $db,
+            $table: $db.plannedFlows,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $CardFiguresAnnotationComposer get cardFiguresId {
+    final $CardFiguresAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cardFiguresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresAnnotationComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesAnnotationComposer get entryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $ObligationPaymentsTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          ObligationPayments,
+          ObligationPaymentRow,
+          $ObligationPaymentsFilterComposer,
+          $ObligationPaymentsOrderingComposer,
+          $ObligationPaymentsAnnotationComposer,
+          $ObligationPaymentsCreateCompanionBuilder,
+          $ObligationPaymentsUpdateCompanionBuilder,
+          (ObligationPaymentRow, $ObligationPaymentsReferences),
+          ObligationPaymentRow,
+          PrefetchHooks Function({
+            bool flowId,
+            bool cardFiguresId,
+            bool entryId,
+          })
+        > {
+  $ObligationPaymentsTableManager(_$AppDatabase db, ObligationPayments table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $ObligationPaymentsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $ObligationPaymentsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $ObligationPaymentsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> flowId = const Value.absent(),
+                Value<String?> dueOn = const Value.absent(),
+                Value<String?> cardFiguresId = const Value.absent(),
+                Value<String> entryId = const Value.absent(),
+                Value<int> amountMinor = const Value.absent(),
+                Value<String> paidOn = const Value.absent(),
+                Value<int> createdAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ObligationPaymentsCompanion(
+                id: id,
+                flowId: flowId,
+                dueOn: dueOn,
+                cardFiguresId: cardFiguresId,
+                entryId: entryId,
+                amountMinor: amountMinor,
+                paidOn: paidOn,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> flowId = const Value.absent(),
+                Value<String?> dueOn = const Value.absent(),
+                Value<String?> cardFiguresId = const Value.absent(),
+                required String entryId,
+                required int amountMinor,
+                required String paidOn,
+                required int createdAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => ObligationPaymentsCompanion.insert(
+                id: id,
+                flowId: flowId,
+                dueOn: dueOn,
+                cardFiguresId: cardFiguresId,
+                entryId: entryId,
+                amountMinor: amountMinor,
+                paidOn: paidOn,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<ObligationPayments, ObligationPaymentRow>(table),
+                  $ObligationPaymentsReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({flowId = false, cardFiguresId = false, entryId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (flowId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.flowId,
+                            referencedTable: $ObligationPaymentsReferences
+                                ._flowIdTable(db),
+                            referencedColumn: $ObligationPaymentsReferences
+                                ._flowIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (cardFiguresId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.cardFiguresId,
+                            referencedTable: $ObligationPaymentsReferences
+                                ._cardFiguresIdTable(db),
+                            referencedColumn: $ObligationPaymentsReferences
+                                ._cardFiguresIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (entryId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.entryId,
+                            referencedTable: $ObligationPaymentsReferences
+                                ._entryIdTable(db),
+                            referencedColumn: $ObligationPaymentsReferences
+                                ._entryIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $ObligationPaymentsProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      ObligationPayments,
+      ObligationPaymentRow,
+      $ObligationPaymentsFilterComposer,
+      $ObligationPaymentsOrderingComposer,
+      $ObligationPaymentsAnnotationComposer,
+      $ObligationPaymentsCreateCompanionBuilder,
+      $ObligationPaymentsUpdateCompanionBuilder,
+      (ObligationPaymentRow, $ObligationPaymentsReferences),
+      ObligationPaymentRow,
+      PrefetchHooks Function({bool flowId, bool cardFiguresId, bool entryId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -24178,4 +26175,8 @@ class $AppDatabaseManager {
       $IncomeReceiptsTableManager(_db, _db.incomeReceipts);
   $ForecastSettingsTableManager get forecastSettings =>
       $ForecastSettingsTableManager(_db, _db.forecastSettings);
+  $FlowTrackingTableManager get flowTracking =>
+      $FlowTrackingTableManager(_db, _db.flowTracking);
+  $ObligationPaymentsTableManager get obligationPayments =>
+      $ObligationPaymentsTableManager(_db, _db.obligationPayments);
 }

@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../features/accounts/accounts_screens.dart';
 import '../features/forecast/home_screen.dart';
 import '../features/payments/payments.dart';
+import '../features/payments/pay_screen.dart';
 import '../features/payments/payments_screens.dart';
 import '../features/backup/backup_section.dart';
 import '../features/income/income.dart';
@@ -81,6 +82,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CupertinoPage<void>(
           key: state.pageKey,
           child: CardFiguresScreen(accountId: state.extra! as String),
+        ),
+      ),
+      GoRoute(
+        path: payPath,
+        pageBuilder: (context, state) => CupertinoPage<void>(
+          key: state.pageKey,
+          child: PayScreen(target: state.extra! as PayTarget),
         ),
       ),
       GoRoute(

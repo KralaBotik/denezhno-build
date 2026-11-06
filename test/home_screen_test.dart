@@ -42,8 +42,10 @@ class _Accounts implements AccountsStore {
   @override
   Future<void> createAccount(NewAccount account) async {}
   @override
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> a) async =>
-      BalanceUpdateResult(changed: 0, unexplained: Money(0));
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> a, {
+    Set<String> notYetDebited = const {},
+  }) async => BalanceUpdateResult(changed: 0, unexplained: Money(0));
 }
 
 class _Household implements HouseholdStore {
@@ -403,5 +405,36 @@ void main() {
       find.descendant(of: minimum, matching: find.textContaining('проценты')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('R3 Р1: an overdue unpaid payment stays an obligation; '
+      '«Платежа не будет» resolves it', (tester) async {
+    final today = CalendarDate.today();
+    final payments = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'rent',
+          kind: FlowKind.rent,
+          name: 'Аренда',
+          amount: Money(300000),
+          cadence: Once(today.addDays(-1)),
+          startsOn: today.addDays(-1),
+        ),
+      )
+      ..tracked['rent'] = today.addDays(-1);
+    await launch(
+      tester,
+      accounts: [acc('Карта', AccountKind.debit, 20000)],
+      payments: payments,
+    );
+    // 20 000 − 3 000 overdue − 10 000 reserve.
+    expect(plain(tester, 'home.available'), '≈ 7${nb}000$nb₽');
+    final skip = find.byKey(ValueKey('overdue.skip.rent.${today.addDays(-1)}'));
+    await tester.ensureVisible(skip);
+    await tester.pumpAndSettle();
+    await tester.tap(skip);
+    await tester.pumpAndSettle();
+    expect(payments.skippedDates, {('rent', today.addDays(-1))});
+    expect(plain(tester, 'home.available'), '≈ 10${nb}000$nb₽');
   });
 }

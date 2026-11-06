@@ -14,6 +14,7 @@ import '../database/app_database.dart' hide CardFigures;
 import '../database/encrypted_connection.dart';
 import '../database/income_repo.dart';
 import '../database/ledger.dart';
+import '../database/obligation_repo.dart';
 import '../../features/forecast/safe_to_spend.dart' show ForecastPeriod;
 import '../../features/income/income.dart';
 import '../../features/operations/operations.dart';
@@ -134,8 +135,15 @@ final class LocalStore
       _serial(() => Ledger(_open()).createAccount(account, DateTime.now()));
 
   @override
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> amounts) =>
-      _serial(() => Ledger(_open()).updateBalances(amounts, DateTime.now()));
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> amounts, {
+    Set<String> notYetDebited = const {},
+  }) => _serial(
+    () => notYetDebited.isEmpty
+        ? Ledger(_open()).updateBalances(amounts, DateTime.now())
+        : ObligationRepo(_open())
+              .updateBalances(amounts, notYetDebited, DateTime.now()),
+  );
 
   @override
   Future<PaymentsSnapshot> payments() =>
@@ -150,24 +158,66 @@ final class LocalStore
       _serial(() => PaymentsRepo(_open()).archiveFlow(id, DateTime.now()));
 
   @override
-  Future<void> setFlowDone(String flowId, CalendarDate dueOn, bool done) =>
-      _serial(
-        () =>
-            PaymentsRepo(_open())
-                .setFlowDone(flowId, dueOn, done, DateTime.now()),
-      );
-
-  @override
   Future<void> saveCardFigures(CardFigures figures) => _serial(
     () => PaymentsRepo(_open()).saveCardFigures(figures, DateTime.now()),
   );
 
   @override
-  Future<void> setCardSettled(String figuresId, bool settled) => _serial(
+  Future<void> setFlowSkipped(
+    String flowId,
+    CalendarDate dueOn,
+    bool skipped,
+  ) => _serial(
     () =>
-        PaymentsRepo(_open())
-            .setCardSettled(figuresId, settled, DateTime.now()),
+        ObligationRepo(_open())
+            .setSkipped(flowId, dueOn, skipped, DateTime.now()),
   );
+
+  @override
+  Future<PaymentCheck> previewPayment(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    SameDayPlacement placement = SameDayPlacement.auto,
+  }) => _serial(
+    () => ObligationRepo(_open()).preview(
+      target,
+      amount: amount,
+      accountId: accountId,
+      date: date,
+      now: DateTime.now(),
+      placement: placement,
+    ),
+  );
+
+  @override
+  Future<void> pay(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    required SameDayPlacement placement,
+    bool confirmedNotDuplicate = false,
+  }) => _serial(
+    () => ObligationRepo(_open()).pay(
+      target,
+      amount: amount,
+      accountId: accountId,
+      date: date,
+      now: DateTime.now(),
+      placement: placement,
+      confirmedNotDuplicate: confirmedNotDuplicate,
+    ),
+  );
+
+  @override
+  Future<void> cancelObligationPayment(String paymentId) =>
+      _serial(() => ObligationRepo(_open()).cancel(paymentId, DateTime.now()));
+
+  @override
+  Future<List<PendingDebit>> pendingDebits() =>
+      _serial(() => ObligationRepo(_open()).pending());
 
   @override
   Future<Money> reserve() => _serial(() => Ledger(_open()).reserve());

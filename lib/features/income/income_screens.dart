@@ -22,6 +22,7 @@ import '../payments/payments_screens.dart'
         formatDue,
         pickDate,
         pickFromList;
+import '../payments/pay_screen.dart' show sameDayChoice;
 import 'income.dart';
 import 'income_controller.dart';
 
@@ -1005,10 +1006,17 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     }
   }
 
+  /// A balance was confirmed that day and the person has not answered yet.
+  bool get _needsPlacement =>
+      _preview != null &&
+      _preview!.sameDayChoice &&
+      _placement == SameDayPlacement.auto;
+
   Future<void> _confirm() async {
     final shown = _preview;
     final amount = _parsed;
     if (shown == null || amount == null || _accountId == null) return;
+    if (_needsPlacement) return;
     setState(() => _saving = true);
     try {
       await ref
@@ -1224,7 +1232,26 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (shown.inConfirmedBalance &&
+                        if (_needsPlacement)
+                          sameDayChoice(
+                            question: s.sameDayIncomeQuestion(
+                              account?.name ?? '',
+                              shown.confirmedAt == null
+                                  ? formatDate(_date)
+                                  : _when(shown.confirmedAt!),
+                            ),
+                            yes: s.sameDayIncomeYes,
+                            no: s.sameDayIncomeNo,
+                            onChoose: (inBalance) {
+                              setState(
+                                () => _placement = inBalance
+                                    ? SameDayPlacement.inConfirmedBalance
+                                    : SameDayPlacement.afterConfirmedBalance,
+                              );
+                              unawaited(_refresh());
+                            },
+                          )
+                        else if (shown.inConfirmedBalance &&
                             shown.confirmedAt != null)
                           Text(
                             s.receiveAlreadyIn(
@@ -1249,7 +1276,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                               key: const ValueKey('receive.change'),
                               style: AppText.body(p.text),
                             ),
-                        if (shown.sameDayChoice)
+                        if (shown.sameDayChoice && !_needsPlacement)
                           Padding(
                             padding: const EdgeInsets.only(top: Space.s),
                             child: CupertinoButton(
@@ -1294,7 +1321,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                 label: s.receiveConfirm,
                 icon: CupertinoIcons.checkmark_alt,
                 filled: true,
-                onPressed: shown == null || _saving
+                onPressed: shown == null || _saving || _needsPlacement
                     ? null
                     : () => unawaited(_confirm()),
               ),

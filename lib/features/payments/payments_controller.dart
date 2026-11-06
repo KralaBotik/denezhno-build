@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
 import '../../core/calendar_date.dart';
+import '../../core/money/money.dart';
+import '../operations/operations.dart' show SameDayPlacement;
 import '../accounts/accounts_controller.dart';
 import 'payments.dart';
 
@@ -39,12 +41,51 @@ class PaymentsController extends AsyncNotifier<PaymentsSnapshot> {
 
   Future<void> saveFlow(PlannedFlow flow) => _then(_store.saveFlow(flow));
   Future<void> archiveFlow(String id) => _then(_store.archiveFlow(id));
-  Future<void> setFlowDone(String id, CalendarDate due, bool done) =>
-      _then(_store.setFlowDone(id, due, done));
+  Future<void> setSkipped(String id, CalendarDate due, bool skipped) =>
+      _then(_store.setFlowSkipped(id, due, skipped));
   Future<void> saveCardFigures(CardFigures f) =>
       _then(_store.saveCardFigures(f));
-  Future<void> setCardSettled(String id, bool settled) =>
-      _then(_store.setCardSettled(id, settled));
+
+  Future<PaymentCheck> preview(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    SameDayPlacement placement = SameDayPlacement.auto,
+  }) => _store.previewPayment(
+    target,
+    amount: amount,
+    accountId: accountId,
+    date: date,
+    placement: placement,
+  );
+
+  /// Books the payment; balances change, so accounts reload too.
+  Future<void> pay(
+    PayTarget target, {
+    required Money amount,
+    required String accountId,
+    required CalendarDate date,
+    required SameDayPlacement placement,
+    bool confirmedNotDuplicate = false,
+  }) async {
+    await _store.pay(
+      target,
+      amount: amount,
+      accountId: accountId,
+      date: date,
+      placement: placement,
+      confirmedNotDuplicate: confirmedNotDuplicate,
+    );
+    if (ref.mounted) ref.invalidate(accountsProvider);
+  }
+
+  Future<void> cancel(String paymentId) async {
+    await _store.cancelObligationPayment(paymentId);
+    if (ref.mounted) ref.invalidate(accountsProvider);
+  }
+
+  Future<List<PendingDebit>> pending() => _store.pendingDebits();
 }
 
 /// «Ближайшие» for the next 30 days starting today.
@@ -56,4 +97,8 @@ List<UpcomingItem> upcomingFor(PaymentsSnapshot s, CalendarDate today) =>
       cardNames: s.creditCards,
       from: today,
       to: today.addDays(30),
+      trackedFrom: s.trackedFrom,
+      paid: s.paid,
+      skipped: s.skipped,
+      legacyMarks: s.legacyMarks,
     );

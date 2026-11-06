@@ -334,3 +334,40 @@ CREATE TABLE forecast_settings (
   period_until TEXT CHECK (period_until IS NULL OR (length(period_until) = 10 AND date(period_until) = period_until)),
   CHECK ((period_days IS NULL) <> (period_until IS NULL))
 ) AS ForecastSettingsRow;
+
+-- ===== Schema v6 (R3: «Оплачено» через журнал) =====
+
+-- From when a recurring payment is tracked: every date of the plan from
+-- here on stays an obligation until it is paid (an operation) or skipped;
+-- earlier dates are history.
+CREATE TABLE flow_tracking (
+  flow_id TEXT NOT NULL PRIMARY KEY REFERENCES planned_flows(id),
+  tracked_from TEXT NOT NULL CHECK (length(tracked_from) = 10 AND date(tracked_from) = tracked_from)
+) AS FlowTrackingRow;
+
+-- A payment of an obligation — one date of a plan, or a credit card's bank
+-- figures — booked as a journal entry (an expense, or a transfer to the
+-- card/loan). Append-only: a mistaken payment is cancelled by reversing
+-- its entry; the row stays as history.
+CREATE TABLE obligation_payments (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36),
+  flow_id TEXT REFERENCES planned_flows(id),
+  due_on TEXT CHECK (due_on IS NULL OR (length(due_on) = 10 AND date(due_on) = due_on)),
+  card_figures_id TEXT REFERENCES card_figures(id),
+  entry_id TEXT NOT NULL UNIQUE REFERENCES journal_entries(id),
+  amount_minor INTEGER NOT NULL CHECK (typeof(amount_minor) = 'integer' AND amount_minor > 0),
+  paid_on TEXT NOT NULL CHECK (length(paid_on) = 10 AND date(paid_on) = paid_on),
+  created_at_utc INTEGER NOT NULL CHECK (typeof(created_at_utc) = 'integer'),
+  CHECK (
+    (flow_id IS NOT NULL AND due_on IS NOT NULL AND card_figures_id IS NULL)
+    OR (flow_id IS NULL AND due_on IS NULL AND card_figures_id IS NOT NULL)
+  )
+) AS ObligationPaymentRow;
+
+CREATE INDEX obligation_payments_by_flow ON obligation_payments (flow_id, due_on);
+CREATE INDEX obligation_payments_by_card ON obligation_payments (card_figures_id);
+
+CREATE TRIGGER obligation_payments_no_update BEFORE UPDATE ON obligation_payments
+BEGIN SELECT RAISE(ABORT, 'payments are append-only'); END;
+CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments
+BEGIN SELECT RAISE(ABORT, 'payments are append-only'); END;

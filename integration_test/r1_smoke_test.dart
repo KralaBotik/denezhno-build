@@ -8,6 +8,7 @@ import 'package:denezhno/core/backup/backup_crypto.dart';
 import 'package:denezhno/core/calendar_date.dart';
 import 'package:denezhno/core/money/money.dart';
 import 'package:denezhno/features/forecast/forecast_controller.dart';
+import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/payments/payments_controller.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
@@ -151,9 +152,16 @@ void main() {
       'load plans',
       container.read(paymentsProvider.future),
     )).flows.singleWhere((f) => f.name == name);
+    // R3 Р1: «Оплачено» is an operation in the journal on the real store.
     await step(
-      'mark paid',
-      payments.setFlowDone(plan.id!, today.addDays(3), true),
+      'pay through the journal',
+      payments.pay(
+        PlanDate(plan.id!, today.addDays(3)),
+        amount: Money(70000),
+        accountId: created.id,
+        date: today,
+        placement: SameDayPlacement.afterConfirmedBalance,
+      ),
     );
     expect(
       (await step(
@@ -170,7 +178,8 @@ void main() {
     await settle('forecast');
     final forecast = container.read(safeToSpendProvider);
     expect(forecast.hasValue, true, reason: '$forecast');
-    expect(forecast.value!.money.minorUnits, greaterThanOrEqualTo(90000));
+    // 900 ₽ confirmed, 700 ₽ paid after it: 200 ₽ left on the card.
+    expect(forecast.value!.money.minorUnits, greaterThanOrEqualTo(20000));
     // R2 backup: libsodium (Argon2id + XChaCha20-Poly1305) on iOS for real.
     final backupFile = await step(
       'export backup',

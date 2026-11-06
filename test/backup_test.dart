@@ -13,6 +13,7 @@ import 'package:denezhno/core/storage/local_store.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/forecast/safe_to_spend.dart';
 import 'package:denezhno/features/income/income.dart';
+import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
 import 'package:drift_dev/api/migrations_native.dart';
@@ -160,7 +161,17 @@ void main() {
       ),
     );
     final flows = (await s.payments()).flows;
-    await s.setFlowDone(flows.first.id!, d('2026-11-25'), true);
+    // The card payment plan, paid by a transfer (operation + link); a
+    // later date skipped.
+    final nextDue = occurrences(flows.first, today, today.addDays(40)).first;
+    await s.pay(
+      PlanDate(flows.first.id!, nextDue),
+      amount: Money(840000),
+      accountId: debit,
+      date: today,
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    await s.setFlowSkipped(flows.first.id!, nextDue.addDays(31), true);
     await s.saveCardFigures(
       CardFigures(
         id: '',
@@ -315,6 +326,13 @@ void main() {
         pick(want['income_occurrences'], ['planned_on', 'state']),
       );
       expect((restored['income_sources']! as List).length, 2);
+      // v6 tracking dates from the same data step as the migration.
+      expect(
+        pick(restored['flow_tracking'], ['flow_id', 'tracked_from']),
+        pick(want['flow_tracking'], ['flow_id', 'tracked_from']),
+      );
+      expect((restored['flow_tracking']! as List).length, 5);
+      expect(restored['obligation_payments'], isEmpty);
       // Same accounts; categories created once, as by the migration.
       List<Object?> people(Object? rows) => [
         for (final r in rows! as List)

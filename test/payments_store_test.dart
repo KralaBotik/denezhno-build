@@ -5,6 +5,7 @@ import 'package:denezhno/core/money/money.dart';
 import 'package:denezhno/core/security/storage_location.dart';
 import 'package:denezhno/core/storage/local_store.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
+import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,13 +81,19 @@ void main() {
     await expectLater(store.archiveFlow('x' * 36), throwsArgumentError);
   });
 
-  test('«оплачено» marks toggle per occurrence', () async {
+  test('«платежа не будет» toggles per date; a new plan is tracked from its '
+      'start, never retroactively', () async {
     await store.saveFlow(plan('Интернет', const Monthly(3)));
-    final id = (await store.payments()).flows.single.id!;
-    await store.setFlowDone(id, d('2026-12-03'), true);
-    await store.setFlowDone(id, d('2026-12-03'), true); // idempotent
+    final snap = await store.payments();
+    final id = snap.flows.single.id!;
+    final today = CalendarDate.today();
+    final start = snap.flows.single.startsOn;
+    expect(snap.trackedFrom[id], start > today ? start : today);
+    await store.setFlowSkipped(id, d('2026-12-03'), true);
+    await store.setFlowSkipped(id, d('2026-12-03'), true); // idempotent
     expect((await store.payments()).doneMarks, {(id, d('2026-12-03'))});
-    await store.setFlowDone(id, d('2026-12-03'), false);
+    expect((await store.payments()).skipped, {(id, d('2026-12-03'))});
+    await store.setFlowSkipped(id, d('2026-12-03'), false);
     expect((await store.payments()).doneMarks, isEmpty);
   });
 
@@ -131,8 +138,23 @@ void main() {
     final current = snap.cardFigures[card]!;
     expect(current.graceAmount, Money(840000));
     expect(current.settled, false);
-    await store.setCardSettled(current.id, true);
-    expect((await store.payments()).cardFigures[card]!.settled, true);
+    // Paid by a transfer from the debit account (not an expense).
+    await store.pay(
+      CardDue(current.id),
+      amount: Money(840000),
+      accountId: debit,
+      date: CalendarDate.today(),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    final paid = (await store.payments()).cardFigures[card]!;
+    expect(
+      (paid.settled, paid.paid, paid.remainingDue),
+      (true, Money(840000), Money(0)),
+    );
+    expect(
+      [for (final a in await store.accounts()) (a.name, a.amount)],
+      [('Сбер', Money(0)), ('Дебет', Money(-840000))],
+    );
 
     await expectLater(
       store.saveCardFigures(

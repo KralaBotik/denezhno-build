@@ -81,7 +81,13 @@ abstract interface class AccountsStore {
 
   /// [amounts]: account id → user-facing amount now (the same value means
   /// «не изменилось» and is recorded as a confirmation).
-  Future<BalanceUpdateResult> updateBalances(Map<String, Money> amounts);
+  ///
+  /// [notYetDebited]: recorded payments the person said the bank has not
+  /// taken yet; the figure is confirmed without them (R3 risk Р1).
+  Future<BalanceUpdateResult> updateBalances(
+    Map<String, Money> amounts, {
+    Set<String> notYetDebited = const {},
+  });
 
   /// Whether a money account counts in «можно потратить» (the opposite of
   /// «не трогать»). Only for non-debt accounts.
