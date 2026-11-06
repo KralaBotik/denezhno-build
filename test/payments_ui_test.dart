@@ -143,13 +143,22 @@ void main() {
     expect(store.flows.single.amount, Money(70000));
     expect(store.flows.single.cadence, isA<Monthly>());
 
-    await tapKey(tester, 'flow.add.inflow');
-    await tester.enterText(find.byKey(const ValueKey('flow.name')), 'Зарплата');
+    // One «Добавить доход»: it asks which kind. «Другой доход» opens the
+    // general form with no salary option (salary has its own schedule).
+    await tapKey(tester, 'income.add');
+    expect(find.byKey(const ValueKey('incomeSheet.salary')), findsOneWidget);
+    await tapKey(tester, 'incomeSheet.other');
+    expect(find.byKey(const ValueKey('flow.incomeHint')), findsOneWidget);
+    expect(find.byKey(const ValueKey('flowKind.salary')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('flow.name')),
+      'Подработка',
+    );
     await tester.enterText(find.byKey(const ValueKey('flow.amount')), '80 000');
     await tapKey(tester, 'flow.save');
-    expect(store.flows.last.kind, FlowKind.salary);
+    expect(store.flows.last.kind, FlowKind.otherIncome);
     expect(find.text('Интернет'), findsWidgets);
-    expect(find.text('Зарплата'), findsWidgets);
+    expect(find.text('Подработка'), findsWidgets);
     // Within 30 days each monthly plan appears in «Ближайшие».
     expect(find.text('+80${nb}000$nb₽'), findsWidgets);
   });

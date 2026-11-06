@@ -284,7 +284,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get paymentTitle => 'Платёж';
 
   @override
-  String get incomeTitle => 'Зарплата и доходы';
+  String get incomeTitle => 'Доходы';
 
   @override
   String get delete => 'Удалить';
@@ -1264,4 +1264,40 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get upgradeAutoCopy =>
       'При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы.';
+
+  @override
+  String get otherIncomeTitle => 'Другой доход';
+
+  @override
+  String get otherIncomeHint =>
+      'Подработка, кэшбэк, возврат налога и другие поступления. Зарплату и аванс добавляйте через «Зарплата и аванс» — там учитываются задержки, частичные выплаты и выходные.';
+
+  @override
+  String get addIncomeWhat => 'Какой доход добавить?';
+
+  @override
+  String get sheetSalary => 'Зарплата и аванс';
+
+  @override
+  String get sheetSalaryMore => 'Ещё одна зарплата (другой работодатель)';
+
+  @override
+  String get sheetOtherIncome => 'Другой доход';
+
+  @override
+  String otherIncomeSubtitle(String cadence) {
+    return 'Другой доход · $cadence';
+  }
+
+  @override
+  String get partDayShort => 'Число';
+
+  @override
+  String get partDayPlaceholder => '1–31';
+
+  @override
+  String get partAmountPlaceholder => '0';
+
+  @override
+  String get partLabelPlaceholder => 'Название';
 }

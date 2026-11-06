@@ -111,7 +111,7 @@ void main() {
           ('/account', 'account', 'alfa-cc'),
           ('/update-balances', 'update-balances', null),
           ('/add-account', 'add-account', null),
-          ('/income/schedule', 'salary-schedule', 'work'),
+          ('/income/schedule', 'salary-schedule', null),
           (
             '/income/payment',
             'income-payment',

@@ -595,7 +595,7 @@ abstract class AppLocalizations {
   /// No description provided for @incomeTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Зарплата и доходы'**
+  /// **'Доходы'**
   String get incomeTitle;
 
   /// No description provided for @delete.
@@ -2229,6 +2229,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы.'**
   String get upgradeAutoCopy;
+
+  /// No description provided for @otherIncomeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другой доход'**
+  String get otherIncomeTitle;
+
+  /// No description provided for @otherIncomeHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подработка, кэшбэк, возврат налога и другие поступления. Зарплату и аванс добавляйте через «Зарплата и аванс» — там учитываются задержки, частичные выплаты и выходные.'**
+  String get otherIncomeHint;
+
+  /// No description provided for @addIncomeWhat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Какой доход добавить?'**
+  String get addIncomeWhat;
+
+  /// No description provided for @sheetSalary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зарплата и аванс'**
+  String get sheetSalary;
+
+  /// No description provided for @sheetSalaryMore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё одна зарплата (другой работодатель)'**
+  String get sheetSalaryMore;
+
+  /// No description provided for @sheetOtherIncome.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другой доход'**
+  String get sheetOtherIncome;
+
+  /// No description provided for @otherIncomeSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другой доход · {cadence}'**
+  String otherIncomeSubtitle(String cadence);
+
+  /// No description provided for @partDayShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Число'**
+  String get partDayShort;
+
+  /// No description provided for @partDayPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'1–31'**
+  String get partDayPlaceholder;
+
+  /// No description provided for @partAmountPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'0'**
+  String get partAmountPlaceholder;
+
+  /// No description provided for @partLabelPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название'**
+  String get partLabelPlaceholder;
 }
 
 class _AppLocalizationsDelegate

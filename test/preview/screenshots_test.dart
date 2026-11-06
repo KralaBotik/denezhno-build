@@ -151,13 +151,18 @@ void main() {
         await shot('accounts');
         router.go('/payments');
         await shot('payments');
+        await tester.drag(
+          find.byType(Scrollable).first,
+          const Offset(0, -3000),
+        );
+        await shot('payments-end');
         for (final (path, name, extra) in <(String, String, Object?)>[
           ('/settings', 'settings', null),
           ('/backup', 'backup', null),
           ('/account', 'account', 'alfa-cc'),
           ('/update-balances', 'update-balances', null),
           ('/add-account', 'add-account', null),
-          ('/income/schedule', 'salary-schedule', 'work'),
+          ('/income/schedule', 'salary-schedule', null),
           (
             '/income/payment',
             'income-payment',

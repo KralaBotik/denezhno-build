@@ -13,9 +13,15 @@ import '../../ui/widgets.dart';
 import '../accounts/accounts.dart';
 import '../accounts/accounts_controller.dart';
 import '../operations/operations.dart';
-import '../payments/payments.dart' show Monthly;
+import '../payments/payments.dart' show FlowDirection, Monthly, PlannedFlow;
 import '../payments/payments_screens.dart'
-    show formatDate, formatDue, pickDate, pickFromList;
+    show
+        cadenceLabel,
+        flowEditPath,
+        formatDate,
+        formatDue,
+        pickDate,
+        pickFromList;
 import 'income.dart';
 import 'income_controller.dart';
 
@@ -159,9 +165,45 @@ class IncomeRow extends StatelessWidget {
   }
 }
 
-/// «Зарплата и доходы» on the Payments tab: sources with their schedule.
+/// «Доходы» on the Payments tab — one place for every income: salary
+/// sources (with their schedule) and other incomes (side jobs, cashback…).
+/// One «Добавить доход» asks which kind, so salary is never added through
+/// the general form by mistake.
 class IncomeSourcesSection extends ConsumerWidget {
-  const IncomeSourcesSection({super.key});
+  const IncomeSourcesSection({super.key, this.otherIncomes = const []});
+  final List<PlannedFlow> otherIncomes;
+
+  Future<void> _add(BuildContext context, bool hasSalary) async {
+    final s = AppLocalizations.of(context);
+    final choice = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(s.addIncomeWhat),
+        actions: [
+          CupertinoActionSheetAction(
+            key: const ValueKey('incomeSheet.salary'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(hasSalary ? s.sheetSalaryMore : s.sheetSalary),
+          ),
+          CupertinoActionSheetAction(
+            key: const ValueKey('incomeSheet.other'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(s.sheetOtherIncome),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(s.cancel),
+        ),
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+    await (choice
+        ? context.push<void>(incomeSchedulePath)
+        : context.push<void>(flowEditPath, extra: FlowDirection.inflow));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context);
@@ -189,12 +231,30 @@ class IncomeSourcesSection extends ConsumerWidget {
                 onTap: () =>
                     context.push<void>(incomeSchedulePath, extra: src.id),
               ),
+            if (sources.isEmpty)
+              SettingsRow(
+                key: const ValueKey('income.setup'),
+                icon: CupertinoIcons.briefcase,
+                iconColor: p.accent,
+                title: s.salarySetup,
+                subtitle: s.salarySetupHint,
+                onTap: () => context.push<void>(incomeSchedulePath),
+              ),
+            for (final f in otherIncomes)
+              SettingsRow(
+                key: ValueKey('flow.${f.id}'),
+                icon: CupertinoIcons.arrow_down_left,
+                iconColor: p.accent,
+                title: f.name,
+                subtitle: s.otherIncomeSubtitle(cadenceLabel(s, f.cadence)),
+                value: formatMoney(f.amount),
+                onTap: () => context.push<void>(flowEditPath, extra: f),
+              ),
             SettingsRow(
-              key: const ValueKey('income.setup'),
+              key: const ValueKey('income.add'),
               icon: CupertinoIcons.add,
-              title: sources.isEmpty ? s.salarySetup : s.addIncomeSource,
-              subtitle: sources.isEmpty ? s.salarySetupHint : null,
-              onTap: () => context.push<void>(incomeSchedulePath),
+              title: s.addIncome,
+              onTap: () => unawaited(_add(context, sources.isNotEmpty)),
             ),
           ],
         ),
@@ -393,18 +453,33 @@ class _SalaryScheduleScreenState extends ConsumerState<SalaryScheduleScreen> {
       HolidayRule.nextWorkday => s.holidayNext,
       HolidayRule.none => s.holidayNone,
     };
+    // Fields with a visible outline: on a white card a plain filled field
+    // looked like empty space on the iPhone.
+    final outlined = BoxDecoration(
+      color: p.surface2,
+      border: Border.all(color: p.separator),
+      borderRadius: BorderRadius.circular(Space.radiusSmall),
+    );
     Widget field(
       String key,
       TextEditingController c, {
       TextInputType? keyboard,
       String? suffix,
+      String? placeholder,
+      TextStyle? style,
+      TextAlign align = TextAlign.start,
     }) => CupertinoTextField(
       key: ValueKey(key),
       controller: c,
-      padding: const EdgeInsets.all(Space.m),
-      decoration: fieldDecoration(context),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.m,
+        vertical: Space.s + 2,
+      ),
+      decoration: outlined,
       keyboardType: keyboard,
-      style: AppText.body(p.text),
+      placeholder: placeholder,
+      textAlign: align,
+      style: style ?? AppText.body(p.text),
       suffix: suffix == null
           ? null
           : Padding(
@@ -461,38 +536,78 @@ class _SalaryScheduleScreenState extends ConsumerState<SalaryScheduleScreen> {
               ),
             ),
             for (final (i, f) in _active.indexed)
-              AppCard(
-                key: ValueKey('schedule.part.$i'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FormFieldCard(
-                      label: s.partLabel,
-                      child: field('part.$i.label', f.label),
-                    ),
-                    FormFieldCard(
-                      label: s.partDay,
-                      hint: s.dayHint,
-                      child: field(
-                        'part.$i.day',
-                        f.day,
-                        keyboard: TextInputType.number,
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.s),
+                child: AppCard(
+                  key: ValueKey('schedule.part.$i'),
+                  padding: const EdgeInsets.all(Space.m),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      field(
+                        'part.$i.label',
+                        f.label,
+                        placeholder: s.partLabelPlaceholder,
+                        style: AppText.headline(p.text),
                       ),
-                    ),
-                    FormFieldCard(
-                      label: s.partAmount,
-                      child: field(
-                        'part.$i.amount',
-                        f.amount,
-                        keyboard: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        suffix: '₽',
+                      const SizedBox(height: Space.s),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          SizedBox(
+                            width: 84,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.partDayShort,
+                                  style: AppText.caption(p.textSecondary),
+                                ),
+                                const SizedBox(height: Space.xs),
+                                field(
+                                  'part.$i.day',
+                                  f.day,
+                                  keyboard: TextInputType.number,
+                                  placeholder: s.partDayPlaceholder,
+                                  align: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: Space.m),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.partAmount,
+                                  style: AppText.caption(p.textSecondary),
+                                ),
+                                const SizedBox(height: Space.xs),
+                                field(
+                                  'part.$i.amount',
+                                  f.amount,
+                                  keyboard:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  placeholder: s.partAmountPlaceholder,
+                                  suffix: '₽',
+                                  style: AppText.amount(p.text),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+              child: Text(s.dayHint, style: AppText.caption(p.textTertiary)),
+            ),
             const SizedBox(height: Space.m),
             CardGroup(
               children: [

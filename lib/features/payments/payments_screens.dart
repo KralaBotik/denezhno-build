@@ -200,20 +200,25 @@ class PaymentsScreen extends ConsumerWidget {
 
   Future<void> _add(BuildContext context) async {
     final s = AppLocalizations.of(context);
-    final choice = await showCupertinoModalPopup<FlowDirection>(
+    final choice = await showCupertinoModalPopup<String>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         title: Text(s.addPaymentOrIncome),
         actions: [
           CupertinoActionSheetAction(
             key: const ValueKey('sheet.payment'),
-            onPressed: () => Navigator.of(ctx).pop(FlowDirection.outflow),
+            onPressed: () => Navigator.of(ctx).pop('payment'),
             child: Text(s.addPayment),
           ),
           CupertinoActionSheetAction(
+            key: const ValueKey('sheet.salary'),
+            onPressed: () => Navigator.of(ctx).pop('salary'),
+            child: Text(s.sheetSalary),
+          ),
+          CupertinoActionSheetAction(
             key: const ValueKey('sheet.income'),
-            onPressed: () => Navigator.of(ctx).pop(FlowDirection.inflow),
-            child: Text(s.addIncome),
+            onPressed: () => Navigator.of(ctx).pop('income'),
+            child: Text(s.sheetOtherIncome),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
@@ -223,8 +228,14 @@ class PaymentsScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (choice != null && context.mounted) {
-      await context.push<void>(flowEditPath, extra: choice);
+    if (!context.mounted) return;
+    switch (choice) {
+      case 'payment':
+        await context.push<void>(flowEditPath, extra: FlowDirection.outflow);
+      case 'salary':
+        await context.push<void>(incomeSchedulePath);
+      case 'income':
+        await context.push<void>(flowEditPath, extra: FlowDirection.inflow);
     }
   }
 
@@ -446,13 +457,7 @@ class _PaymentsBody extends ConsumerWidget {
           s.addPayment,
           FlowDirection.outflow,
         ),
-        const IncomeSourcesSection(),
-        flowSection(
-          s.otherIncomesTitle,
-          inflows,
-          s.addIncome,
-          FlowDirection.inflow,
-        ),
+        IncomeSourcesSection(otherIncomes: inflows),
       ],
     );
   }
@@ -575,7 +580,7 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
     _kind =
         widget.flow?.kind ??
         (widget.direction == FlowDirection.inflow
-            ? FlowKind.salary
+            ? FlowKind.otherIncome
             : FlowKind.subscription);
     _day = today.day;
     _weekday = today.weekday;
@@ -743,7 +748,7 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
         border: null,
         middle: BarText(
           widget.direction == FlowDirection.inflow
-              ? s.incomeTitle
+              ? s.otherIncomeTitle
               : s.paymentTitle,
         ),
         trailing: CupertinoButton(
@@ -756,35 +761,45 @@ class _FlowEditScreenState extends ConsumerState<FlowEditScreen> {
       child: SafeArea(
         child: ListView(
           children: [
+            if (widget.direction == FlowDirection.inflow)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Text(
+                  s.otherIncomeHint,
+                  key: const ValueKey('flow.incomeHint'),
+                  style: AppText.secondary(Palette.of(context).textSecondary),
+                ),
+              ),
             field('flow.name', s.fieldName, _name),
             error(_nameError),
             field('flow.amount', s.fieldAmount, _amount, numeric: true),
             error(_amountError),
-            CupertinoListSection.insetGrouped(
-              backgroundColor: const Color(0x00000000),
-              margin: const EdgeInsets.fromLTRB(
-                Space.l,
-                Space.s,
-                Space.l,
-                Space.s,
+            if (kinds.length > 1)
+              CupertinoListSection.insetGrouped(
+                backgroundColor: const Color(0x00000000),
+                margin: const EdgeInsets.fromLTRB(
+                  Space.l,
+                  Space.s,
+                  Space.l,
+                  Space.s,
+                ),
+                decoration: BoxDecoration(
+                  color: Palette.of(context).surface,
+                  borderRadius: BorderRadius.circular(Space.radius),
+                ),
+                header: Text(s.fieldKind),
+                children: [
+                  for (final k in kinds)
+                    CupertinoListTile(
+                      key: ValueKey('flowKind.${k.name}'),
+                      title: Text(flowKindLabel(s, k)),
+                      trailing: _kind == k
+                          ? const Icon(CupertinoIcons.check_mark, size: 20)
+                          : null,
+                      onTap: () => setState(() => _kind = k),
+                    ),
+                ],
               ),
-              decoration: BoxDecoration(
-                color: Palette.of(context).surface,
-                borderRadius: BorderRadius.circular(Space.radius),
-              ),
-              header: Text(s.fieldKind),
-              children: [
-                for (final k in kinds)
-                  CupertinoListTile(
-                    key: ValueKey('flowKind.${k.name}'),
-                    title: Text(flowKindLabel(s, k)),
-                    trailing: _kind == k
-                        ? const Icon(CupertinoIcons.check_mark, size: 20)
-                        : null,
-                    onTap: () => setState(() => _kind = k),
-                  ),
-              ],
-            ),
             CupertinoListSection.insetGrouped(
               backgroundColor: const Color(0x00000000),
               margin: const EdgeInsets.fromLTRB(

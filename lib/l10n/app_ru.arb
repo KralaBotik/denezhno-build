@@ -138,7 +138,7 @@
   "addPayment": "Добавить платёж",
   "addIncome": "Добавить доход",
   "paymentTitle": "Платёж",
-  "incomeTitle": "Зарплата и доходы",
+  "incomeTitle": "Доходы",
   "delete": "Удалить",
   "markPaid": "Оплачено",
   "markReceived": "Получено",
@@ -816,5 +816,23 @@
   "upgradeWithoutBackup": "Обновить без копии?",
   "upgradeWithoutBackupText": "На телефоне останется зашифрованная копия базы до обновления, но перенести её на другое устройство нельзя. Рекомендуем сначала создать копию.",
   "upgradeAnyway": "Обновить без копии",
-  "upgradeAutoCopy": "При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы."
+  "upgradeAutoCopy": "При обновлении на телефоне автоматически сохраняется зашифрованная копия старой базы.",
+  "otherIncomeTitle": "Другой доход",
+  "otherIncomeHint": "Подработка, кэшбэк, возврат налога и другие поступления. Зарплату и аванс добавляйте через «Зарплата и аванс» — там учитываются задержки, частичные выплаты и выходные.",
+  "addIncomeWhat": "Какой доход добавить?",
+  "sheetSalary": "Зарплата и аванс",
+  "sheetSalaryMore": "Ещё одна зарплата (другой работодатель)",
+  "sheetOtherIncome": "Другой доход",
+  "otherIncomeSubtitle": "Другой доход · {cadence}",
+  "@otherIncomeSubtitle": {
+    "placeholders": {
+      "cadence": {
+        "type": "String"
+      }
+    }
+  },
+  "partDayShort": "Число",
+  "partDayPlaceholder": "1–31",
+  "partAmountPlaceholder": "0",
+  "partLabelPlaceholder": "Название"
 }
