@@ -476,7 +476,7 @@ final class IncomeRepo {
     final op = await _op(key, amount, accountId, date);
     // Same day as a confirmed balance: the person must have answered.
     if (placement == SameDayPlacement.auto &&
-        (await Journal(db).preview(op, now: now)).sameDayChoice) {
+        (await Journal(db).preview(op, now: now)).askIncluded) {
       throw const InvalidOperation('same-day placement must be chosen');
     }
     final recorded = await Journal(db)

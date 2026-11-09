@@ -11,6 +11,11 @@ on:
   pull_request:
     paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
+    inputs:
+      screenshots:
+        description: 'Снять скриншоты на симуляторе (необязательно, до ~8 минут)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -140,18 +145,33 @@ jobs:
         # Watchdog: повтор только при «тихом» зависании без результата (см. скрипт);
         # настоящие падения теста не повторяются.
         run: tool/ci/run-simulator-test.sh 720
-      - name: Screenshots on iOS Simulator (best effort)
-        if: success()
+      # Только по запросу (inputs.screenshots). Симулятор иногда «тихо» зависает
+      # между сборкой Xcode и стартом теста (2026-11-06: 18 минут без вывода):
+      # сторож прерывает попытку через 6 минут, повторов нет.
+      - name: Screenshots on iOS Simulator (optional)
+        if: success() && inputs.screenshots
         continue-on-error: true
-        timeout-minutes: 20
+        timeout-minutes: 8
         run: |
           # Синтетические данные и хранилища в памяти; реальная база не трогается.
           mkdir -p "$RUNNER_TEMP/screens"
-          flutter test integration_test/screenshots_test.dart -d "$SIM_UDID" \
-            --dart-define=SCREENS_DIR="$RUNNER_TEMP/screens"
+          python3 -I - <<'PY'
+          import os, signal, subprocess, sys
+          cmd = ["flutter", "test", "integration_test/screenshots_test.dart",
+                 "-d", os.environ["SIM_UDID"],
+                 "--dart-define=SCREENS_DIR=" + os.environ["RUNNER_TEMP"] + "/screens"]
+          p = subprocess.Popen(cmd, start_new_session=True)
+          try:
+              sys.exit(p.wait(timeout=360))
+          except subprocess.TimeoutExpired:
+              os.killpg(p.pid, signal.SIGKILL)
+              p.wait()
+              print("::warning::screenshots: no result within 6 minutes (silent simulator hang), skipped")
+              sys.exit(124)
+          PY
           ls -1 "$RUNNER_TEMP/screens"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
+        if: always() && inputs.screenshots
         with:
           name: simulator-screenshots
           path: ${{ runner.temp }}/screens

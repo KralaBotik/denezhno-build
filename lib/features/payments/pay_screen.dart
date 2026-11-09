@@ -105,7 +105,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
 
   bool get _needsPlacement =>
       _check != null &&
-      _check!.operation.sameDayChoice &&
+      _check!.operation.askIncluded &&
       _placement == SameDayPlacement.auto;
 
   bool get _canConfirm =>
@@ -324,9 +324,9 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                           _SameDayChoice(
                             question: s.sameDayQuestion(
                               account?.name ?? '',
-                              check.operation.confirmedAt == null
+                              check.operation.latestConfirmation == null
                                   ? formatDate(_date)
-                                  : _when(check.operation.confirmedAt!),
+                                  : _when(check.operation.latestConfirmation!),
                             ),
                             yes: s.sameDayYes,
                             no: s.sameDayNo,
@@ -366,7 +366,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                               key: ValueKey('pay.change.${e.key}'),
                               style: AppText.body(p.text),
                             ),
-                        if (check.operation.sameDayChoice && !_needsPlacement)
+                        if (check.operation.askIncluded && !_needsPlacement)
                           CupertinoButton(
                             key: const ValueKey('pay.switch'),
                             padding: const EdgeInsets.only(top: Space.s),

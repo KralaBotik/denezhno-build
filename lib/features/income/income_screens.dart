@@ -1009,7 +1009,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
   /// A balance was confirmed that day and the person has not answered yet.
   bool get _needsPlacement =>
       _preview != null &&
-      _preview!.sameDayChoice &&
+      _preview!.askIncluded &&
       _placement == SameDayPlacement.auto;
 
   Future<void> _confirm() async {
@@ -1236,9 +1236,9 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                           sameDayChoice(
                             question: s.sameDayIncomeQuestion(
                               account?.name ?? '',
-                              shown.confirmedAt == null
+                              shown.latestConfirmation == null
                                   ? formatDate(_date)
-                                  : _when(shown.confirmedAt!),
+                                  : _when(shown.latestConfirmation!),
                             ),
                             yes: s.sameDayIncomeYes,
                             no: s.sameDayIncomeNo,
@@ -1276,7 +1276,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                               key: const ValueKey('receive.change'),
                               style: AppText.body(p.text),
                             ),
-                        if (shown.sameDayChoice && !_needsPlacement)
+                        if (shown.askIncluded && !_needsPlacement)
                           Padding(
                             padding: const EdgeInsets.only(top: Space.s),
                             child: CupertinoButton(

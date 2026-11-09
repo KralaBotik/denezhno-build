@@ -231,19 +231,22 @@ final class Journal {
         if (await _isOwn(l.$1)) l.$1: l.$2,
     };
 
-    // Balances confirmed on the operation's own day decide its placement.
-    final sameDay = <String, List<BalanceAssertionRow>>{};
+    // Balances confirmed ON OR AFTER the operation's day: the money may or
+    // may not be in them (a bank can take a payment days later). The
+    // person answers; the app never assumes (R3 risk Р1, 2026-11-09).
+    final confirmations = <int>[];
+    var sameDayOnly = true;
     for (final a in own.keys) {
-      final rows =
-          await (db.select(db.balanceAssertions)
-                ..where((b) => b.accountId.equals(a))
-                ..orderBy([(b) => OrderingTerm.asc(b.assertedAtUtc)]))
-              .get();
-      final day = [
-        for (final r in rows)
-          if (_localDate(r.assertedAtUtc) == op.date) r,
-      ];
-      if (day.isNotEmpty) sameDay[a] = day;
+      final rows = await (db.select(
+        db.balanceAssertions,
+      )..where((b) => b.accountId.equals(a))).get();
+      for (final r in rows) {
+        final day = _localDate(r.assertedAtUtc);
+        if (day >= op.date) {
+          confirmations.add(r.assertedAtUtc);
+          if (day != op.date) sameDayOnly = false;
+        }
+      }
     }
     final noon = DateTime(
       op.date.year,
@@ -254,22 +257,34 @@ final class Journal {
     final nowMs = now.millisecondsSinceEpoch;
     var resolved = placement;
     final int at;
-    if (sameDay.isEmpty) {
+    final latest = confirmations.isEmpty
+        ? null
+        : confirmations.reduce((a, b) => a > b ? a : b);
+    if (latest == null) {
       at = noon < nowMs ? noon : nowMs;
       resolved = SameDayPlacement.afterConfirmedBalance;
-    } else {
-      if (resolved == SameDayPlacement.auto) {
+    } else if (resolved == SameDayPlacement.auto) {
+      // Not used by the screens (they require an answer); kept for internal
+      // callers: same day → that day's unexplained difference; an earlier
+      // day → in the later confirmed balance.
+      if (sameDayOnly) {
         resolved = await _guess(own, op.date)
             ? SameDayPlacement.inConfirmedBalance
             : SameDayPlacement.afterConfirmedBalance;
+        at = resolved == SameDayPlacement.inConfirmedBalance
+            ? latest - 1
+            : latest + 1;
+      } else {
+        resolved = SameDayPlacement.inConfirmedBalance;
+        at = noon;
       }
-      final last = sameDay.values
-          .expand((r) => r)
-          .map((r) => r.assertedAtUtc)
-          .reduce((a, b) => a > b ? a : b);
+    } else {
+      // «Уже было в остатке» → just before the latest confirmation (the
+      // anchor rule keeps it exactly as confirmed); «ещё нет» → right after
+      // it, so the balance goes down now. The date stays the person's.
       at = resolved == SameDayPlacement.inConfirmedBalance
-          ? last - 1
-          : last + 1;
+          ? latest - 1
+          : latest + 1;
     }
 
     final main = _Entry(
@@ -308,7 +323,10 @@ final class Journal {
         confirmedAt: anchored.isEmpty
             ? null
             : DateTime.fromMillisecondsSinceEpoch(anchored.first.at),
-        sameDayChoice: sameDay.isNotEmpty,
+        askIncluded: latest != null,
+        latestConfirmation: latest == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(latest),
         placement: resolved,
         unexplainedChange: Money(
           entries

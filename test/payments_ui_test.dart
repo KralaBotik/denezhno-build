@@ -144,7 +144,7 @@ class FakePayments implements PaymentsStore {
       balances: {accountId: (Money(1000000), Money(1000000) - amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      sameDayChoice: false,
+      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
     ),

@@ -88,7 +88,8 @@ final class OperationPreview {
     required this.balances,
     required this.inConfirmedBalance,
     required this.confirmedAt,
-    required this.sameDayChoice,
+    required this.askIncluded,
+    this.latestConfirmation,
     required this.placement,
     required this.unexplainedChange,
   });
@@ -103,9 +104,13 @@ final class OperationPreview {
   /// When that balance was confirmed (null if [inConfirmedBalance] is false).
   final DateTime? confirmedAt;
 
-  /// A balance was confirmed on the same day: the person may switch the
-  /// placement (the app picked [placement] itself).
-  final bool sameDayChoice;
+  /// A balance of an affected account was confirmed on or after the
+  /// operation's date: the person must say whether the money was already in
+  /// it (a bank may post days later). The app never assumes.
+  final bool askIncluded;
+
+  /// The latest such confirmation (for the question).
+  final DateTime? latestConfirmation;
 
   /// The resolved placement; pass it back to record exactly what was shown.
   final SameDayPlacement placement;

@@ -349,7 +349,8 @@ void main() {
         await w.ledger.updateBalances({w.sber: rub(70000)}, at('2026-11-06'));
         final p = await w.payment('2026-11-07', 'Зарплата', '2026-11-05');
         final shown = await w.preview(p, 60000, '2026-11-05', '2026-11-07');
-        expect(shown.sameDayChoice, false); // no question: clearly included
+        // Confirmed after the date: the person is asked (here: «уже были»).
+        expect(shown.askIncluded, true);
         expect(shown.inConfirmedBalance, true);
         await w.receive(p, 60000, '2026-11-05', '2026-11-07');
         expect(await w.balance(), rub(70000));

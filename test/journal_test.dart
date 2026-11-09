@@ -142,7 +142,10 @@ void main() {
       expect(preview.inConfirmedBalance, true);
       expect(preview.balances[sber], (rub(7000), rub(7000)));
       expect(preview.confirmedAt, at('2026-11-03'));
-      expect(preview.sameDayChoice, false);
+      // A confirmation after the operation's date: the screens must ask (the
+      // bank may have taken it later); this internal call passes `auto`.
+      expect(preview.askIncluded, true);
+      expect(preview.latestConfirmation, at('2026-11-03'));
       // Nothing written by a preview.
       expect(await b.db.select(b.db.entryDetails).get(), isEmpty);
 
@@ -241,7 +244,7 @@ void main() {
           date: d('2026-11-05'),
         );
         final p = await b.journal.preview(salary, now: at('2026-11-05', 20));
-        expect(p.sameDayChoice, true);
+        expect(p.askIncluded, true);
         expect(p.placement, SameDayPlacement.inConfirmedBalance);
         expect(p.inConfirmedBalance, true);
         expect(p.balances[sber], (rub(90000), rub(90000)));

@@ -887,7 +887,7 @@
       }
     }
   },
-  "sameDayQuestion": "Сегодня вы уже обновляли остаток «{account}» ({when}). Эта оплата уже была в том остатке?",
+  "sameDayQuestion": "Остаток «{account}» подтверждён {when} — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?",
   "@sameDayQuestion": {
     "placeholders": {
       "account": {
@@ -898,7 +898,7 @@
       }
     }
   },
-  "sameDayIncomeQuestion": "В этот день вы уже обновляли остаток «{account}» ({when}). Эти деньги уже были в том остатке?",
+  "sameDayIncomeQuestion": "Остаток «{account}» подтверждён {when} — в день поступления или позже. Эти деньги уже были в том остатке?",
   "@sameDayIncomeQuestion": {
     "placeholders": {
       "account": {
@@ -909,9 +909,9 @@
       }
     }
   },
-  "sameDayYes": "Да, уже была в остатке",
-  "sameDayNo": "Нет, списание прошло позже",
-  "sameDayIncomeYes": "Да, уже были в остатке",
+  "sameDayYes": "Да, уже была в том остатке",
+  "sameDayNo": "Нет, банк списал позже",
+  "sameDayIncomeYes": "Да, уже были",
   "sameDayIncomeNo": "Нет, пришли позже",
   "similarFound": "На этом счёте уже есть похожая операция: {date}, {amount}{what}. Возможно, этот платёж уже записан.",
   "@similarFound": {

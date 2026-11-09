@@ -1339,22 +1339,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String sameDayQuestion(String account, String when) {
-    return 'Сегодня вы уже обновляли остаток «$account» ($when). Эта оплата уже была в том остатке?';
+    return 'Остаток «$account» подтверждён $when — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?';
   }
 
   @override
   String sameDayIncomeQuestion(String account, String when) {
-    return 'В этот день вы уже обновляли остаток «$account» ($when). Эти деньги уже были в том остатке?';
+    return 'Остаток «$account» подтверждён $when — в день поступления или позже. Эти деньги уже были в том остатке?';
   }
 
   @override
-  String get sameDayYes => 'Да, уже была в остатке';
+  String get sameDayYes => 'Да, уже была в том остатке';
 
   @override
-  String get sameDayNo => 'Нет, списание прошло позже';
+  String get sameDayNo => 'Нет, банк списал позже';
 
   @override
-  String get sameDayIncomeYes => 'Да, уже были в остатке';
+  String get sameDayIncomeYes => 'Да, уже были';
 
   @override
   String get sameDayIncomeNo => 'Нет, пришли позже';

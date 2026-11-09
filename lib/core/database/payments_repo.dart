@@ -41,13 +41,7 @@ final class PaymentsRepo {
             !paid.containsKey((m.flowId, CalendarDate.parse(m.dueOn))))
           (m.flowId, CalendarDate.parse(m.dueOn)),
     };
-    final paidByFigures = <String, int>{};
-    for (final p in live) {
-      if (p.target case CardDue(:final figuresId)) {
-        paidByFigures[figuresId] =
-            (paidByFigures[figuresId] ?? 0) + p.amount.minorUnits;
-      }
-    }
+
     final cards =
         await (db.select(db.accounts)
               ..where(
@@ -64,7 +58,10 @@ final class PaymentsRepo {
                 ..limit(1))
               .getSingleOrNull();
       if (row != null) {
-        figures[card.id] = _figures(row, paidByFigures[row.id] ?? 0);
+        figures[card.id] = _figures(
+          row,
+          await ObligationRepo(db).paidTowardFigures(row),
+        );
       }
     }
     return PaymentsSnapshot(

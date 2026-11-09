@@ -101,7 +101,7 @@ class FakePaymentsStore implements PaymentsStore {
       balances: {accountId: (Money(0), -amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      sameDayChoice: false,
+      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
     ),
@@ -318,7 +318,7 @@ class FakeIncomeStore implements IncomeStore {
       balances: {accountId: (Money(0), amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      sameDayChoice: false,
+      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
     );

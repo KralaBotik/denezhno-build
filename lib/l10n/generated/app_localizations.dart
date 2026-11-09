@@ -2353,31 +2353,31 @@ abstract class AppLocalizations {
   /// No description provided for @sameDayQuestion.
   ///
   /// In ru, this message translates to:
-  /// **'Сегодня вы уже обновляли остаток «{account}» ({when}). Эта оплата уже была в том остатке?'**
+  /// **'Остаток «{account}» подтверждён {when} — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?'**
   String sameDayQuestion(String account, String when);
 
   /// No description provided for @sameDayIncomeQuestion.
   ///
   /// In ru, this message translates to:
-  /// **'В этот день вы уже обновляли остаток «{account}» ({when}). Эти деньги уже были в том остатке?'**
+  /// **'Остаток «{account}» подтверждён {when} — в день поступления или позже. Эти деньги уже были в том остатке?'**
   String sameDayIncomeQuestion(String account, String when);
 
   /// No description provided for @sameDayYes.
   ///
   /// In ru, this message translates to:
-  /// **'Да, уже была в остатке'**
+  /// **'Да, уже была в том остатке'**
   String get sameDayYes;
 
   /// No description provided for @sameDayNo.
   ///
   /// In ru, this message translates to:
-  /// **'Нет, списание прошло позже'**
+  /// **'Нет, банк списал позже'**
   String get sameDayNo;
 
   /// No description provided for @sameDayIncomeYes.
   ///
   /// In ru, this message translates to:
-  /// **'Да, уже были в остатке'**
+  /// **'Да, уже были'**
   String get sameDayIncomeYes;
 
   /// No description provided for @sameDayIncomeNo.

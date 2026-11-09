@@ -136,7 +136,7 @@ void main() {
       date: d(today),
       now: at(today, 10),
     );
-    expect(check.operation.sameDayChoice, true);
+    expect(check.operation.askIncluded, true);
     await expectLater(
       w.pay.pay(
         target,
@@ -529,5 +529,182 @@ void main() {
     expect(snap.legacyMarks, {(rent, d(today))});
     expect(snap.doneMarks, isEmpty);
     expect((await w.forecast()).available, rub(7000));
+  });
+
+  test('9. back-dated payment while the bank had not debited it yet: '
+      'not silently taken as already in the later confirmation', () async {
+    // Rent paid on 7 Nov (bank still pending), balance confirmed on 8 Nov
+    // at 10 000, the payment recorded on 9 Nov with date 7 Nov.
+    final rent = await w.plan(
+      'Аренда',
+      FlowKind.rent,
+      3000,
+      Once(d('2026-11-07')),
+      created: '2026-11-07',
+    );
+    await w.ledger.updateBalances({w.sber: rub(10000)}, at('2026-11-08', 9));
+    final target = PlanDate(rent, d('2026-11-07'));
+    final check = await w.pay.preview(
+      target,
+      amount: rub(3000),
+      accountId: w.sber,
+      date: d('2026-11-07'),
+      now: at('2026-11-09', 10),
+    );
+    // The app must ask instead of assuming «already in the balance».
+    expect(check.operation.askIncluded, true);
+    await expectLater(
+      w.pay.pay(
+        target,
+        amount: rub(3000),
+        accountId: w.sber,
+        date: d('2026-11-07'),
+        now: at('2026-11-09', 10),
+        placement: SameDayPlacement.auto,
+      ),
+      throwsA(isA<InvalidOperation>()),
+    );
+    // «Нет, банк списал позже»: the balance goes down now.
+    final answered = await w.pay.preview(
+      target,
+      amount: rub(3000),
+      accountId: w.sber,
+      date: d('2026-11-07'),
+      now: at('2026-11-09', 10),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    expect(answered.operation.balances[w.sber], (rub(10000), rub(7000)));
+    await w.pay.pay(
+      target,
+      amount: rub(3000),
+      accountId: w.sber,
+      date: d('2026-11-07'),
+      now: at('2026-11-09', 10),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    expect(await w.balance('Сбер'), rub(7000));
+    expect((await w.forecast('2026-11-09')).available, rub(7000));
+    // The operation keeps its date (analytics), and the 8 Nov
+    // confirmation stays true.
+    await w.expectAnchorsHold();
+    // 10 Nov: the bank finally took it — «уже списано».
+    expect((await w.pay.pending()).single.title, 'Аренда');
+    await w.pay.updateBalances({w.sber: rub(7000)}, {}, at('2026-11-10', 9));
+    expect(await w.balance('Сбер'), rub(7000));
+    expect(await w.suspense(), 0);
+    expect(
+      (await Journal(
+        w.db,
+      ).categoryTotals(d('2026-11-07'), d('2026-11-07'))).values.single,
+      rub(3000),
+    );
+    await w.expectAnchorsHold();
+  });
+
+  test(
+    '9b. the same, but the bank had already taken it (answer «да»)',
+    () async {
+      final rent = await w.plan(
+        'Аренда',
+        FlowKind.rent,
+        3000,
+        Once(d('2026-11-07')),
+        created: '2026-11-07',
+      );
+      await w.ledger.updateBalances({w.sber: rub(7000)}, at('2026-11-08', 9));
+      await w.pay.pay(
+        PlanDate(rent, d('2026-11-07')),
+        amount: rub(3000),
+        accountId: w.sber,
+        date: d('2026-11-07'),
+        now: at('2026-11-09', 10),
+        placement: SameDayPlacement.inConfirmedBalance,
+      );
+      expect(await w.balance('Сбер'), rub(7000));
+      expect(await w.suspense(), 0);
+      expect(await w.pay.pending(), isEmpty);
+      await w.expectAnchorsHold();
+    },
+  );
+
+  test('10. card repaid partly through the linked plan: only the rest of '
+      'the bank figure is reserved; new purchases do not reduce it', () async {
+    final card = await w.account('Кредитка', AccountKind.creditCard, 15000);
+    await w.plans.saveCardFigures(
+      CardFigures(
+        id: '',
+        accountId: card,
+        graceAmount: rub(10000),
+        graceDueOn: d('2026-11-15'),
+        minPayment: rub(1000),
+        minDueOn: d('2026-11-15'),
+      ),
+      at(today, 8, 30),
+    );
+    final linked = await w.plan(
+      'Кредитка',
+      FlowKind.otherPayment,
+      4000,
+      Once(d(today)),
+      linkedTo: card,
+    );
+    expect((await w.forecast()).cardPaymentsTotal, rub(10000));
+    // 4 000 through the linked regular payment (a transfer to the card).
+    await w.pay.pay(
+      PlanDate(linked, d(today)),
+      amount: rub(4000),
+      accountId: w.sber,
+      date: d(today),
+      now: at(today, 10),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    var f = await w.forecast();
+    expect(await w.balance('Кредитка'), rub(11000));
+    expect(f.cardPaymentsTotal, rub(6000)); // 10 000 − 4 000, not 10 000
+    expect(f.money, rub(6000));
+    // A new purchase on the card: the debt grows, the bank's figure does
+    // not, and the rest still to pay stays 6 000.
+    final cats = {
+      for (final c in await w.db.select(w.db.categories).get())
+        c.systemKey: c.id,
+    };
+    await Journal(w.db).record(
+      ExpenseOp(
+        accountId: card,
+        categoryId: cats['cafe']!,
+        amount: rub(2000),
+        date: d(today),
+      ),
+      now: at(today, 12),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    f = await w.forecast();
+    expect(await w.balance('Кредитка'), rub(13000));
+    expect(f.cardPaymentsTotal, rub(6000));
+    // Paying the rest through «Внёс» settles the figures.
+    final figures = (await w.plans.payments()).cardFigures[card]!;
+    expect(figures.remainingDue, rub(6000));
+    await w.pay.pay(
+      CardDue(figures.id),
+      amount: rub(6000),
+      accountId: w.sber,
+      date: d(today),
+      now: at(today, 13),
+      placement: SameDayPlacement.afterConfirmedBalance,
+    );
+    f = await w.forecast();
+    expect(f.cardPaymentsTotal, Money(0));
+    await expectLater(
+      w.pay.pay(
+        CardDue(figures.id),
+        amount: rub(1),
+        accountId: w.sber,
+        date: d(today),
+        now: at(today, 14),
+        placement: SameDayPlacement.afterConfirmedBalance,
+        confirmedNotDuplicate: true,
+      ),
+      throwsA(isA<AlreadyPaid>()),
+    );
   });
 }

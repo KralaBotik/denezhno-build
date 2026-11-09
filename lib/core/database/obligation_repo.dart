@@ -149,9 +149,31 @@ final class ObligationRepo {
           db.cardFigures,
         )..where((x) => x.id.equals(figuresId))).getSingle();
         final due = f.graceAmountMinor ?? f.minPaymentMinor ?? 0;
-        final paid = live.fold(0, (s, r) => s + r.amountMinor);
-        if (due > 0 && paid >= due) throw const AlreadyPaid();
+        if (due > 0 && await paidTowardFigures(f) >= due) {
+          throw const AlreadyPaid();
+        }
     }
+  }
+
+  /// What was already repaid of a card's bank figures: every transfer INTO
+  /// the card (through «Внёс», a regular payment linked to the card, or any
+  /// other transfer between own accounts), not cancelled, recorded after
+  /// the figures were entered (earlier repayments are already in the bank's
+  /// figure). Purchases, fees and refunds are not transfers and never
+  /// reduce what is still due.
+  Future<int> paidTowardFigures(CardFiguresRow f) async {
+    final row = await db
+        .customSelect(
+          'SELECT COALESCE(SUM(p.amount_minor), 0) AS s FROM postings p '
+          'JOIN journal_entries e ON e.id = p.entry_id '
+          "WHERE p.account_id = ? AND p.amount_minor > 0 AND e.kind = 'transfer' "
+          'AND e.recorded_at_utc >= ? AND NOT EXISTS (SELECT 1 FROM '
+          'entry_details d WHERE d.reverses_entry_id = e.id)',
+          variables: [Variable(f.accountId), Variable(f.recordedAtUtc)],
+          readsFrom: {db.postings, db.journalEntries, db.entryDetails},
+        )
+        .getSingle();
+    return row.read<int>('s');
   }
 
   /// Expenses and transfers out of [accountId] with the same [amount],
@@ -220,7 +242,7 @@ final class ObligationRepo {
     final op = await _operation(target, amount, accountId, date);
     final journal = Journal(db);
     final shown = await journal.preview(op, now: now, placement: placement);
-    if (shown.sameDayChoice && placement == SameDayPlacement.auto) {
+    if (shown.askIncluded && placement == SameDayPlacement.auto) {
       throw const InvalidOperation('same-day placement must be chosen');
     }
     if (!confirmedNotDuplicate &&
