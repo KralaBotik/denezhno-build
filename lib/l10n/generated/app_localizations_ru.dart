@@ -1146,18 +1146,6 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String receiveAlreadyIn(String account, String when) {
-    return 'Остаток «$account» не изменится: эти деньги уже есть в остатке, который вы подтвердили $when. Неясная разница уменьшится.';
-  }
-
-  @override
-  String get receiveSameDayAfter =>
-      'Нет, деньги пришли после обновления остатка';
-
-  @override
-  String get receiveSameDayBefore => 'Деньги уже были в том остатке';
-
-  @override
   String receiveLess(String expected) {
     return 'Ожидалось $expected';
   }
@@ -1333,33 +1321,6 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String payAlreadyIn(String account, String when) {
-    return 'Остаток «$account» не изменится: списание уже есть в остатке, который вы подтвердили $when.';
-  }
-
-  @override
-  String sameDayQuestion(String account, String when) {
-    return 'Остаток «$account» подтверждён $when — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?';
-  }
-
-  @override
-  String sameDayIncomeQuestion(String account, String when) {
-    return 'Остаток «$account» подтверждён $when — в день поступления или позже. Эти деньги уже были в том остатке?';
-  }
-
-  @override
-  String get sameDayYes => 'Да, уже была в том остатке';
-
-  @override
-  String get sameDayNo => 'Нет, банк списал позже';
-
-  @override
-  String get sameDayIncomeYes => 'Да, уже были';
-
-  @override
-  String get sameDayIncomeNo => 'Нет, пришли позже';
-
-  @override
   String similarFound(String date, String amount, String what) {
     return 'На этом счёте уже есть похожая операция: $date, $amount$what. Возможно, этот платёж уже записан.';
   }
@@ -1417,11 +1378,21 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pendingHint =>
-      'Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.';
+      'Ответьте по каждому счёту, который сверяете сейчас. Иначе остаток посчитается неверно.';
 
   @override
   String pendingLine(String title, String amount, String date) {
     return '$title · $amount · $date';
+  }
+
+  @override
+  String pendingDebitQuestion(String account) {
+    return '«$account»: Банк уже списал деньги?';
+  }
+
+  @override
+  String pendingCreditQuestion(String account) {
+    return '«$account»: Банк уже зачислил перевод?';
   }
 
   @override
@@ -1431,8 +1402,55 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pendingNotYet => 'Ещё не списано';
 
   @override
-  String get pendingNeedAnswer => 'Ответьте по каждой оплате выше';
+  String get pendingCredited => 'Уже зачислено';
+
+  @override
+  String get pendingNotYetCredited => 'Ещё не зачислено';
+
+  @override
+  String get pendingNeedAnswer => 'Ответьте на каждый вопрос выше';
 
   @override
   String get payNoAccounts => 'Сначала добавьте счёт, с которого платите';
+
+  @override
+  String confirmBalanceQuestion(String account, String when) {
+    return 'Остаток «$account» подтверждён $when — в день операции или позже. Эта операция уже была в нём?';
+  }
+
+  @override
+  String confirmDebtQuestion(String account, String when) {
+    return 'Долг «$account» подтверждён $when — в день операции или позже. Этот платёж уже был в нём учтён?';
+  }
+
+  @override
+  String get confirmYes => 'Уже была';
+
+  @override
+  String get confirmNo => 'Ещё нет';
+
+  @override
+  String figuresQuestion(String due, String date) {
+    return 'Сумма к оплате $due, введённая $date, уже учитывает этот платёж?';
+  }
+
+  @override
+  String get figuresYes => 'Да, уже учтён';
+
+  @override
+  String get figuresNo => 'Нет, ещё не учтён';
+
+  @override
+  String get payRecheck =>
+      'Пока вы отвечали, изменились сверка или цифры банка. Ничего не записано — ответьте на вопросы ещё раз.';
+
+  @override
+  String get payFiguresChanged =>
+      'Цифры банка по этой кредитке изменились. Ничего не записано — вернитесь и откройте оплату по актуальной сумме.';
+
+  @override
+  String get payBackToPayments => 'Вернуться';
+
+  @override
+  String get enterBankAmount => 'Введите сумму из банка';
 }

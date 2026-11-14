@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:typed_data';
 
 import 'package:denezhno/core/calendar_date.dart';
@@ -50,7 +52,7 @@ class FakeAccountsStore implements AccountsStore {
   @override
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> m, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) async => BalanceUpdateResult(changed: m.length, unexplained: Money(0));
   @override
   Future<void> setIncludedInForecast(String id, bool included) async {}
@@ -95,13 +97,12 @@ class FakePaymentsStore implements PaymentsStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) async => PaymentCheck(
     OperationPreview(
       balances: {accountId: (Money(0), -amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
     ),
@@ -114,7 +115,8 @@ class FakePaymentsStore implements PaymentsStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
+    FiguresAnswer? figuresAnswer,
     bool confirmedNotDuplicate = false,
   }) async {
     paidLog.add((target, amount, accountId));
@@ -128,10 +130,16 @@ class FakePaymentsStore implements PaymentsStore {
 
   /// Payments recorded after the last confirmation (for the question in
   /// «Обновить остатки»).
-  final pending = <PendingDebit>[];
+  final pending = <PendingSide>[];
+
+  /// When set, [pendingSides] waits for it (the list is «loading»).
+  Completer<void>? pendingGate;
 
   @override
-  Future<List<PendingDebit>> pendingDebits() async => List.of(pending);
+  Future<List<PendingSide>> pendingSides() async {
+    await pendingGate?.future;
+    return List.of(pending);
+  }
 
   @override
   Future<void> saveCardFigures(CardFigures f) async => figures[f.accountId] = f;
@@ -311,14 +319,13 @@ class FakeIncomeStore implements IncomeStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) async {
     previews.add((key, amount));
     return OperationPreview(
       balances: {accountId: (Money(0), amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
     );
@@ -330,7 +337,7 @@ class FakeIncomeStore implements IncomeStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
     ShortfallChoice shortfall = ShortfallChoice.restLater,
     CalendarDate? restOn,
   }) async {

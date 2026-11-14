@@ -2977,6 +2977,123 @@
         "name": "obligation_payments_no_delete",
         "sql": "CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments\nBEGIN SELECT RAISE(ABORT, 'payments are append-only'); END;"
       }
+    },
+    {
+      "id": 46,
+      "references": [
+        23,
+        9
+      ],
+      "type": "table",
+      "data": {
+        "name": "figures_transfer_answers",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "figures_id",
+            "getter_name": "figuresId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES card_figures(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "card_figures",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "entry_id",
+            "getter_name": "entryId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES journal_entries(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "journal_entries",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "included",
+            "getter_name": "included",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (included IN (0, 1))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "answered_at_utc",
+            "getter_name": "answeredAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (typeof(answered_at_utc) = 'integer')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(figures_id, entry_id)"
+        ],
+        "explicit_pk": [
+          "figures_id",
+          "entry_id"
+        ]
+      }
+    },
+    {
+      "id": 47,
+      "references": [
+        46
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 46,
+        "references_in_body": [
+          46
+        ],
+        "name": "figures_transfer_answers_no_update",
+        "sql": "CREATE TRIGGER figures_transfer_answers_no_update BEFORE UPDATE ON figures_transfer_answers\nBEGIN SELECT RAISE(ABORT, 'answers are append-only'); END;"
+      }
+    },
+    {
+      "id": 48,
+      "references": [
+        46
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 46,
+        "references_in_body": [
+          46
+        ],
+        "name": "figures_transfer_answers_no_delete",
+        "sql": "CREATE TRIGGER figures_transfer_answers_no_delete BEFORE DELETE ON figures_transfer_answers\nBEGIN SELECT RAISE(ABORT, 'answers are append-only'); END;"
+      }
     }
   ],
   "fixed_sql": [
@@ -3391,6 +3508,33 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments BEGIN SELECT RAISE (ABORT, 'payments are append-only');END"
+        }
+      ]
+    },
+    {
+      "name": "figures_transfer_answers",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"figures_transfer_answers\" (\"figures_id\" TEXT NOT NULL REFERENCES card_figures(id), \"entry_id\" TEXT NOT NULL REFERENCES journal_entries(id), \"included\" INTEGER NOT NULL CHECK (included IN (0, 1)), \"answered_at_utc\" INTEGER NOT NULL CHECK (typeof(answered_at_utc) = 'integer'), PRIMARY KEY(figures_id, entry_id));"
+        }
+      ]
+    },
+    {
+      "name": "figures_transfer_answers_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER figures_transfer_answers_no_update BEFORE UPDATE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, 'answers are append-only');END"
+        }
+      ]
+    },
+    {
+      "name": "figures_transfer_answers_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER figures_transfer_answers_no_delete BEFORE DELETE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, 'answers are append-only');END"
         }
       ]
     }

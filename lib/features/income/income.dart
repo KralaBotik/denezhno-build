@@ -2,7 +2,8 @@ import '../../core/calendar/workdays.dart';
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
 import '../forecast/safe_to_spend.dart' show ForecastPeriod;
-import '../operations/operations.dart' show OperationPreview, SameDayPlacement;
+import '../operations/operations.dart'
+    show ConfirmationAnswer, OperationPreview;
 import '../payments/payments.dart' show Cadence, Monthly, Weekly, Yearly, Once;
 
 /// R3 Э3: income — plan, expectation and fact kept apart (docs/r3-plan.md).
@@ -401,15 +402,16 @@ abstract interface class IncomeStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement,
+    Map<String, ConfirmationAnswer> answers,
   });
 
+  /// Every confirmation question must be answered ([answers]).
   Future<void> receivePayment(
     PaymentKey key, {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
     ShortfallChoice shortfall,
     CalendarDate? restOn,
   });

@@ -5,9 +5,10 @@ import 'package:denezhno/core/money/money.dart';
 import 'package:denezhno/core/security/storage_location.dart';
 import 'package:denezhno/core/storage/local_store.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
-import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/answers.dart';
 
 const _key = '0404040404040404040404040404040404040404040404040404040404040404';
 CalendarDate d(String s) => CalendarDate.parse(s);
@@ -139,12 +140,22 @@ void main() {
     expect(current.graceAmount, Money(840000));
     expect(current.settled, false);
     // Paid by a transfer from the debit account (not an expense).
+    final check = await store.previewPayment(
+      CardDue(current.id),
+      amount: Money(840000),
+      accountId: debit,
+      date: CalendarDate.today(),
+    );
+    // Figures entered today, paid today: the person says these figures do
+    // not include it yet.
+    expect(check.figures?.figuresId, current.id);
     await store.pay(
       CardDue(current.id),
       amount: Money(840000),
       accountId: debit,
       date: CalendarDate.today(),
-      placement: SameDayPlacement.afterConfirmedBalance,
+      answers: answerAll(check.operation, included: false),
+      figuresAnswer: FiguresAnswer(check.figures!.figuresId, included: false),
     );
     final paid = (await store.payments()).cardFigures[card]!;
     expect(

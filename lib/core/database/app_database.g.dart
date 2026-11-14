@@ -11340,6 +11340,346 @@ class ObligationPaymentsCompanion
   }
 }
 
+class FiguresTransferAnswers extends Table
+    with TableInfo<FiguresTransferAnswers, FiguresTransferAnswerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  FiguresTransferAnswers(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _figuresIdMeta = const VerificationMeta(
+    'figuresId',
+  );
+  late final GeneratedColumn<String> figuresId = GeneratedColumn<String>(
+    'figures_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES card_figures(id)',
+  );
+  static const VerificationMeta _entryIdMeta = const VerificationMeta(
+    'entryId',
+  );
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES journal_entries(id)',
+  );
+  static const VerificationMeta _includedMeta = const VerificationMeta(
+    'included',
+  );
+  late final GeneratedColumn<int> included = GeneratedColumn<int>(
+    'included',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (included IN (0, 1))',
+  );
+  static const VerificationMeta _answeredAtUtcMeta = const VerificationMeta(
+    'answeredAtUtc',
+  );
+  late final GeneratedColumn<int> answeredAtUtc = GeneratedColumn<int>(
+    'answered_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (typeof(answered_at_utc) = \'integer\')',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    figuresId,
+    entryId,
+    included,
+    answeredAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'figures_transfer_answers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FiguresTransferAnswerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('figures_id')) {
+      context.handle(
+        _figuresIdMeta,
+        figuresId.isAcceptableOrUnknown(data['figures_id']!, _figuresIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_figuresIdMeta);
+    }
+    if (data.containsKey('entry_id')) {
+      context.handle(
+        _entryIdMeta,
+        entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryIdMeta);
+    }
+    if (data.containsKey('included')) {
+      context.handle(
+        _includedMeta,
+        included.isAcceptableOrUnknown(data['included']!, _includedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_includedMeta);
+    }
+    if (data.containsKey('answered_at_utc')) {
+      context.handle(
+        _answeredAtUtcMeta,
+        answeredAtUtc.isAcceptableOrUnknown(
+          data['answered_at_utc']!,
+          _answeredAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {figuresId, entryId};
+  @override
+  FiguresTransferAnswerRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FiguresTransferAnswerRow(
+      figuresId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}figures_id'],
+      )!,
+      entryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_id'],
+      )!,
+      included: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}included'],
+      )!,
+      answeredAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}answered_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  FiguresTransferAnswers createAlias(String alias) {
+    return FiguresTransferAnswers(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'PRIMARY KEY(figures_id, entry_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class FiguresTransferAnswerRow extends DataClass
+    implements Insertable<FiguresTransferAnswerRow> {
+  final String figuresId;
+  final String entryId;
+  final int included;
+  final int answeredAtUtc;
+  const FiguresTransferAnswerRow({
+    required this.figuresId,
+    required this.entryId,
+    required this.included,
+    required this.answeredAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['figures_id'] = Variable<String>(figuresId);
+    map['entry_id'] = Variable<String>(entryId);
+    map['included'] = Variable<int>(included);
+    map['answered_at_utc'] = Variable<int>(answeredAtUtc);
+    return map;
+  }
+
+  FiguresTransferAnswersCompanion toCompanion(bool nullToAbsent) {
+    return FiguresTransferAnswersCompanion(
+      figuresId: Value(figuresId),
+      entryId: Value(entryId),
+      included: Value(included),
+      answeredAtUtc: Value(answeredAtUtc),
+    );
+  }
+
+  factory FiguresTransferAnswerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FiguresTransferAnswerRow(
+      figuresId: serializer.fromJson<String>(json['figures_id']),
+      entryId: serializer.fromJson<String>(json['entry_id']),
+      included: serializer.fromJson<int>(json['included']),
+      answeredAtUtc: serializer.fromJson<int>(json['answered_at_utc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'figures_id': serializer.toJson<String>(figuresId),
+      'entry_id': serializer.toJson<String>(entryId),
+      'included': serializer.toJson<int>(included),
+      'answered_at_utc': serializer.toJson<int>(answeredAtUtc),
+    };
+  }
+
+  FiguresTransferAnswerRow copyWith({
+    String? figuresId,
+    String? entryId,
+    int? included,
+    int? answeredAtUtc,
+  }) => FiguresTransferAnswerRow(
+    figuresId: figuresId ?? this.figuresId,
+    entryId: entryId ?? this.entryId,
+    included: included ?? this.included,
+    answeredAtUtc: answeredAtUtc ?? this.answeredAtUtc,
+  );
+  FiguresTransferAnswerRow copyWithCompanion(
+    FiguresTransferAnswersCompanion data,
+  ) {
+    return FiguresTransferAnswerRow(
+      figuresId: data.figuresId.present ? data.figuresId.value : this.figuresId,
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      included: data.included.present ? data.included.value : this.included,
+      answeredAtUtc: data.answeredAtUtc.present
+          ? data.answeredAtUtc.value
+          : this.answeredAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FiguresTransferAnswerRow(')
+          ..write('figuresId: $figuresId, ')
+          ..write('entryId: $entryId, ')
+          ..write('included: $included, ')
+          ..write('answeredAtUtc: $answeredAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(figuresId, entryId, included, answeredAtUtc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FiguresTransferAnswerRow &&
+          other.figuresId == this.figuresId &&
+          other.entryId == this.entryId &&
+          other.included == this.included &&
+          other.answeredAtUtc == this.answeredAtUtc);
+}
+
+class FiguresTransferAnswersCompanion
+    extends UpdateCompanion<FiguresTransferAnswerRow> {
+  final Value<String> figuresId;
+  final Value<String> entryId;
+  final Value<int> included;
+  final Value<int> answeredAtUtc;
+  final Value<int> rowid;
+  const FiguresTransferAnswersCompanion({
+    this.figuresId = const Value.absent(),
+    this.entryId = const Value.absent(),
+    this.included = const Value.absent(),
+    this.answeredAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FiguresTransferAnswersCompanion.insert({
+    required String figuresId,
+    required String entryId,
+    required int included,
+    required int answeredAtUtc,
+    this.rowid = const Value.absent(),
+  }) : figuresId = Value(figuresId),
+       entryId = Value(entryId),
+       included = Value(included),
+       answeredAtUtc = Value(answeredAtUtc);
+  static Insertable<FiguresTransferAnswerRow> custom({
+    Expression<String>? figuresId,
+    Expression<String>? entryId,
+    Expression<int>? included,
+    Expression<int>? answeredAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (figuresId != null) 'figures_id': figuresId,
+      if (entryId != null) 'entry_id': entryId,
+      if (included != null) 'included': included,
+      if (answeredAtUtc != null) 'answered_at_utc': answeredAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FiguresTransferAnswersCompanion copyWith({
+    Value<String>? figuresId,
+    Value<String>? entryId,
+    Value<int>? included,
+    Value<int>? answeredAtUtc,
+    Value<int>? rowid,
+  }) {
+    return FiguresTransferAnswersCompanion(
+      figuresId: figuresId ?? this.figuresId,
+      entryId: entryId ?? this.entryId,
+      included: included ?? this.included,
+      answeredAtUtc: answeredAtUtc ?? this.answeredAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (figuresId.present) {
+      map['figures_id'] = Variable<String>(figuresId.value);
+    }
+    if (entryId.present) {
+      map['entry_id'] = Variable<String>(entryId.value);
+    }
+    if (included.present) {
+      map['included'] = Variable<int>(included.value);
+    }
+    if (answeredAtUtc.present) {
+      map['answered_at_utc'] = Variable<int>(answeredAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FiguresTransferAnswersCompanion(')
+          ..write('figuresId: $figuresId, ')
+          ..write('entryId: $entryId, ')
+          ..write('included: $included, ')
+          ..write('answeredAtUtc: $answeredAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11451,6 +11791,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments BEGIN SELECT RAISE (ABORT, \'payments are append-only\');END',
     'obligation_payments_no_delete',
   );
+  late final FiguresTransferAnswers figuresTransferAnswers =
+      FiguresTransferAnswers(this);
+  late final Trigger figuresTransferAnswersNoUpdate = Trigger(
+    'CREATE TRIGGER figures_transfer_answers_no_update BEFORE UPDATE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, \'answers are append-only\');END',
+    'figures_transfer_answers_no_update',
+  );
+  late final Trigger figuresTransferAnswersNoDelete = Trigger(
+    'CREATE TRIGGER figures_transfer_answers_no_delete BEFORE DELETE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, \'answers are append-only\');END',
+    'figures_transfer_answers_no_delete',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11502,6 +11852,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     obligationPaymentsByCard,
     obligationPaymentsNoUpdate,
     obligationPaymentsNoDelete,
+    figuresTransferAnswers,
+    figuresTransferAnswersNoUpdate,
+    figuresTransferAnswersNoDelete,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -11585,6 +11938,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'obligation_payments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'figures_transfer_answers',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'figures_transfer_answers',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [],
@@ -16540,6 +16907,30 @@ final class $JournalEntriesReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    FiguresTransferAnswers,
+    List<FiguresTransferAnswerRow>
+  >
+  _figuresTransferAnswersRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.figuresTransferAnswers,
+        aliasName: 'journal_entries__id__figures_transfer_answers__entry_id',
+      );
+
+  $FiguresTransferAnswersProcessedTableManager get figuresTransferAnswersRefs {
+    final manager = $FiguresTransferAnswersTableManager(
+      $_db,
+      $_db.figuresTransferAnswers,
+    ).filter((f) => f.entryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _figuresTransferAnswersRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $JournalEntriesFilterComposer
@@ -16754,6 +17145,31 @@ class $JournalEntriesFilterComposer
           }) => $ObligationPaymentsFilterComposer(
             $db: $db,
             $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> figuresTransferAnswersRefs(
+    Expression<bool> Function($FiguresTransferAnswersFilterComposer f) f,
+  ) {
+    final $FiguresTransferAnswersFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.figuresTransferAnswers,
+      getReferencedColumn: (t) => t.entryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FiguresTransferAnswersFilterComposer(
+            $db: $db,
+            $table: $db.figuresTransferAnswers,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -17102,6 +17518,31 @@ class $JournalEntriesAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> figuresTransferAnswersRefs<T extends Object>(
+    Expression<T> Function($FiguresTransferAnswersAnnotationComposer a) f,
+  ) {
+    final $FiguresTransferAnswersAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.figuresTransferAnswers,
+      getReferencedColumn: (t) => t.entryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FiguresTransferAnswersAnnotationComposer(
+            $db: $db,
+            $table: $db.figuresTransferAnswers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $JournalEntriesTableManager
@@ -17126,6 +17567,7 @@ class $JournalEntriesTableManager
             bool balanceAssertionsRefs,
             bool incomeReceiptsRefs,
             bool obligationPaymentsRefs,
+            bool figuresTransferAnswersRefs,
           })
         > {
   $JournalEntriesTableManager(_$AppDatabase db, JournalEntries table)
@@ -17201,6 +17643,7 @@ class $JournalEntriesTableManager
                 balanceAssertionsRefs = false,
                 incomeReceiptsRefs = false,
                 obligationPaymentsRefs = false,
+                figuresTransferAnswersRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -17209,6 +17652,7 @@ class $JournalEntriesTableManager
                     if (balanceAssertionsRefs) db.balanceAssertions,
                     if (incomeReceiptsRefs) db.incomeReceipts,
                     if (obligationPaymentsRefs) db.obligationPayments,
+                    if (figuresTransferAnswersRefs) db.figuresTransferAnswers,
                   ],
                   addJoins:
                       <
@@ -17355,6 +17799,26 @@ class $JournalEntriesTableManager
                           referencedColumn: 'entry_id',
                           typedResults: items,
                         ),
+                      if (figuresTransferAnswersRefs)
+                        await $_getPrefetchedDataByColumns<
+                          JournalEntryRow,
+                          JournalEntries,
+                          FiguresTransferAnswerRow,
+                          FiguresTransferAnswers
+                        >(
+                          currentTable: table,
+                          referencedTable: $JournalEntriesReferences
+                              ._figuresTransferAnswersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $JournalEntriesReferences(
+                                db,
+                                table,
+                                p0,
+                              ).figuresTransferAnswersRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'entry_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -17384,6 +17848,7 @@ typedef $JournalEntriesProcessedTableManager =
         bool balanceAssertionsRefs,
         bool incomeReceiptsRefs,
         bool obligationPaymentsRefs,
+        bool figuresTransferAnswersRefs,
       })
     >;
 typedef $PostingsCreateCompanionBuilder = PostingsCompanion Function({
@@ -20238,6 +20703,30 @@ final class $CardFiguresReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    FiguresTransferAnswers,
+    List<FiguresTransferAnswerRow>
+  >
+  _figuresTransferAnswersRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.figuresTransferAnswers,
+        aliasName: 'card_figures__id__figures_transfer_answers__figures_id',
+      );
+
+  $FiguresTransferAnswersProcessedTableManager get figuresTransferAnswersRefs {
+    final manager = $FiguresTransferAnswersTableManager(
+      $_db,
+      $_db.figuresTransferAnswers,
+    ).filter((f) => f.figuresId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _figuresTransferAnswersRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $CardFiguresFilterComposer extends Composer<_$AppDatabase, CardFigures> {
@@ -20345,6 +20834,31 @@ class $CardFiguresFilterComposer extends Composer<_$AppDatabase, CardFigures> {
           }) => $ObligationPaymentsFilterComposer(
             $db: $db,
             $table: $db.obligationPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> figuresTransferAnswersRefs(
+    Expression<bool> Function($FiguresTransferAnswersFilterComposer f) f,
+  ) {
+    final $FiguresTransferAnswersFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.figuresTransferAnswers,
+      getReferencedColumn: (t) => t.figuresId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FiguresTransferAnswersFilterComposer(
+            $db: $db,
+            $table: $db.figuresTransferAnswers,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -20556,6 +21070,31 @@ class $CardFiguresAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> figuresTransferAnswersRefs<T extends Object>(
+    Expression<T> Function($FiguresTransferAnswersAnnotationComposer a) f,
+  ) {
+    final $FiguresTransferAnswersAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.figuresTransferAnswers,
+      getReferencedColumn: (t) => t.figuresId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $FiguresTransferAnswersAnnotationComposer(
+            $db: $db,
+            $table: $db.figuresTransferAnswers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $CardFiguresTableManager
@@ -20575,6 +21114,7 @@ class $CardFiguresTableManager
             bool accountId,
             bool source,
             bool obligationPaymentsRefs,
+            bool figuresTransferAnswersRefs,
           })
         > {
   $CardFiguresTableManager(_$AppDatabase db, CardFigures table)
@@ -20649,11 +21189,13 @@ class $CardFiguresTableManager
                 accountId = false,
                 source = false,
                 obligationPaymentsRefs = false,
+                figuresTransferAnswersRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (obligationPaymentsRefs) db.obligationPayments,
+                    if (figuresTransferAnswersRefs) db.figuresTransferAnswers,
                   ],
                   addJoins:
                       <
@@ -20718,6 +21260,26 @@ class $CardFiguresTableManager
                           referencedColumn: 'card_figures_id',
                           typedResults: items,
                         ),
+                      if (figuresTransferAnswersRefs)
+                        await $_getPrefetchedDataByColumns<
+                          CardFiguresRow,
+                          CardFigures,
+                          FiguresTransferAnswerRow,
+                          FiguresTransferAnswers
+                        >(
+                          currentTable: table,
+                          referencedTable: $CardFiguresReferences
+                              ._figuresTransferAnswersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $CardFiguresReferences(
+                                db,
+                                table,
+                                p0,
+                              ).figuresTransferAnswersRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'figures_id',
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -20742,6 +21304,7 @@ typedef $CardFiguresProcessedTableManager =
         bool accountId,
         bool source,
         bool obligationPaymentsRefs,
+        bool figuresTransferAnswersRefs,
       })
     >;
 typedef $CategoryGroupsCreateCompanionBuilder =
@@ -26124,6 +26687,401 @@ typedef $ObligationPaymentsProcessedTableManager =
       ObligationPaymentRow,
       PrefetchHooks Function({bool flowId, bool cardFiguresId, bool entryId})
     >;
+typedef $FiguresTransferAnswersCreateCompanionBuilder =
+    FiguresTransferAnswersCompanion Function({
+      required String figuresId,
+      required String entryId,
+      required int included,
+      required int answeredAtUtc,
+      Value<int> rowid,
+    });
+typedef $FiguresTransferAnswersUpdateCompanionBuilder =
+    FiguresTransferAnswersCompanion Function({
+      Value<String> figuresId,
+      Value<String> entryId,
+      Value<int> included,
+      Value<int> answeredAtUtc,
+      Value<int> rowid,
+    });
+
+final class $FiguresTransferAnswersReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          FiguresTransferAnswers,
+          FiguresTransferAnswerRow
+        > {
+  $FiguresTransferAnswersReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static CardFigures _figuresIdTable(_$AppDatabase db) => db.cardFigures
+      .createAlias('figures_transfer_answers__figures_id__card_figures__id');
+
+  $CardFiguresProcessedTableManager get figuresId {
+    final $_column = $_itemColumn<String>('figures_id')!;
+
+    final manager = $CardFiguresTableManager(
+      $_db,
+      $_db.cardFigures,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_figuresIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static JournalEntries _entryIdTable(_$AppDatabase db) => db.journalEntries
+      .createAlias('figures_transfer_answers__entry_id__journal_entries__id');
+
+  $JournalEntriesProcessedTableManager get entryId {
+    final $_column = $_itemColumn<String>('entry_id')!;
+
+    final manager = $JournalEntriesTableManager(
+      $_db,
+      $_db.journalEntries,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_entryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $FiguresTransferAnswersFilterComposer
+    extends Composer<_$AppDatabase, FiguresTransferAnswers> {
+  $FiguresTransferAnswersFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get included => $composableBuilder(
+    column: $table.included,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $CardFiguresFilterComposer get figuresId {
+    final $CardFiguresFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.figuresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresFilterComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesFilterComposer get entryId {
+    final $JournalEntriesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesFilterComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FiguresTransferAnswersOrderingComposer
+    extends Composer<_$AppDatabase, FiguresTransferAnswers> {
+  $FiguresTransferAnswersOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get included => $composableBuilder(
+    column: $table.included,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $CardFiguresOrderingComposer get figuresId {
+    final $CardFiguresOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.figuresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresOrderingComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesOrderingComposer get entryId {
+    final $JournalEntriesOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesOrderingComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FiguresTransferAnswersAnnotationComposer
+    extends Composer<_$AppDatabase, FiguresTransferAnswers> {
+  $FiguresTransferAnswersAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get included =>
+      $composableBuilder(column: $table.included, builder: (column) => column);
+
+  GeneratedColumn<int> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => column,
+  );
+
+  $CardFiguresAnnotationComposer get figuresId {
+    final $CardFiguresAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.figuresId,
+      referencedTable: $db.cardFigures,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $CardFiguresAnnotationComposer(
+            $db: $db,
+            $table: $db.cardFigures,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $JournalEntriesAnnotationComposer get entryId {
+    final $JournalEntriesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.journalEntries,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $JournalEntriesAnnotationComposer(
+            $db: $db,
+            $table: $db.journalEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $FiguresTransferAnswersTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          FiguresTransferAnswers,
+          FiguresTransferAnswerRow,
+          $FiguresTransferAnswersFilterComposer,
+          $FiguresTransferAnswersOrderingComposer,
+          $FiguresTransferAnswersAnnotationComposer,
+          $FiguresTransferAnswersCreateCompanionBuilder,
+          $FiguresTransferAnswersUpdateCompanionBuilder,
+          (FiguresTransferAnswerRow, $FiguresTransferAnswersReferences),
+          FiguresTransferAnswerRow,
+          PrefetchHooks Function({bool figuresId, bool entryId})
+        > {
+  $FiguresTransferAnswersTableManager(
+    _$AppDatabase db,
+    FiguresTransferAnswers table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $FiguresTransferAnswersFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $FiguresTransferAnswersOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $FiguresTransferAnswersAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> figuresId = const Value.absent(),
+                Value<String> entryId = const Value.absent(),
+                Value<int> included = const Value.absent(),
+                Value<int> answeredAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FiguresTransferAnswersCompanion(
+                figuresId: figuresId,
+                entryId: entryId,
+                included: included,
+                answeredAtUtc: answeredAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String figuresId,
+                required String entryId,
+                required int included,
+                required int answeredAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => FiguresTransferAnswersCompanion.insert(
+                figuresId: figuresId,
+                entryId: entryId,
+                included: included,
+                answeredAtUtc: answeredAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<FiguresTransferAnswers, FiguresTransferAnswerRow>(
+                    table,
+                  ),
+                  $FiguresTransferAnswersReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({figuresId = false, entryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (figuresId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.figuresId,
+                        referencedTable: $FiguresTransferAnswersReferences
+                            ._figuresIdTable(db),
+                        referencedColumn: $FiguresTransferAnswersReferences
+                            ._figuresIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (entryId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.entryId,
+                        referencedTable: $FiguresTransferAnswersReferences
+                            ._entryIdTable(db),
+                        referencedColumn: $FiguresTransferAnswersReferences
+                            ._entryIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $FiguresTransferAnswersProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      FiguresTransferAnswers,
+      FiguresTransferAnswerRow,
+      $FiguresTransferAnswersFilterComposer,
+      $FiguresTransferAnswersOrderingComposer,
+      $FiguresTransferAnswersAnnotationComposer,
+      $FiguresTransferAnswersCreateCompanionBuilder,
+      $FiguresTransferAnswersUpdateCompanionBuilder,
+      (FiguresTransferAnswerRow, $FiguresTransferAnswersReferences),
+      FiguresTransferAnswerRow,
+      PrefetchHooks Function({bool figuresId, bool entryId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -26179,4 +27137,6 @@ class $AppDatabaseManager {
       $FlowTrackingTableManager(_db, _db.flowTracking);
   $ObligationPaymentsTableManager get obligationPayments =>
       $ObligationPaymentsTableManager(_db, _db.obligationPayments);
+  $FiguresTransferAnswersTableManager get figuresTransferAnswers =>
+      $FiguresTransferAnswersTableManager(_db, _db.figuresTransferAnswers);
 }

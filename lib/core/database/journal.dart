@@ -32,20 +32,29 @@ final class Journal {
   static const _reversible = {'income', 'expense', 'transfer', 'refund'};
 
   /// What [op] will do, without writing anything.
+  ///
+  /// [answers]: the person's answer per account, about a specific
+  /// confirmation (an answer about an older confirmation does not apply).
+  /// Otherwise [placement] applies to every question; `auto` is a fallback guess for
+  /// internal callers only — the stores require answers.
   Future<OperationPreview> preview(
     Operation op, {
     required DateTime now,
     SameDayPlacement placement = SameDayPlacement.auto,
-  }) => db.transaction(() async => (await _plan(op, placement, now)).preview);
+    Map<String, ConfirmationAnswer> answers = const {},
+  }) => db.transaction(
+    () async => (await _plan(op, placement, now, answers)).preview,
+  );
 
-  /// Books [op] in one transaction. Pass the placement returned by
-  /// [preview] so that exactly what was shown is written.
+  /// Books [op] in one transaction, exactly as [preview] shows it for the
+  /// same arguments.
   Future<RecordedOperation> record(
     Operation op, {
     required DateTime now,
     SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) => db.transaction(() async {
-    final plan = await _plan(op, placement, now);
+    final plan = await _plan(op, placement, now, answers);
     await _write(plan.entries, now);
     return RecordedOperation(plan.entries.first.id, plan.preview);
   });
@@ -99,6 +108,46 @@ final class Journal {
         await _write(entries, now);
         return entries.first.id;
       });
+
+  /// «Ещё нет» at a balance update: the part of [causedBy] still to reach
+  /// [accountId] ([effect], stored units) is kept out of the balance about
+  /// to be confirmed at [at] — a correction against «Невыясненное» at that
+  /// very moment. Call before the confirmation is written; then [release].
+  Future<void> holdOut(
+    String causedBy,
+    String accountId,
+    int effect,
+    int at,
+    DateTime now,
+  ) => _correction(causedBy, accountId, -effect, at, now);
+
+  /// The held-out part takes effect again right after the confirmation.
+  Future<void> release(
+    String causedBy,
+    String accountId,
+    int effect,
+    int at,
+    DateTime now,
+  ) => _correction(causedBy, accountId, effect, at, now);
+
+  Future<void> _correction(
+    String causedBy,
+    String accountId,
+    int amount,
+    int at,
+    DateTime now,
+  ) async {
+    final suspense = await _suspense();
+    await _write([
+      _Entry(
+        kind: 'anchor_correction',
+        at: at,
+        occurredOn: _localDate(at),
+        lines: [(accountId, amount), (suspense, -amount)],
+        causedBy: causedBy,
+      ),
+    ], now);
+  }
 
   /// Spending (expense categories, positive = spent) and income (positive =
   /// received) per category id for operations dated [from]..[to]. Only the
@@ -184,6 +233,7 @@ final class Journal {
     Operation op,
     SameDayPlacement placement,
     DateTime now,
+    Map<String, ConfirmationAnswer> answers,
   ) async {
     if (op.amount.minorUnits <= 0 || op.amount.currency != Currency.rub) {
       throw const InvalidOperation('amount');
@@ -231,23 +281,66 @@ final class Journal {
         if (await _isOwn(l.$1)) l.$1: l.$2,
     };
 
-    // Balances confirmed ON OR AFTER the operation's day: the money may or
-    // may not be in them (a bank can take a payment days later). The
-    // person answers; the app never assumes (R3 risk Р1, 2026-11-09).
-    final confirmations = <int>[];
-    var sameDayOnly = true;
+    // Per account: its latest balance confirmed ON OR AFTER the
+    // operation's day, and the answer about THAT confirmation — was the
+    // money already in it? The two sides of a transfer can be posted at
+    // different times, so each account is answered separately (R3 review
+    // 2026-11-14). The app never assumes on the screens.
+    final questions = <ConfirmationQuestion>[];
+    final latestOf = <String, int>{};
+    final relevant = <int>[];
+    final sameDayOnly = <String, bool>{};
     for (final a in own.keys) {
-      final rows = await (db.select(
-        db.balanceAssertions,
-      )..where((b) => b.accountId.equals(a))).get();
-      for (final r in rows) {
-        final day = _localDate(r.assertedAtUtc);
-        if (day >= op.date) {
-          confirmations.add(r.assertedAtUtc);
-          if (day != op.date) sameDayOnly = false;
-        }
+      final rows =
+          await (db.select(db.balanceAssertions)
+                ..where((b) => b.accountId.equals(a))
+                ..orderBy([(b) => OrderingTerm.asc(b.assertedAtUtc)]))
+              .get();
+      final onOrAfter = [
+        for (final r in rows)
+          if (_localDate(r.assertedAtUtc) >= op.date) r,
+      ];
+      if (onOrAfter.isEmpty) continue;
+      final latest = onOrAfter.last;
+      relevant.addAll(onOrAfter.map((r) => r.assertedAtUtc));
+      latestOf[a] = latest.assertedAtUtc;
+      sameDayOnly[a] = onOrAfter.every(
+        (r) => _localDate(r.assertedAtUtc) == op.date,
+      );
+      questions.add(
+        ConfirmationQuestion(
+          accountId: a,
+          assertionId: latest.id,
+          confirmedAt: DateTime.fromMillisecondsSinceEpoch(
+            latest.assertedAtUtc,
+          ),
+          delta: own[a]!,
+        ),
+      );
+    }
+    final included = <String, bool>{};
+    for (final q in questions) {
+      final answer = answers[q.accountId];
+      if (answer != null && answer.assertionId == q.assertionId) {
+        included[q.accountId] = answer.included;
+      } else {
+        included[q.accountId] = switch (placement) {
+          SameDayPlacement.inConfirmedBalance => true,
+          SameDayPlacement.afterConfirmedBalance => false,
+          // Internal fallback: same day → that day's unexplained
+          // difference; an earlier day → in the later confirmed balance.
+          SameDayPlacement.auto =>
+            !sameDayOnly[q.accountId]! ||
+                await _guess({q.accountId: q.delta}, op.date),
+        };
       }
     }
+
+    // The entry itself goes before every relevant confirmation; each
+    // account then gets what its answer means: «уже было» — the anchor
+    // rule keeps its confirmed balances; «ещё нет» — the same corrections
+    // keep history, and a release right after its latest confirmation makes
+    // the operation take effect from then on. The date stays the person's.
     final noon = DateTime(
       op.date.year,
       op.date.month,
@@ -255,36 +348,10 @@ final class Journal {
       12,
     ).millisecondsSinceEpoch;
     final nowMs = now.millisecondsSinceEpoch;
-    var resolved = placement;
-    final int at;
-    final latest = confirmations.isEmpty
-        ? null
-        : confirmations.reduce((a, b) => a > b ? a : b);
-    if (latest == null) {
-      at = noon < nowMs ? noon : nowMs;
-      resolved = SameDayPlacement.afterConfirmedBalance;
-    } else if (resolved == SameDayPlacement.auto) {
-      // Not used by the screens (they require an answer); kept for internal
-      // callers: same day → that day's unexplained difference; an earlier
-      // day → in the later confirmed balance.
-      if (sameDayOnly) {
-        resolved = await _guess(own, op.date)
-            ? SameDayPlacement.inConfirmedBalance
-            : SameDayPlacement.afterConfirmedBalance;
-        at = resolved == SameDayPlacement.inConfirmedBalance
-            ? latest - 1
-            : latest + 1;
-      } else {
-        resolved = SameDayPlacement.inConfirmedBalance;
-        at = noon;
-      }
-    } else {
-      // «Уже было в остатке» → just before the latest confirmation (the
-      // anchor rule keeps it exactly as confirmed); «ещё нет» → right after
-      // it, so the balance goes down now. The date stays the person's.
-      at = resolved == SameDayPlacement.inConfirmedBalance
-          ? latest - 1
-          : latest + 1;
+    var at = noon < nowMs ? noon : nowMs;
+    if (relevant.isNotEmpty) {
+      final first = relevant.reduce((a, b) => a < b ? a : b);
+      if (first - 1 < at) at = first - 1;
     }
 
     final main = _Entry(
@@ -294,13 +361,22 @@ final class Journal {
       lines: lines,
       description: op.description,
     );
+    final suspense = await _suspense();
     final entries = [
       main,
       ...await _anchors([main], main.id, household.id),
+      for (final q in questions)
+        if (included[q.accountId] == false)
+          _Entry(
+            kind: 'anchor_correction',
+            at: latestOf[q.accountId]! + 1,
+            occurredOn: _localDate(latestOf[q.accountId]!),
+            lines: [(q.accountId, q.delta), (suspense, -q.delta)],
+            causedBy: main.id,
+          ),
     ];
 
     // Preview: affected own accounts now → after, and «Невыясненное».
-    final suspense = await _suspense();
     final balances = <String, (Money, Money)>{};
     for (final a in own.keys) {
       final row = await _own(a);
@@ -314,20 +390,22 @@ final class Journal {
           kindOf.isLiability ? -Money(stored) : Money(stored);
       balances[a] = (facing(before), facing(before + delta));
     }
-    final anchored = entries.skip(1).toList();
+    final allIn =
+        questions.isNotEmpty && questions.every((q) => included[q.accountId]!);
     return _Plan(
       entries,
       OperationPreview(
         balances: balances,
-        inConfirmedBalance: anchored.isNotEmpty,
-        confirmedAt: anchored.isEmpty
-            ? null
-            : DateTime.fromMillisecondsSinceEpoch(anchored.first.at),
-        askIncluded: latest != null,
-        latestConfirmation: latest == null
-            ? null
-            : DateTime.fromMillisecondsSinceEpoch(latest),
-        placement: resolved,
+        questions: questions,
+        inConfirmedBalance: allIn,
+        confirmedAt: allIn
+            ? questions
+                  .map((q) => q.confirmedAt)
+                  .reduce((a, b) => a.isAfter(b) ? a : b)
+            : null,
+        placement: allIn
+            ? SameDayPlacement.inConfirmedBalance
+            : SameDayPlacement.afterConfirmedBalance,
         unexplainedChange: Money(
           entries
               .expand((e) => e.lines)

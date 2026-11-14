@@ -137,12 +137,11 @@ final class LocalStore
   @override
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> amounts, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) => _serial(
-    () => notYetDebited.isEmpty
-        ? Ledger(_open()).updateBalances(amounts, DateTime.now())
-        : ObligationRepo(_open())
-              .updateBalances(amounts, notYetDebited, DateTime.now()),
+    () =>
+        ObligationRepo(_open())
+            .updateBalances(amounts, pending, DateTime.now()),
   );
 
   @override
@@ -179,7 +178,7 @@ final class LocalStore
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) => _serial(
     () => ObligationRepo(_open()).preview(
       target,
@@ -187,7 +186,7 @@ final class LocalStore
       accountId: accountId,
       date: date,
       now: DateTime.now(),
-      placement: placement,
+      answers: answers,
     ),
   );
 
@@ -197,7 +196,8 @@ final class LocalStore
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
+    FiguresAnswer? figuresAnswer,
     bool confirmedNotDuplicate = false,
   }) => _serial(
     () => ObligationRepo(_open()).pay(
@@ -206,7 +206,8 @@ final class LocalStore
       accountId: accountId,
       date: date,
       now: DateTime.now(),
-      placement: placement,
+      answers: answers,
+      figuresAnswer: figuresAnswer,
       confirmedNotDuplicate: confirmedNotDuplicate,
     ),
   );
@@ -216,7 +217,7 @@ final class LocalStore
       _serial(() => ObligationRepo(_open()).cancel(paymentId, DateTime.now()));
 
   @override
-  Future<List<PendingDebit>> pendingDebits() =>
+  Future<List<PendingSide>> pendingSides() =>
       _serial(() => ObligationRepo(_open()).pending());
 
   @override
@@ -370,7 +371,7 @@ final class LocalStore
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) => _serial(
     () => IncomeRepo(_open()).previewReceipt(
       key,
@@ -378,7 +379,7 @@ final class LocalStore
       accountId: accountId,
       date: date,
       now: DateTime.now(),
-      placement: placement,
+      answers: answers,
     ),
   );
 
@@ -388,7 +389,7 @@ final class LocalStore
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
     ShortfallChoice shortfall = ShortfallChoice.restLater,
     CalendarDate? restOn,
   }) => _serial(
@@ -398,7 +399,7 @@ final class LocalStore
       accountId: accountId,
       date: date,
       now: DateTime.now(),
-      placement: placement,
+      answers: answers,
       shortfall: shortfall,
       restOn: restOn,
     ),

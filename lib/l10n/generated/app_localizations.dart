@@ -2050,24 +2050,6 @@ abstract class AppLocalizations {
   /// **'Остаток «{account}»: было {before}, станет {after}'**
   String receiveBalanceChange(String account, String before, String after);
 
-  /// No description provided for @receiveAlreadyIn.
-  ///
-  /// In ru, this message translates to:
-  /// **'Остаток «{account}» не изменится: эти деньги уже есть в остатке, который вы подтвердили {when}. Неясная разница уменьшится.'**
-  String receiveAlreadyIn(String account, String when);
-
-  /// No description provided for @receiveSameDayAfter.
-  ///
-  /// In ru, this message translates to:
-  /// **'Нет, деньги пришли после обновления остатка'**
-  String get receiveSameDayAfter;
-
-  /// No description provided for @receiveSameDayBefore.
-  ///
-  /// In ru, this message translates to:
-  /// **'Деньги уже были в том остатке'**
-  String get receiveSameDayBefore;
-
   /// No description provided for @receiveLess.
   ///
   /// In ru, this message translates to:
@@ -2344,48 +2326,6 @@ abstract class AppLocalizations {
   /// **'Долг «{account}»: было {before}, станет {after}'**
   String payDebtChange(String account, String before, String after);
 
-  /// No description provided for @payAlreadyIn.
-  ///
-  /// In ru, this message translates to:
-  /// **'Остаток «{account}» не изменится: списание уже есть в остатке, который вы подтвердили {when}.'**
-  String payAlreadyIn(String account, String when);
-
-  /// No description provided for @sameDayQuestion.
-  ///
-  /// In ru, this message translates to:
-  /// **'Остаток «{account}» подтверждён {when} — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?'**
-  String sameDayQuestion(String account, String when);
-
-  /// No description provided for @sameDayIncomeQuestion.
-  ///
-  /// In ru, this message translates to:
-  /// **'Остаток «{account}» подтверждён {when} — в день поступления или позже. Эти деньги уже были в том остатке?'**
-  String sameDayIncomeQuestion(String account, String when);
-
-  /// No description provided for @sameDayYes.
-  ///
-  /// In ru, this message translates to:
-  /// **'Да, уже была в том остатке'**
-  String get sameDayYes;
-
-  /// No description provided for @sameDayNo.
-  ///
-  /// In ru, this message translates to:
-  /// **'Нет, банк списал позже'**
-  String get sameDayNo;
-
-  /// No description provided for @sameDayIncomeYes.
-  ///
-  /// In ru, this message translates to:
-  /// **'Да, уже были'**
-  String get sameDayIncomeYes;
-
-  /// No description provided for @sameDayIncomeNo.
-  ///
-  /// In ru, this message translates to:
-  /// **'Нет, пришли позже'**
-  String get sameDayIncomeNo;
-
   /// No description provided for @similarFound.
   ///
   /// In ru, this message translates to:
@@ -2485,7 +2425,7 @@ abstract class AppLocalizations {
   /// No description provided for @pendingHint.
   ///
   /// In ru, this message translates to:
-  /// **'Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.'**
+  /// **'Ответьте по каждому счёту, который сверяете сейчас. Иначе остаток посчитается неверно.'**
   String get pendingHint;
 
   /// No description provided for @pendingLine.
@@ -2493,6 +2433,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'{title} · {amount} · {date}'**
   String pendingLine(String title, String amount, String date);
+
+  /// No description provided for @pendingDebitQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{account}»: Банк уже списал деньги?'**
+  String pendingDebitQuestion(String account);
+
+  /// No description provided for @pendingCreditQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{account}»: Банк уже зачислил перевод?'**
+  String pendingCreditQuestion(String account);
 
   /// No description provided for @pendingDebited.
   ///
@@ -2506,10 +2458,22 @@ abstract class AppLocalizations {
   /// **'Ещё не списано'**
   String get pendingNotYet;
 
+  /// No description provided for @pendingCredited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уже зачислено'**
+  String get pendingCredited;
+
+  /// No description provided for @pendingNotYetCredited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё не зачислено'**
+  String get pendingNotYetCredited;
+
   /// No description provided for @pendingNeedAnswer.
   ///
   /// In ru, this message translates to:
-  /// **'Ответьте по каждой оплате выше'**
+  /// **'Ответьте на каждый вопрос выше'**
   String get pendingNeedAnswer;
 
   /// No description provided for @payNoAccounts.
@@ -2517,6 +2481,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сначала добавьте счёт, с которого платите'**
   String get payNoAccounts;
+
+  /// No description provided for @confirmBalanceQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остаток «{account}» подтверждён {when} — в день операции или позже. Эта операция уже была в нём?'**
+  String confirmBalanceQuestion(String account, String when);
+
+  /// No description provided for @confirmDebtQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Долг «{account}» подтверждён {when} — в день операции или позже. Этот платёж уже был в нём учтён?'**
+  String confirmDebtQuestion(String account, String when);
+
+  /// No description provided for @confirmYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уже была'**
+  String get confirmYes;
+
+  /// No description provided for @confirmNo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё нет'**
+  String get confirmNo;
+
+  /// No description provided for @figuresQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сумма к оплате {due}, введённая {date}, уже учитывает этот платёж?'**
+  String figuresQuestion(String due, String date);
+
+  /// No description provided for @figuresYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Да, уже учтён'**
+  String get figuresYes;
+
+  /// No description provided for @figuresNo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет, ещё не учтён'**
+  String get figuresNo;
+
+  /// No description provided for @payRecheck.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока вы отвечали, изменились сверка или цифры банка. Ничего не записано — ответьте на вопросы ещё раз.'**
+  String get payRecheck;
+
+  /// No description provided for @payFiguresChanged.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цифры банка по этой кредитке изменились. Ничего не записано — вернитесь и откройте оплату по актуальной сумме.'**
+  String get payFiguresChanged;
+
+  /// No description provided for @payBackToPayments.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуться'**
+  String get payBackToPayments;
+
+  /// No description provided for @enterBankAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите сумму из банка'**
+  String get enterBankAmount;
 }
 
 class _AppLocalizationsDelegate

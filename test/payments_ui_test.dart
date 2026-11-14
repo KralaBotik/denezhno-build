@@ -6,6 +6,7 @@ import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
+import 'package:denezhno/ui/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,6 +37,7 @@ class _Accounts implements AccountsStore {
 
   @override
   Future<List<AccountSummary>> accounts() async => [
+    ..._extraAccounts,
     AccountSummary(
       id: 'sber',
       name: 'Сбер',
@@ -50,9 +52,12 @@ class _Accounts implements AccountsStore {
   @override
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> a, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) async => BalanceUpdateResult(changed: 0, unexplained: Money(0));
 }
+
+/// Accounts a single test adds (reset after it).
+var _extraAccounts = <AccountSummary>[];
 
 /// UI stand-in; storage semantics are tested in payments_store_test.dart
 /// and obligation_test.dart.
@@ -138,28 +143,43 @@ class FakePayments implements PaymentsStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) async => PaymentCheck(
     OperationPreview(
       balances: {accountId: (Money(1000000), Money(1000000) - amount)},
       inConfirmedBalance: false,
       confirmedAt: null,
-      askIncluded: false,
       placement: SameDayPlacement.afterConfirmedBalance,
       unexplainedChange: Money(0),
+      questions: List.of(questions),
     ),
     const [],
+    figuresQuestion,
   );
+
+  /// What the next preview asks (tests set them).
+  final questions = <ConfirmationQuestion>[];
+  FiguresQuestion? figuresQuestion;
+  final paidAnswers = <(Map<String, ConfirmationAnswer>, FiguresAnswer?)>[];
+
+  /// The next pay() fails like the store does when the data changed.
+  Exception? failNextPay;
   @override
   Future<void> pay(
     PayTarget target, {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
+    FiguresAnswer? figuresAnswer,
     bool confirmedNotDuplicate = false,
   }) async {
+    if (failNextPay case final e?) {
+      failNextPay = null;
+      throw e;
+    }
     paidLog.add((target, amount, accountId));
+    paidAnswers.add((Map.of(answers), figuresAnswer));
     history.add(
       ObligationPayment(
         id: 'p${history.length}',
@@ -189,7 +209,7 @@ class FakePayments implements PaymentsStore {
   }
 
   @override
-  Future<List<PendingDebit>> pendingDebits() async => const [];
+  Future<List<PendingSide>> pendingSides() async => const [];
 }
 
 void main() {
@@ -339,5 +359,180 @@ void main() {
     await tapKey(tester, 'flow.gym');
     await tapKey(tester, 'flow.delete');
     expect(store.flows, isEmpty);
+  });
+
+  testWidgets('«Оплачено»: a question per account and its confirmation, the '
+      'figures question; asked again after a newer confirmation', (
+    tester,
+  ) async {
+    final today = CalendarDate.today();
+    _extraAccounts = [
+      AccountSummary(
+        id: 'card1',
+        name: 'Сбер кредитка',
+        kind: AccountKind.creditCard,
+        amount: Money(1500000),
+        isProtected: false,
+        lastUpdatedAt: DateTime.now(),
+      ),
+    ];
+    addTearDown(() => _extraAccounts = []);
+    final store = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'net',
+          kind: FlowKind.otherPayment,
+          name: 'Погашение',
+          amount: Money(400000),
+          cadence: Once(today.addDays(2)),
+          startsOn: today,
+        ),
+      )
+      ..questions.addAll([
+        ConfirmationQuestion(
+          accountId: 'sber',
+          assertionId: 'a1',
+          confirmedAt: DateTime(2026, 11, 9, 9),
+          delta: -400000,
+        ),
+        ConfirmationQuestion(
+          accountId: 'card1',
+          assertionId: 'b1',
+          confirmedAt: DateTime(2026, 11, 9, 11),
+          delta: 400000,
+        ),
+      ])
+      ..figuresQuestion = FiguresQuestion(
+        figuresId: 'cf',
+        due: Money(1000000),
+        enteredOn: CalendarDate.parse('2026-11-08'),
+      );
+    await open(tester, store);
+    await tapKey(tester, 'mark.net.${today.addDays(2)}');
+    // Each account named with its own confirmation time.
+    expect(
+      find.textContaining('Остаток «Сбер» подтверждён 9 ноября, 09:00'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Долг «Сбер кредитка» подтверждён 9 ноября, 11:00'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('введённая 8 ноября'), findsOneWidget);
+    Future<PillButton> confirm() async {
+      final button = find.byKey(const ValueKey('pay.confirm'));
+      await tester.scrollUntilVisible(
+        button,
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('screen.pay')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      return tester.widget<PillButton>(button);
+    }
+
+    expect((await confirm()).onPressed, isNull); // nothing answered
+
+    await tapKey(tester, 'confirm.sber.yes');
+    // Meanwhile the debit balance is confirmed again: asked again.
+    store.questions[0] = ConfirmationQuestion(
+      accountId: 'sber',
+      assertionId: 'a2',
+      confirmedAt: DateTime(2026, 11, 9, 10),
+      delta: -400000,
+    );
+    await tapKey(tester, 'confirm.card1.no');
+    await tapKey(tester, 'pay.figures.cf.no');
+    expect((await confirm()).onPressed, isNull); // «Сбер» asked again
+    expect(
+      find.textContaining('Остаток «Сбер» подтверждён 9 ноября, 10:00'),
+      findsOneWidget,
+    );
+    await tapKey(tester, 'confirm.sber.yes');
+    expect((await confirm()).onPressed, isNotNull);
+    await tapKey(tester, 'pay.confirm');
+    final (answers, figures) = store.paidAnswers.single;
+    expect(
+      {
+        for (final e in answers.entries)
+          e.key: (e.value.assertionId, e.value.included),
+      },
+      {'sber': ('a2', true), 'card1': ('b1', false)},
+    );
+    expect((figures!.figuresId, figures.included), ('cf', false));
+  });
+
+  testWidgets('«Оплачено»: newer bank figures right before saving — nothing '
+      'written, the figures question is asked again', (tester) async {
+    final today = CalendarDate.today();
+    final store = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'net',
+          kind: FlowKind.otherPayment,
+          name: 'Погашение',
+          amount: Money(400000),
+          cadence: Once(today.addDays(2)),
+          startsOn: today,
+        ),
+      )
+      ..figuresQuestion = FiguresQuestion(
+        figuresId: 'cf1',
+        due: Money(1000000),
+        enteredOn: CalendarDate.parse('2026-11-08'),
+      );
+    await open(tester, store);
+    await tapKey(tester, 'mark.net.${today.addDays(2)}');
+    await tapKey(tester, 'pay.figures.cf1.no');
+    // The store sees a newer version (6 000, already including it).
+    store
+      ..failNextPay = const InvalidOperation('figures answer required')
+      ..figuresQuestion = FiguresQuestion(
+        figuresId: 'cf2',
+        due: Money(600000),
+        enteredOn: CalendarDate.parse('2026-11-08'),
+      );
+    await tapKey(tester, 'pay.confirm');
+    expect(store.paidAnswers, isEmpty);
+    expect(find.textContaining('Ничего не записано'), findsOneWidget);
+    expect(find.textContaining('Сумма к оплате 6'), findsOneWidget);
+    await tapKey(tester, 'pay.figures.cf2.yes');
+    await tapKey(tester, 'pay.confirm');
+    final (_, figures) = store.paidAnswers.single;
+    expect((figures!.figuresId, figures.included), ('cf2', true));
+  });
+
+  testWidgets('«Оплачено»: the bank figures changed since the form was opened '
+      '— nothing written, the screen offers to go back', (tester) async {
+    final today = CalendarDate.today();
+    final store = FakePayments()
+      ..flows.add(
+        PlannedFlow(
+          id: 'net',
+          kind: FlowKind.otherPayment,
+          name: 'Погашение',
+          amount: Money(1000000),
+          cadence: Once(today.addDays(2)),
+          startsOn: today,
+        ),
+      );
+    await open(tester, store);
+    await tapKey(tester, 'mark.net.${today.addDays(2)}');
+    store.failNextPay = const InvalidOperation('figures changed');
+    await tapKey(tester, 'pay.confirm');
+    expect(store.paidAnswers, isEmpty);
+    expect(
+      find.textContaining('Цифры банка по этой кредитке изменились'),
+      findsOneWidget,
+    );
+    final confirm = tester.widget<PillButton>(
+      find.byKey(const ValueKey('pay.confirm')),
+    );
+    expect(confirm.onPressed, isNull);
+    await tapKey(tester, 'pay.back');
+    expect(find.byKey(const ValueKey('screen.pay')), findsNothing);
   });
 }

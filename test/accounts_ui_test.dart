@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:denezhno/app/app.dart';
 import 'package:denezhno/app/controller.dart';
 import 'package:denezhno/core/calendar_date.dart';
@@ -5,6 +7,7 @@ import 'package:denezhno/core/money/money.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
+import 'package:denezhno/ui/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +52,7 @@ class FakeAccounts implements AccountsStore {
 
   final list = <AccountSummary>[];
   final updates = <Map<String, Money>>[];
-  final notYet = <Set<String>>[];
+  final answers = <Map<PendingKey, bool>>[];
   bool failWrites = false;
   @override
   Future<List<AccountSummary>> accounts() async => List.of(list);
@@ -72,10 +75,10 @@ class FakeAccounts implements AccountsStore {
   @override
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> m, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) async {
     updates.add(m);
-    notYet.add(notYetDebited);
+    answers.add(pending);
     var net = Money(0);
     for (var i = 0; i < list.length; i++) {
       final a = list[i];
@@ -227,7 +230,7 @@ void main() {
           isProtected: false,
         ),
       ]);
-    await openAccounts(tester, store);
+    await openAccounts(tester, store, payments: FakePaymentsStore());
     expect(find.byKey(const ValueKey('total.own')), findsOneWidget);
     await tapKey(tester, 'accounts.update');
     await tester.enterText(find.byKey(const ValueKey('balance.a')), '46 800');
@@ -278,40 +281,206 @@ void main() {
     expect(find.textContaining('не в расчёте'), findsOneWidget);
   });
 
-  testWidgets('update balances asks about payments recorded since the last '
-      'confirmation: no default, answer required', (tester) async {
+  testWidgets('update balances: a question per side of a transfer, only for '
+      'the accounts being confirmed now; no default', (tester) async {
     final store = FakeAccounts()
-      ..list.add(
+      ..list.addAll([
         AccountSummary(
           id: 'sber',
           name: 'Сбер',
           kind: AccountKind.debit,
-          amount: Money(700000),
+          amount: Money(600000),
           isProtected: false,
           lastUpdatedAt: DateTime.now(),
         ),
-      );
+        AccountSummary(
+          id: 'card',
+          name: 'Кредитка',
+          kind: AccountKind.creditCard,
+          amount: Money(1100000),
+          isProtected: false,
+          lastUpdatedAt: DateTime.now(),
+        ),
+      ]);
     final payments = FakePaymentsStore()
-      ..pending.add(
-        PendingDebit(
+      ..pending.addAll([
+        PendingSide(
           paymentId: 'pay1',
-          title: 'Аренда',
-          amount: Money(300000),
+          title: 'Погашение',
+          amount: Money(400000),
           accountId: 'sber',
           paidOn: CalendarDate.today(),
+          incoming: false,
+        ),
+        PendingSide(
+          paymentId: 'pay1',
+          title: 'Погашение',
+          amount: Money(400000),
+          accountId: 'card',
+          paidOn: CalendarDate.today(),
+          incoming: true,
+        ),
+      ]);
+    await openAccounts(tester, store, payments: payments);
+    await tapKey(tester, 'accounts.update');
+    // Nothing is being confirmed yet: no questions.
+    expect(find.byKey(const ValueKey('pending.card')), findsNothing);
+
+    // Only the debit account: only «Банк уже списал деньги?».
+    await tester.enterText(find.byKey(const ValueKey('balance.sber')), '10000');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pending.pay1.sber')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pending.pay1.card')), findsNothing);
+    expect(find.text('«Сбер»: Банк уже списал деньги?'), findsOneWidget);
+    expect(find.text('Ещё не списано'), findsOneWidget);
+    await tapKey(tester, 'updateBalances.save');
+    expect(store.updates, isEmpty); // not answered: nothing written
+    expect(find.text('Ответьте на каждый вопрос выше'), findsOneWidget);
+
+    // The card is confirmed too (the bank's figure typed in): its own
+    // question about the credit.
+    await tester.enterText(find.byKey(const ValueKey('balance.card')), '11000');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pending.pay1.card')), findsOneWidget);
+    expect(find.text('«Кредитка»: Банк уже зачислил перевод?'), findsOneWidget);
+    expect(find.text('Ещё не зачислено'), findsOneWidget);
+    await tapKey(tester, 'pending.pay1.sber.no');
+    await tapKey(tester, 'updateBalances.save');
+    expect(store.updates, isEmpty); // the card is not answered yet
+    await tapKey(tester, 'pending.pay1.card.yes');
+    await tapKey(tester, 'updateBalances.save');
+    expect(store.updates.single, {
+      'sber': Money(1000000),
+      'card': Money(1100000),
+    });
+    expect(store.answers.single, {
+      (paymentId: 'pay1', accountId: 'sber'): false,
+      (paymentId: 'pay1', accountId: 'card'): true,
+    });
+  });
+
+  testWidgets('update balances: a side on an account not confirmed now is not '
+      'asked and not sent', (tester) async {
+    final store = FakeAccounts()
+      ..list.addAll([
+        AccountSummary(
+          id: 'sber',
+          name: 'Сбер',
+          kind: AccountKind.debit,
+          amount: Money(600000),
+          isProtected: false,
+          lastUpdatedAt: DateTime.now(),
+        ),
+        AccountSummary(
+          id: 'card',
+          name: 'Кредитка',
+          kind: AccountKind.creditCard,
+          amount: Money(1100000),
+          isProtected: false,
+          lastUpdatedAt: DateTime.now(),
+        ),
+      ]);
+    final payments = FakePaymentsStore()
+      ..pending.add(
+        PendingSide(
+          paymentId: 'pay1',
+          title: 'Погашение',
+          amount: Money(400000),
+          accountId: 'card',
+          paidOn: CalendarDate.today(),
+          incoming: true,
         ),
       );
     await openAccounts(tester, store, payments: payments);
     await tapKey(tester, 'accounts.update');
-    expect(find.byKey(const ValueKey('pending.pay1')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('balance.sber')), '6000');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pending.card')), findsNothing);
+    await tapKey(tester, 'updateBalances.save');
+    expect(store.updates.single, {'sber': Money(600000)});
+    expect(store.answers.single, isEmpty);
+  });
+
+  testWidgets('«Не изменилось» is off for an account with a payment side still '
+      'to come (and while that is loading); others keep the quick input', (
+    tester,
+  ) async {
+    AccountSummary acc(String id, String name, AccountKind kind, int minor) =>
+        AccountSummary(
+          id: id,
+          name: name,
+          kind: kind,
+          amount: Money(minor),
+          isProtected: false,
+          lastUpdatedAt: DateTime.now(),
+        );
+    final store = FakeAccounts()
+      ..list.addAll([
+        // The app's balances already contain the 4 000 transfer.
+        acc('sber', 'Сбер', AccountKind.debit, 600000),
+        acc('card', 'Кредитка', AccountKind.creditCard, 1100000),
+        acc('cash', 'Наличные', AccountKind.cash, 50000),
+      ]);
+    final gate = Completer<void>();
+    final payments = FakePaymentsStore()
+      ..pendingGate = gate
+      ..pending.addAll([
+        for (final (account, incoming) in [('sber', false), ('card', true)])
+          PendingSide(
+            paymentId: 'pay1',
+            title: 'Погашение',
+            amount: Money(400000),
+            accountId: account,
+            paidOn: CalendarDate.today(),
+            incoming: incoming,
+          ),
+      ]);
+    await openAccounts(tester, store, payments: payments);
+    await tapKey(tester, 'accounts.update');
+    PillButton unchanged(String id) =>
+        tester.widget<PillButton>(find.byKey(ValueKey('unchanged.$id')));
+    String field(String id) => tester
+        .widget<CupertinoTextField>(find.byKey(ValueKey('balance.$id')))
+        .controller!
+        .text;
+
+    // Still loading: off for every account.
+    for (final id in ['sber', 'card', 'cash']) {
+      expect(unchanged(id).onPressed, isNull, reason: id);
+    }
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(unchanged('sber').onPressed, isNull);
+    expect(unchanged('card').onPressed, isNull);
+    expect(unchanged('cash').onPressed, isNotNull);
+    expect(find.byKey(const ValueKey('unchanged.hint.sber')), findsOneWidget);
+    expect(find.byKey(const ValueKey('unchanged.hint.card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('unchanged.hint.cash')), findsNothing);
+    expect(find.text('Введите сумму из банка'), findsNWidgets(2));
+
+    // Tapping it does not copy the app's 6 000 (which contains the transfer).
+    await tapKey(tester, 'unchanged.sber');
+    expect(field('sber'), isEmpty);
+    expect(find.byKey(const ValueKey('pending.card')), findsNothing);
+    // The quick input still works where nothing is pending.
+    await tapKey(tester, 'unchanged.cash');
+    expect(field('cash'), isNotEmpty);
+    expect(find.byKey(const ValueKey('pending.card')), findsNothing);
+
+    // The bank's figure typed in: a question only about that account.
     await tester.enterText(find.byKey(const ValueKey('balance.sber')), '10000');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pending.pay1.sber')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pending.pay1.card')), findsNothing);
+    await tapKey(tester, 'pending.pay1.sber.no');
     await tapKey(tester, 'updateBalances.save');
-    // Not answered: nothing is written.
-    expect(store.updates, isEmpty);
-    expect(find.text('Ответьте по каждой оплате выше'), findsOneWidget);
-    await tapKey(tester, 'pending.pay1.no');
-    await tapKey(tester, 'updateBalances.save');
-    expect(store.updates.single, {'sber': Money(1000000)});
-    expect(store.notYet.single, {'pay1'});
+    expect(store.updates.single, {
+      'sber': Money(1000000),
+      'cash': Money(50000),
+    });
+    expect(store.answers.single, {
+      (paymentId: 'pay1', accountId: 'sber'): false,
+    });
   });
 }

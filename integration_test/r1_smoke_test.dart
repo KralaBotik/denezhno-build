@@ -153,16 +153,24 @@ void main() {
       container.read(paymentsProvider.future),
     )).flows.singleWhere((f) => f.name == name);
     // R3 Р1: «Оплачено» is an operation in the journal on the real store.
-    await step(
-      'pay through the journal',
-      payments.pay(
+    await step('pay through the journal', () async {
+      final check = await payments.preview(
         PlanDate(plan.id!, today.addDays(3)),
         amount: Money(70000),
         accountId: created.id,
         date: today,
-        placement: SameDayPlacement.afterConfirmedBalance,
-      ),
-    );
+      );
+      await payments.pay(
+        PlanDate(plan.id!, today.addDays(3)),
+        amount: Money(70000),
+        accountId: created.id,
+        date: today,
+        answers: {
+          for (final q in check.operation.questions)
+            q.accountId: ConfirmationAnswer(q.assertionId, included: false),
+        },
+      );
+    }());
     expect(
       (await step(
         'reload plans',

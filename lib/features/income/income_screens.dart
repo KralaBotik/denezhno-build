@@ -22,7 +22,7 @@ import '../payments/payments_screens.dart'
         formatDue,
         pickDate,
         pickFromList;
-import '../payments/pay_screen.dart' show sameDayChoice;
+import '../payments/pay_screen.dart' show ConfirmationQuestions;
 import 'income.dart';
 import 'income_controller.dart';
 
@@ -952,7 +952,9 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
   final _amount = TextEditingController();
   CalendarDate _date = CalendarDate.today();
   String? _accountId;
-  SameDayPlacement _placement = SameDayPlacement.auto;
+
+  /// Answers per account, each about a specific confirmation.
+  final _given = <String, ConfirmationAnswer>{};
   ShortfallChoice _shortfall = ShortfallChoice.restLater;
   CalendarDate? _restOn;
   bool _restUnknown = true;
@@ -991,7 +993,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
             amount: amount,
             accountId: _accountId!,
             date: _date,
-            placement: _placement,
+            answers: Map.of(_given),
           );
       if (mounted && id == _request) {
         setState(() {
@@ -1007,10 +1009,10 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
   }
 
   /// A balance was confirmed that day and the person has not answered yet.
+  /// A balance was confirmed on or after the date and that question is
+  /// not answered (about the current confirmation).
   bool get _needsPlacement =>
-      _preview != null &&
-      _preview!.askIncluded &&
-      _placement == SameDayPlacement.auto;
+      _preview != null && _preview!.unanswered(_given).isNotEmpty;
 
   Future<void> _confirm() async {
     final shown = _preview;
@@ -1026,7 +1028,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
             amount: amount,
             accountId: _accountId!,
             date: _date,
-            placement: shown.placement,
+            answers: Map.of(_given),
             shortfall: _shortfall,
             restOn: _restUnknown ? null : _restOn,
           );
@@ -1038,13 +1040,6 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-  }
-
-  String _when(DateTime t) {
-    final local = t.toLocal();
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '${formatDate(CalendarDate.fromDateTime(local))} в $hh:$mm';
   }
 
   @override
@@ -1137,7 +1132,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                           if (i != null) {
                             setState(() {
                               _accountId = accounts[i].id;
-                              _placement = SameDayPlacement.auto;
+                              _given.clear();
                             });
                             unawaited(_refresh());
                           }
@@ -1156,7 +1151,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                     }
                     setState(() {
                       _date = d;
-                      _placement = SameDayPlacement.auto;
+                      _given.clear();
                     });
                     unawaited(_refresh());
                   },
@@ -1232,36 +1227,21 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_needsPlacement)
-                          sameDayChoice(
-                            question: s.sameDayIncomeQuestion(
-                              account?.name ?? '',
-                              shown.latestConfirmation == null
-                                  ? formatDate(_date)
-                                  : _when(shown.latestConfirmation!),
-                            ),
-                            yes: s.sameDayIncomeYes,
-                            no: s.sameDayIncomeNo,
-                            onChoose: (inBalance) {
-                              setState(
-                                () => _placement = inBalance
-                                    ? SameDayPlacement.inConfirmedBalance
-                                    : SameDayPlacement.afterConfirmedBalance,
-                              );
-                              unawaited(_refresh());
-                            },
-                          )
-                        else if (shown.inConfirmedBalance &&
-                            shown.confirmedAt != null)
-                          Text(
-                            s.receiveAlreadyIn(
-                              account?.name ?? '',
-                              _when(shown.confirmedAt!),
-                            ),
-                            key: const ValueKey('receive.alreadyIn'),
-                            style: AppText.body(p.text),
-                          )
-                        else
+                        ConfirmationQuestions(
+                          questions: shown.questions,
+                          given: _given,
+                          accounts: accounts,
+                          onAnswer: (q, included) {
+                            setState(
+                              () => _given[q.accountId] = ConfirmationAnswer(
+                                q.assertionId,
+                                included: included,
+                              ),
+                            );
+                            unawaited(_refresh());
+                          },
+                        ),
+                        if (!_needsPlacement)
                           for (final e in shown.balances.entries)
                             Text(
                               s.receiveBalanceChange(
@@ -1276,32 +1256,6 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                               key: const ValueKey('receive.change'),
                               style: AppText.body(p.text),
                             ),
-                        if (shown.askIncluded && !_needsPlacement)
-                          Padding(
-                            padding: const EdgeInsets.only(top: Space.s),
-                            child: CupertinoButton(
-                              key: const ValueKey('receive.switch'),
-                              padding: EdgeInsets.zero,
-                              alignment: Alignment.centerLeft,
-                              onPressed: () {
-                                setState(
-                                  () => _placement =
-                                      shown.placement ==
-                                          SameDayPlacement.inConfirmedBalance
-                                      ? SameDayPlacement.afterConfirmedBalance
-                                      : SameDayPlacement.inConfirmedBalance,
-                                );
-                                unawaited(_refresh());
-                              },
-                              child: Text(
-                                shown.placement ==
-                                        SameDayPlacement.inConfirmedBalance
-                                    ? s.receiveSameDayAfter
-                                    : s.receiveSameDayBefore,
-                                style: AppText.secondary(p.accent),
-                              ),
-                            ),
-                          ),
                       ],
                     ),
             ),

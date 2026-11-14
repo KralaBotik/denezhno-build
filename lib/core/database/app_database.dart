@@ -109,7 +109,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// SHA-256 of the current schema.drift (v6). A test recomputes it.
   static const schemaV6Checksum =
-      'bd38f3bb4f02a8f2020ed2d37c8d7e35baacea4db1bd6af74c7d6d2dfc483c27';
+      '7047601fba2d8e47fd98415b2a04058f3ea905b10047f266809a1ec691b1aa53';
 
   static const latestSchemaVersion = 6;
 
@@ -164,6 +164,9 @@ class AppDatabase extends _$AppDatabase {
       'obligation_payments_by_card',
       'obligation_payments_no_update',
       'obligation_payments_no_delete',
+      'figures_transfer_answers',
+      'figures_transfer_answers_no_update',
+      'figures_transfer_answers_no_delete',
     },
   };
 

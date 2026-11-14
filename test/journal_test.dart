@@ -162,7 +162,7 @@ void main() {
   );
 
   test('an operation before several confirmations: corrected once, at the '
-      'first one after it', () async {
+      'first one on or after its date', () async {
     final sber = await b.account(
       'Сбер',
       AccountKind.debit,
@@ -183,11 +183,12 @@ void main() {
     final corrections = await (b.db.select(
       b.db.journalEntries,
     )..where((e) => e.kind.equals('anchor_correction'))).get();
-    // Created 1 Nov 10:00 with an anchor at that moment; the purchase is at
-    // noon, so the first confirmation after it is 3 Nov.
+    // The entry goes before every confirmation on or after its date (here
+    // the opening balance at 1 Nov 10:00 is the first); with «уже было» it
+    // is corrected once, at that first one, and stays in all later ones.
     expect(
       corrections.single.occurredAtUtc,
-      at('2026-11-03').toUtc().millisecondsSinceEpoch,
+      at('2026-11-01').toUtc().millisecondsSinceEpoch,
     );
     expect(await b.balance('Сбер'), rub(8000));
     await b.expectAnchorsHold();

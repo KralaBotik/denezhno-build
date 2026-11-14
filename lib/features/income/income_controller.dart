@@ -83,13 +83,13 @@ class IncomeController extends AsyncNotifier<IncomeSnapshot> {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) => _store.previewReceipt(
     key,
     amount: amount,
     accountId: accountId,
     date: date,
-    placement: placement,
+    answers: answers,
   );
 
   Future<void> receive(
@@ -97,7 +97,7 @@ class IncomeController extends AsyncNotifier<IncomeSnapshot> {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
     ShortfallChoice shortfall = ShortfallChoice.restLater,
     CalendarDate? restOn,
   }) => _then(
@@ -106,7 +106,7 @@ class IncomeController extends AsyncNotifier<IncomeSnapshot> {
       amount: amount,
       accountId: accountId,
       date: date,
-      placement: placement,
+      answers: answers,
       shortfall: shortfall,
       restOn: restOn,
     ),

@@ -44,7 +44,7 @@ class _Accounts implements AccountsStore {
   @override
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> a, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) async => BalanceUpdateResult(changed: 0, unexplained: Money(0));
 }
 

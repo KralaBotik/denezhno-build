@@ -697,19 +697,6 @@
       }
     }
   },
-  "receiveAlreadyIn": "Остаток «{account}» не изменится: эти деньги уже есть в остатке, который вы подтвердили {when}. Неясная разница уменьшится.",
-  "@receiveAlreadyIn": {
-    "placeholders": {
-      "account": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
-  "receiveSameDayAfter": "Нет, деньги пришли после обновления остатка",
-  "receiveSameDayBefore": "Деньги уже были в том остатке",
   "receiveLess": "Ожидалось {expected}",
   "@receiveLess": {
     "placeholders": {
@@ -876,43 +863,6 @@
       }
     }
   },
-  "payAlreadyIn": "Остаток «{account}» не изменится: списание уже есть в остатке, который вы подтвердили {when}.",
-  "@payAlreadyIn": {
-    "placeholders": {
-      "account": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
-  "sameDayQuestion": "Остаток «{account}» подтверждён {when} — в день оплаты или позже. Банк уже списал эту оплату к тому моменту?",
-  "@sameDayQuestion": {
-    "placeholders": {
-      "account": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
-  "sameDayIncomeQuestion": "Остаток «{account}» подтверждён {when} — в день поступления или позже. Эти деньги уже были в том остатке?",
-  "@sameDayIncomeQuestion": {
-    "placeholders": {
-      "account": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
-  "sameDayYes": "Да, уже была в том остатке",
-  "sameDayNo": "Нет, банк списал позже",
-  "sameDayIncomeYes": "Да, уже были",
-  "sameDayIncomeNo": "Нет, пришли позже",
   "similarFound": "На этом счёте уже есть похожая операция: {date}, {amount}{what}. Возможно, этот платёж уже записан.",
   "@similarFound": {
     "placeholders": {
@@ -965,8 +915,24 @@
     }
   },
   "pendingTitle": "Оплаты после прошлого обновления",
-  "pendingHint": "Отметьте для каждой: банк уже списал деньги или ещё нет. Иначе остаток посчитается неверно.",
+  "pendingHint": "Ответьте по каждому счёту, который сверяете сейчас. Иначе остаток посчитается неверно.",
   "pendingLine": "{title} · {amount} · {date}",
+  "pendingDebitQuestion": "«{account}»: Банк уже списал деньги?",
+  "@pendingDebitQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingCreditQuestion": "«{account}»: Банк уже зачислил перевод?",
+  "@pendingCreditQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
   "@pendingLine": {
     "placeholders": {
       "title": {
@@ -982,6 +948,49 @@
   },
   "pendingDebited": "Уже списано",
   "pendingNotYet": "Ещё не списано",
-  "pendingNeedAnswer": "Ответьте по каждой оплате выше",
-  "payNoAccounts": "Сначала добавьте счёт, с которого платите"
+  "pendingCredited": "Уже зачислено",
+  "pendingNotYetCredited": "Ещё не зачислено",
+  "pendingNeedAnswer": "Ответьте на каждый вопрос выше",
+  "payNoAccounts": "Сначала добавьте счёт, с которого платите",
+  "confirmBalanceQuestion": "Остаток «{account}» подтверждён {when} — в день операции или позже. Эта операция уже была в нём?",
+  "@confirmBalanceQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDebtQuestion": "Долг «{account}» подтверждён {when} — в день операции или позже. Этот платёж уже был в нём учтён?",
+  "@confirmDebtQuestion": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmYes": "Уже была",
+  "confirmNo": "Ещё нет",
+  "figuresQuestion": "Сумма к оплате {due}, введённая {date}, уже учитывает этот платёж?",
+  "@figuresQuestion": {
+    "placeholders": {
+      "due": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "figuresYes": "Да, уже учтён",
+  "figuresNo": "Нет, ещё не учтён",
+  "payRecheck": "Пока вы отвечали, изменились сверка или цифры банка. Ничего не записано — ответьте на вопросы ещё раз.",
+  "payFiguresChanged": "Цифры банка по этой кредитке изменились. Ничего не записано — вернитесь и откройте оплату по актуальной сумме.",
+  "payBackToPayments": "Вернуться",
+  "enterBankAmount": "Введите сумму из банка"
 }

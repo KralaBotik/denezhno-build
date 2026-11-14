@@ -2223,6 +2223,76 @@ class ObligationPayments extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
+class FiguresTransferAnswers extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  FiguresTransferAnswers(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> figuresId = GeneratedColumn<String>(
+    'figures_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES card_figures(id)',
+  );
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES journal_entries(id)',
+  );
+  late final GeneratedColumn<int> included = GeneratedColumn<int>(
+    'included',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (included IN (0, 1))',
+  );
+  late final GeneratedColumn<int> answeredAtUtc = GeneratedColumn<int>(
+    'answered_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (typeof(answered_at_utc) = \'integer\')',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    figuresId,
+    entryId,
+    included,
+    answeredAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'figures_transfer_answers';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {figuresId, entryId};
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  FiguresTransferAnswers createAlias(String alias) {
+    return FiguresTransferAnswers(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'PRIMARY KEY(figures_id, entry_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class DatabaseAtV6 extends GeneratedDatabase {
   DatabaseAtV6(QueryExecutor e) : super(e);
   late final AppSettings appSettings = AppSettings(this);
@@ -2333,6 +2403,16 @@ class DatabaseAtV6 extends GeneratedDatabase {
     'CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments BEGIN SELECT RAISE (ABORT, \'payments are append-only\');END',
     'obligation_payments_no_delete',
   );
+  late final FiguresTransferAnswers figuresTransferAnswers =
+      FiguresTransferAnswers(this);
+  late final Trigger figuresTransferAnswersNoUpdate = Trigger(
+    'CREATE TRIGGER figures_transfer_answers_no_update BEFORE UPDATE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, \'answers are append-only\');END',
+    'figures_transfer_answers_no_update',
+  );
+  late final Trigger figuresTransferAnswersNoDelete = Trigger(
+    'CREATE TRIGGER figures_transfer_answers_no_delete BEFORE DELETE ON figures_transfer_answers BEGIN SELECT RAISE (ABORT, \'answers are append-only\');END',
+    'figures_transfer_answers_no_delete',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2384,6 +2464,9 @@ class DatabaseAtV6 extends GeneratedDatabase {
     obligationPaymentsByCard,
     obligationPaymentsNoUpdate,
     obligationPaymentsNoDelete,
+    figuresTransferAnswers,
+    figuresTransferAnswersNoUpdate,
+    figuresTransferAnswersNoDelete,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2467,6 +2550,20 @@ class DatabaseAtV6 extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'obligation_payments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'figures_transfer_answers',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'figures_transfer_answers',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [],

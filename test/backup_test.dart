@@ -13,11 +13,12 @@ import 'package:denezhno/core/storage/local_store.dart';
 import 'package:denezhno/features/accounts/accounts.dart';
 import 'package:denezhno/features/forecast/safe_to_spend.dart';
 import 'package:denezhno/features/income/income.dart';
-import 'package:denezhno/features/operations/operations.dart';
 import 'package:denezhno/features/payments/payments.dart';
 import 'package:denezhno/features/settings/preferences.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/answers.dart';
 
 import 'generated_migrations/schema.dart';
 import 'support/v3_fixture.dart';
@@ -146,7 +147,7 @@ void main() {
       amount: Money(1000000),
       accountId: debit,
       date: today,
-      placement: shown.placement,
+      answers: answerAll(shown, included: false),
     );
     await s.setForecastPeriod(const PeriodDays(30));
     await s.saveFlow(
@@ -160,28 +161,38 @@ void main() {
         accountId: card,
       ),
     );
-    final flows = (await s.payments()).flows;
-    // The card payment plan, paid by a transfer (operation + link); a
-    // later date skipped.
-    final nextDue = occurrences(flows.first, today, today.addDays(40)).first;
-    await s.pay(
-      PlanDate(flows.first.id!, nextDue),
-      amount: Money(840000),
-      accountId: debit,
-      date: today,
-      placement: SameDayPlacement.afterConfirmedBalance,
-    );
-    await s.setFlowSkipped(flows.first.id!, nextDue.addDays(31), true);
+    // The bank figures (12 000 ₽ without interest), entered today: the
+    // transfer below is dated today, so the person is asked whether these
+    // figures already include it — «ещё нет»; the answer is stored.
     await s.saveCardFigures(
       CardFigures(
         id: '',
         accountId: card,
-        graceAmount: Money(840000),
+        graceAmount: Money(1200000),
         graceDueOn: d('2026-11-25'),
         minPayment: Money(30000),
         minDueOn: d('2026-11-25'),
       ),
     );
+    final flows = (await s.payments()).flows;
+    // The card payment plan, paid by a transfer (operation + link); a
+    // later date skipped.
+    final nextDue = occurrences(flows.first, today, today.addDays(40)).first;
+    final check = await s.previewPayment(
+      PlanDate(flows.first.id!, nextDue),
+      amount: Money(840000),
+      accountId: debit,
+      date: today,
+    );
+    await s.pay(
+      PlanDate(flows.first.id!, nextDue),
+      amount: Money(840000),
+      accountId: debit,
+      date: today,
+      answers: answerAll(check.operation, included: false),
+      figuresAnswer: FiguresAnswer(check.figures!.figuresId, included: false),
+    );
+    await s.setFlowSkipped(flows.first.id!, nextDue.addDays(31), true);
     await s.setIncludedInForecast(debit, true);
   }
 
@@ -189,11 +200,25 @@ void main() {
     'full cycle A → B: identical data, settings, obligations, forecast',
     () async {
       await fillA();
+      // Before the export: the answer about the bank figures is stored, and
+      // what is still due depends on it (12 000 − 8 400 = 3 600).
+      Future<Money?> due(LocalStore st) async {
+        final f = (await st.payments()).cardFigures.values.single;
+        return f.remainingDue;
+      }
+
+      final answers = (await a.dump())['figures_transfer_answers']! as List;
+      expect(answers, hasLength(1));
+      expect((answers.single as Map)['included'], 0);
+      expect(await due(a.store), Money(360000));
       final file = await a.store.exportBackup(_password);
       expect(await b.store.canRestore(), true);
       await b.store.restoreBackup(file, _password);
 
       expect(await b.dump(), await a.dump()); // every user table, byte-exact
+      // The answer itself and the amount still due survive the restore.
+      expect((await b.dump())['figures_transfer_answers'], answers);
+      expect(await due(b.store), Money(360000));
       expect(await b.store.open(), AppTheme.dark);
       expect(await b.store.reserve(), Money(1500000));
       expect(await b.store.canRestore(), false);

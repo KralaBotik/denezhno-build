@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/controller.dart';
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
-import '../operations/operations.dart' show SameDayPlacement;
+import '../operations/operations.dart' show ConfirmationAnswer;
 import '../accounts/accounts_controller.dart';
 import 'payments.dart';
 
@@ -51,13 +51,13 @@ class PaymentsController extends AsyncNotifier<PaymentsSnapshot> {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) => _store.previewPayment(
     target,
     amount: amount,
     accountId: accountId,
     date: date,
-    placement: placement,
+    answers: answers,
   );
 
   /// Books the payment; balances change, so accounts reload too.
@@ -66,7 +66,8 @@ class PaymentsController extends AsyncNotifier<PaymentsSnapshot> {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
+    FiguresAnswer? figuresAnswer,
     bool confirmedNotDuplicate = false,
   }) async {
     await _store.pay(
@@ -74,7 +75,8 @@ class PaymentsController extends AsyncNotifier<PaymentsSnapshot> {
       amount: amount,
       accountId: accountId,
       date: date,
-      placement: placement,
+      answers: answers,
+      figuresAnswer: figuresAnswer,
       confirmedNotDuplicate: confirmedNotDuplicate,
     );
     if (ref.mounted) ref.invalidate(accountsProvider);
@@ -85,7 +87,7 @@ class PaymentsController extends AsyncNotifier<PaymentsSnapshot> {
     if (ref.mounted) ref.invalidate(accountsProvider);
   }
 
-  Future<List<PendingDebit>> pending() => _store.pendingDebits();
+  Future<List<PendingSide>> pending() => _store.pendingSides();
 }
 
 /// «Ближайшие» for the next 30 days starting today.

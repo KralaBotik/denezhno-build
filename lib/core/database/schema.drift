@@ -371,3 +371,21 @@ CREATE TRIGGER obligation_payments_no_update BEFORE UPDATE ON obligation_payment
 BEGIN SELECT RAISE(ABORT, 'payments are append-only'); END;
 CREATE TRIGGER obligation_payments_no_delete BEFORE DELETE ON obligation_payments
 BEGIN SELECT RAISE(ABORT, 'payments are append-only'); END;
+
+-- The person's answer for a transfer to a credit card dated on or before
+-- the day a version of the bank's figures was entered: was that transfer
+-- already included in those figures? Only an answer «not yet» (included =
+-- 0) makes the transfer reduce what is still due for that version; a
+-- transfer dated after the figures were entered always does. Append-only.
+CREATE TABLE figures_transfer_answers (
+  figures_id TEXT NOT NULL REFERENCES card_figures(id),
+  entry_id TEXT NOT NULL REFERENCES journal_entries(id),
+  included INTEGER NOT NULL CHECK (included IN (0, 1)),
+  answered_at_utc INTEGER NOT NULL CHECK (typeof(answered_at_utc) = 'integer'),
+  PRIMARY KEY (figures_id, entry_id)
+) AS FiguresTransferAnswerRow;
+
+CREATE TRIGGER figures_transfer_answers_no_update BEFORE UPDATE ON figures_transfer_answers
+BEGIN SELECT RAISE(ABORT, 'answers are append-only'); END;
+CREATE TRIGGER figures_transfer_answers_no_delete BEFORE DELETE ON figures_transfer_answers
+BEGIN SELECT RAISE(ABORT, 'answers are append-only'); END;

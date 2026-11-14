@@ -451,10 +451,12 @@ final class IncomeRepo {
     required CalendarDate date,
     required DateTime now,
     SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
   }) async => Journal(db).preview(
     await _op(key, amount, accountId, date),
     now: now,
     placement: placement,
+    answers: answers,
   );
 
   /// Books the received money (journal entry + receipt) and updates the
@@ -467,20 +469,26 @@ final class IncomeRepo {
     required String accountId,
     required CalendarDate date,
     required DateTime now,
-    required SameDayPlacement placement,
+    SameDayPlacement placement = SameDayPlacement.auto,
+    Map<String, ConfirmationAnswer> answers = const {},
     ShortfallChoice shortfall = ShortfallChoice.restLater,
     CalendarDate? restOn,
   }) => db.transaction(() async {
     final row = await _materialize(key, now);
     if (row.state != 'open') throw const InvalidOperation('not waiting');
     final op = await _op(key, amount, accountId, date);
-    // Same day as a confirmed balance: the person must have answered.
+    // A balance confirmed on or after the date: the person must have
+    // answered about THAT confirmation (screens pass `auto` + answers).
     if (placement == SameDayPlacement.auto &&
-        (await Journal(db).preview(op, now: now)).askIncluded) {
-      throw const InvalidOperation('same-day placement must be chosen');
+        (await Journal(db).preview(
+          op,
+          now: now,
+          answers: answers,
+        )).unanswered(answers).isNotEmpty) {
+      throw const InvalidOperation('answer required');
     }
     final recorded = await Journal(db)
-        .record(op, now: now, placement: placement);
+        .record(op, now: now, placement: placement, answers: answers);
     final at = now.toUtc().millisecondsSinceEpoch;
     await db
         .into(db.incomeReceipts)

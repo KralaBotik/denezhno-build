@@ -12,6 +12,8 @@ import 'package:denezhno/features/payments/payments.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/answers.dart';
+
 /// R3 risk Р1: «Оплачено» through the journal — the owner's scenarios
 /// (docs/r3-plan.md). A payment leaves the obligations only by an operation
 /// (or an explicit skip); it is taken from the balance exactly once.
@@ -113,6 +115,12 @@ final class World {
     }
   }
 
+  /// «Not yet included» about the card's current bank figures.
+  Future<FiguresAnswer> fig(String card) async => FiguresAnswer(
+    (await plans.payments()).cardFigures[card]!.id,
+    included: false,
+  );
+
   Future<int> entries(String kind) async => (await (db.select(
     db.journalEntries,
   )..where((e) => e.kind.equals(kind))).get()).length;
@@ -163,7 +171,7 @@ void main() {
     // 18:00: the bank still shows 10 000 — «ещё не списано».
     final pending = await w.pay.pending();
     expect(pending.single.title, 'Аренда');
-    await w.pay.updateBalances(
+    await w.pay.reconcile(
       {w.sber: rub(10000)},
       {pending.single.paymentId},
       at(today, 18),
@@ -243,7 +251,7 @@ void main() {
       );
       expect((await w.pay.pending()), hasLength(1));
       // «Уже списано»: an ordinary confirmation.
-      await w.pay.updateBalances({w.sber: rub(7000)}, {}, at(today, 13));
+      await w.pay.reconcile({w.sber: rub(7000)}, {}, at(today, 13));
       expect(await w.balance('Сбер'), rub(7000));
       expect(await w.suspense(), 0);
       expect((await w.forecast()).available, rub(7000));
@@ -289,7 +297,7 @@ void main() {
       placement: SameDayPlacement.afterConfirmedBalance,
     );
     // Evening: the bank shows 10 000 − 500 − 1 000 − 3 000 = 5 500.
-    await w.pay.updateBalances(
+    await w.pay.reconcile(
       {w.sber: rub(5500), cash: rub(1000)},
       {},
       at(today, 20),
@@ -456,6 +464,8 @@ void main() {
       date: d(today),
       now: at(today, 10),
       placement: SameDayPlacement.afterConfirmedBalance,
+      // Figures entered the same day: they do not include it yet.
+      figuresAnswer: await w.fig(card),
     );
     var f = await w.forecast();
     expect(f.cardPaymentsTotal, rub(10000)); // 15 000 − 5 000 paid
@@ -467,6 +477,7 @@ void main() {
       date: d(today),
       now: at(today, 11),
       placement: SameDayPlacement.afterConfirmedBalance,
+      figuresAnswer: await w.fig(card),
       confirmedNotDuplicate: true,
     );
     f = await w.forecast();
@@ -485,6 +496,7 @@ void main() {
         date: d(today),
         now: at(today, 12),
         placement: SameDayPlacement.afterConfirmedBalance,
+        figuresAnswer: await w.fig(card),
         confirmedNotDuplicate: true,
       ),
       throwsA(isA<AlreadyPaid>()),
@@ -589,7 +601,7 @@ void main() {
     await w.expectAnchorsHold();
     // 10 Nov: the bank finally took it — «уже списано».
     expect((await w.pay.pending()).single.title, 'Аренда');
-    await w.pay.updateBalances({w.sber: rub(7000)}, {}, at('2026-11-10', 9));
+    await w.pay.reconcile({w.sber: rub(7000)}, {}, at('2026-11-10', 9));
     expect(await w.balance('Сбер'), rub(7000));
     expect(await w.suspense(), 0);
     expect(
@@ -657,6 +669,8 @@ void main() {
       date: d(today),
       now: at(today, 10),
       placement: SameDayPlacement.afterConfirmedBalance,
+      // Figures entered the same day: they do not include it yet.
+      figuresAnswer: await w.fig(card),
     );
     var f = await w.forecast();
     expect(await w.balance('Кредитка'), rub(11000));
@@ -691,6 +705,8 @@ void main() {
       date: d(today),
       now: at(today, 13),
       placement: SameDayPlacement.afterConfirmedBalance,
+      // Figures entered the same day: they do not include it yet.
+      figuresAnswer: await w.fig(card),
     );
     f = await w.forecast();
     expect(f.cardPaymentsTotal, Money(0));
@@ -702,6 +718,7 @@ void main() {
         date: d(today),
         now: at(today, 14),
         placement: SameDayPlacement.afterConfirmedBalance,
+        figuresAnswer: await w.fig(card),
         confirmedNotDuplicate: true,
       ),
       throwsA(isA<AlreadyPaid>()),

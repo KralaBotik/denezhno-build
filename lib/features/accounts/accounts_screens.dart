@@ -13,7 +13,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets.dart';
 import 'accounts.dart';
 import 'accounts_controller.dart';
-import '../payments/payments.dart' show PendingDebit;
+import '../payments/payments.dart' show PendingKey, PendingSide;
 import '../payments/payments_controller.dart';
 import '../payments/payments_screens.dart' show cardFiguresPath, formatDate;
 
@@ -727,30 +727,56 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
   bool _saving = false;
   String? _saveError;
 
-  /// Payments recorded after their account's last confirmation, and the
-  /// person's answer for each: taken by the bank already (true) or not yet
-  /// (false). No default — an unanswered one blocks saving (R3 risk Р1).
-  List<PendingDebit> _pending = const [];
-  final _answers = <String, bool>{};
+  /// Sides of recorded payments not yet in a confirmed balance of their
+  /// account, and the person's answer for each: the bank already shows it
+  /// (true) or not yet (false). Asked only for accounts being confirmed now
+  /// (a filled field); no default — an unanswered one blocks saving.
+  List<PendingSide> _pending = const [];
+  final _answers = <PendingKey, bool>{};
+
+  /// The pending sides are known (loaded). Until then «Не изменилось» is
+  /// off for every account: it could copy a balance that already contains
+  /// a payment the bank has not shown yet.
+  bool _pendingLoaded = false;
 
   @override
   void initState() {
     super.initState();
     unawaited(
       ref.read(paymentsProvider.notifier).pending().then((list) {
-        if (mounted) setState(() => _pending = list);
+        if (mounted) {
+          setState(() {
+            _pending = list;
+            _pendingLoaded = true;
+          });
+        }
       }, onError: (Object _) {}),
     );
   }
 
-  /// Pending payments of the accounts being updated now.
-  List<PendingDebit> _relevant(Set<String> accounts) => [
+  /// Pending sides on the accounts being confirmed now.
+  List<PendingSide> _relevant(Set<String> accounts) => [
     for (final d in _pending)
       if (accounts.contains(d.accountId)) d,
   ];
 
+  /// Accounts with a figure typed in (or «Не изменилось»).
+  Set<String> get _entered => {
+    for (final e in _controllers.entries)
+      if (e.value.text.trim().isNotEmpty) e.key,
+  };
+
   TextEditingController _controllerFor(String id) =>
-      _controllers.putIfAbsent(id, TextEditingController.new);
+      _controllers.putIfAbsent(id, () {
+        var filled = false;
+        final c = TextEditingController();
+        // The questions follow the accounts being confirmed.
+        c.addListener(() {
+          final now = c.text.trim().isNotEmpty;
+          if (now != filled && mounted) setState(() => filled = now);
+        });
+        return c;
+      });
 
   @override
   void dispose() {
@@ -775,7 +801,7 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
     setState(() => _saveError = null);
     if (_errors.isNotEmpty || amounts.isEmpty) return;
     final relevant = _relevant(amounts.keys.toSet());
-    if (relevant.any((d) => !_answers.containsKey(d.paymentId))) {
+    if (relevant.any((d) => !_answers.containsKey(d.key))) {
       setState(() => _saveError = s.pendingNeedAnswer);
       return;
     }
@@ -785,10 +811,7 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
           .read(accountsProvider.notifier)
           .updateBalances(
             amounts,
-            notYetDebited: {
-              for (final d in relevant)
-                if (_answers[d.paymentId] == false) d.paymentId,
-            },
+            pending: {for (final d in relevant) d.key: _answers[d.key]!},
           );
       ref.invalidate(paymentsProvider);
       if (mounted) context.pop(result);
@@ -811,6 +834,9 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
         ? all
         : all.where((a) => a.id == widget.onlyAccountId).toList();
     final now = DateTime.now();
+    final shown = {for (final a in accounts) a.id};
+    final asked = _relevant(_entered.intersection(shown));
+    final names = {for (final a in all) a.id: a.name};
     return CupertinoPageScaffold(
       key: const ValueKey('screen.updateBalances'),
       backgroundColor: p.background,
@@ -826,7 +852,7 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
           children: [
             Text(s.updateHint, style: AppText.secondary(p.textSecondary)),
             const SizedBox(height: Space.l),
-            if (_relevant({for (final a in accounts) a.id}).isNotEmpty) ...[
+            if (asked.isNotEmpty) ...[
               AppCard(
                 key: const ValueKey('pending.card'),
                 color: p.warningSoft,
@@ -839,53 +865,13 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
                       s.pendingHint,
                       style: AppText.caption(p.textSecondary),
                     ),
-                    for (final d in _relevant({for (final a in accounts) a.id}))
-                      Padding(
-                        key: ValueKey('pending.${d.paymentId}'),
-                        padding: const EdgeInsets.only(top: Space.m),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              s.pendingLine(
-                                d.title,
-                                formatMoney(d.amount),
-                                formatDate(d.paidOn),
-                              ),
-                              style: AppText.secondary(p.text),
-                            ),
-                            const SizedBox(height: Space.xs),
-                            CupertinoSlidingSegmentedControl<bool>(
-                              key: ValueKey('pending.${d.paymentId}.answer'),
-                              groupValue: _answers[d.paymentId],
-                              onValueChanged: (v) {
-                                if (v != null) {
-                                  setState(() => _answers[d.paymentId] = v);
-                                }
-                              },
-                              children: {
-                                true: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 6,
-                                  ),
-                                  child: Text(
-                                    s.pendingDebited,
-                                    key: ValueKey('pending.${d.paymentId}.yes'),
-                                  ),
-                                ),
-                                false: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 6,
-                                  ),
-                                  child: Text(
-                                    s.pendingNotYet,
-                                    key: ValueKey('pending.${d.paymentId}.no'),
-                                  ),
-                                ),
-                              },
-                            ),
-                          ],
-                        ),
+                    for (final d in asked)
+                      _PendingQuestion(
+                        key: ValueKey('pending.${d.paymentId}.${d.accountId}'),
+                        side: d,
+                        accountName: names[d.accountId] ?? '',
+                        answer: _answers[d.key],
+                        onAnswer: (v) => setState(() => _answers[d.key] = v),
                       ),
                   ],
                 ),
@@ -947,14 +933,22 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
                             ),
                             autocorrect: false,
                           );
+                          // The app's balance of an account with a payment
+                          // side still to come already contains it; copied
+                          // and answered «ещё не …», it would count twice.
+                          // Such an account needs the bank's own figure.
+                          final quick =
+                              _pendingLoaded &&
+                              !_pending.any((d) => d.accountId == a.id);
                           final button = PillButton(
                             key: ValueKey('unchanged.${a.id}'),
                             label: s.unchanged,
-                            onPressed: () => setState(
-                              () => _controllerFor(a.id).text = moneyInputText(
-                                a.amount,
-                              ),
-                            ),
+                            onPressed: quick
+                                ? () => setState(
+                                    () => _controllerFor(a.id).text =
+                                        moneyInputText(a.amount),
+                                  )
+                                : null,
                           );
                           final narrow =
                               box.maxWidth < 300 ||
@@ -977,6 +971,16 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
                                 );
                         },
                       ),
+                      if (_pendingLoaded &&
+                          _pending.any((d) => d.accountId == a.id))
+                        Padding(
+                          padding: const EdgeInsets.only(top: Space.xs),
+                          child: Text(
+                            s.enterBankAmount,
+                            key: ValueKey('unchanged.hint.${a.id}'),
+                            style: AppText.caption(p.textSecondary),
+                          ),
+                        ),
                       if (_errors.contains(a.id))
                         Padding(
                           padding: const EdgeInsets.only(top: Space.xs),
@@ -992,6 +996,74 @@ class _UpdateBalancesScreenState extends ConsumerState<UpdateBalancesScreen> {
             _errorText(context, _saveError),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One side of a recorded payment at «Обновить остатки»: «Банк уже списал
+/// деньги?» for the account the money leaves, «Банк уже зачислил перевод?»
+/// for the account it comes into. No preselected answer.
+class _PendingQuestion extends StatelessWidget {
+  const _PendingQuestion({
+    super.key,
+    required this.side,
+    required this.accountName,
+    required this.answer,
+    required this.onAnswer,
+  });
+  final PendingSide side;
+  final String accountName;
+  final bool? answer;
+  final ValueChanged<bool> onAnswer;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final p = Palette.of(context);
+    final id = 'pending.${side.paymentId}.${side.accountId}';
+    Widget segment(String text, String key) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Text(text, key: ValueKey(key), textAlign: TextAlign.center),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            s.pendingLine(
+              side.title,
+              formatMoney(side.amount),
+              formatDate(side.paidOn),
+            ),
+            style: AppText.secondary(p.text),
+          ),
+          Text(
+            side.incoming
+                ? s.pendingCreditQuestion(accountName)
+                : s.pendingDebitQuestion(accountName),
+            style: AppText.caption(p.textSecondary),
+          ),
+          const SizedBox(height: Space.xs),
+          CupertinoSlidingSegmentedControl<bool>(
+            key: ValueKey('$id.answer'),
+            groupValue: answer,
+            onValueChanged: (v) {
+              if (v != null) onAnswer(v);
+            },
+            children: {
+              true: segment(
+                side.incoming ? s.pendingCredited : s.pendingDebited,
+                '$id.yes',
+              ),
+              false: segment(
+                side.incoming ? s.pendingNotYetCredited : s.pendingNotYet,
+                '$id.no',
+              ),
+            },
+          ),
+        ],
       ),
     );
   }

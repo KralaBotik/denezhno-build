@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
 import '../../core/money/money.dart';
+import '../payments/payments.dart' show PendingKey;
 import 'accounts.dart';
 
 /// Accounts for the UI. Loads only while the encrypted storage is open;
@@ -30,11 +31,11 @@ class AccountsController extends AsyncNotifier<List<AccountSummary>> {
 
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> amounts, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   }) async {
     final result = await ref
         .read(accountsStoreProvider)
-        .updateBalances(amounts, notYetDebited: notYetDebited);
+        .updateBalances(amounts, pending: pending);
     _reload();
     return result;
   }

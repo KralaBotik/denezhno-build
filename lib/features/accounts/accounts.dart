@@ -1,4 +1,5 @@
 import '../../core/money/money.dart';
+import '../payments/payments.dart' show PendingKey;
 
 /// Kinds a person can create. System accounts (opening equity, «Невыясненное»)
 /// are never shown or created here.
@@ -82,11 +83,13 @@ abstract interface class AccountsStore {
   /// [amounts]: account id → user-facing amount now (the same value means
   /// «не изменилось» and is recorded as a confirmation).
   ///
-  /// [notYetDebited]: recorded payments the person said the bank has not
-  /// taken yet; the figure is confirmed without them (R3 risk Р1).
+  /// [pending]: for every not yet confirmed side of a recorded payment on
+  /// an account in [amounts], the person's answer — the bank already shows
+  /// it (true) or not yet (false). Required, no default; a side on an
+  /// account not confirmed now keeps its state (R3 review 3).
   Future<BalanceUpdateResult> updateBalances(
     Map<String, Money> amounts, {
-    Set<String> notYetDebited = const {},
+    Map<PendingKey, bool> pending = const {},
   });
 
   /// Whether a money account counts in «можно потратить» (the opposite of

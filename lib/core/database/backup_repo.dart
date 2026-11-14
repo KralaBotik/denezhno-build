@@ -27,6 +27,7 @@ const _tablesSince = {
   'forecast_settings': 5,
   'flow_tracking': 6,
   'obligation_payments': 6,
+  'figures_transfer_answers': 6,
 };
 
 /// Every table with user data, in foreign-key order (parents first).
@@ -47,6 +48,7 @@ const backupTables = [
   'card_figures',
   'flow_tracking',
   'obligation_payments',
+  'figures_transfer_answers',
   'income_sources',
   'income_schedule_parts',
   'income_occurrences',

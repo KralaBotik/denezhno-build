@@ -43,13 +43,23 @@ class _PayScreenState extends ConsumerState<PayScreen> {
   final _amount = TextEditingController();
   late CalendarDate _date;
   String? _accountId;
-  SameDayPlacement _placement = SameDayPlacement.auto;
+
+  /// Answers per account, each about a specific confirmation; an answer
+  /// about an older confirmation no longer counts (asked again).
+  final _given = <String, ConfirmationAnswer>{};
+
+  /// Figures id → «the bank figure already includes this payment».
+  final _figures = <String, bool>{};
   bool _notDuplicate = false;
   PaymentCheck? _check;
   int _request = 0;
   String? _error;
   bool _saving = false;
   bool _ready = false;
+
+  /// The bank figures of this card changed since the form was opened: it
+  /// cannot be paid any more; the person goes back and opens it again.
+  bool _stale = false;
 
   @override
   void dispose() {
@@ -67,7 +77,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
   }
 
   /// What paying will do; nothing is written.
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool keepError = false}) async {
     final amount = _parsed;
     final id = ++_request;
     setState(() {
@@ -83,35 +93,43 @@ class _PayScreenState extends ConsumerState<PayScreen> {
             amount: amount,
             accountId: _accountId!,
             date: _date,
-            placement: _placement,
+            answers: Map.of(_given),
           );
       if (mounted && id == _request) {
         setState(() {
           _check = check;
-          _error = null;
+          if (!keepError) _error = null;
         });
       }
     } on Object catch (e) {
       if (mounted && id == _request) {
         final s = AppLocalizations.of(context);
-        setState(
-          () => _error = e is InvalidOperation && e.reason == 'already paid'
+        setState(() {
+          _stale = _isStale(e);
+          _error = _stale
+              ? s.payFiguresChanged
+              : e is InvalidOperation && e.reason == 'already paid'
               ? s.payAlreadyPaid
-              : s.payFailed,
-        );
+              : s.payFailed;
+        });
       }
     }
   }
 
-  bool get _needsPlacement =>
+  static bool _isStale(Object e) =>
+      e is InvalidOperation && e.reason == 'figures changed';
+
+  bool get _needsAnswers =>
       _check != null &&
-      _check!.operation.askIncluded &&
-      _placement == SameDayPlacement.auto;
+      (_check!.operation.unanswered(_given).isNotEmpty ||
+          (_check!.figures != null &&
+              !_figures.containsKey(_check!.figures!.figuresId)));
 
   bool get _canConfirm =>
       _check != null &&
+      !_stale &&
       !_saving &&
-      !_needsPlacement &&
+      !_needsAnswers &&
       (_check!.similar.isEmpty || _notDuplicate);
 
   Future<void> _confirm() async {
@@ -126,18 +144,42 @@ class _PayScreenState extends ConsumerState<PayScreen> {
             amount: amount,
             accountId: _accountId!,
             date: _date,
-            placement: _check!.operation.placement,
+            answers: Map.of(_given),
+            figuresAnswer: switch (_check!.figures) {
+              final f? => FiguresAnswer(
+                f.figuresId,
+                included: _figures[f.figuresId]!,
+              ),
+              null => null,
+            },
             confirmedNotDuplicate: _notDuplicate,
           );
       if (mounted) context.pop();
     } on Object catch (e) {
-      if (mounted) {
+      if (mounted && _isStale(e)) {
+        // Nothing was written; this form is about older bank figures.
         final s = AppLocalizations.of(context);
+        setState(() {
+          _stale = true;
+          _check = null;
+          _error = s.payFiguresChanged;
+        });
+      } else if (mounted) {
+        final s = AppLocalizations.of(context);
+        final changed =
+            e is InvalidOperation &&
+            (e.reason == 'answer required' ||
+                e.reason == 'figures answer required');
         setState(
           () => _error = e is InvalidOperation && e.reason == 'already paid'
               ? s.payAlreadyPaid
+              : changed
+              ? s.payRecheck
               : s.payFailed,
         );
+        // A confirmation or the bank figures changed meanwhile: show the
+        // current questions again (nothing was written).
+        if (changed) unawaited(_refresh(keepError: true));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -251,10 +293,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                onChanged: (_) {
-                  _placement = SameDayPlacement.auto;
-                  unawaited(_refresh());
-                },
+                onChanged: (_) => unawaited(_refresh()),
                 suffix: Padding(
                   padding: const EdgeInsets.only(right: Space.m),
                   child: Text('₽', style: AppText.body(p.textSecondary)),
@@ -276,7 +315,8 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                           if (i != null) {
                             setState(() {
                               _accountId = money[i].id;
-                              _placement = SameDayPlacement.auto;
+                              _given.clear();
+                              _figures.clear();
                             });
                             unawaited(_refresh());
                           }
@@ -295,7 +335,8 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                     }
                     setState(() {
                       _date = d;
-                      _placement = SameDayPlacement.auto;
+                      _given.clear();
+                      _figures.clear();
                     });
                     unawaited(_refresh());
                   },
@@ -316,40 +357,60 @@ class _PayScreenState extends ConsumerState<PayScreen> {
               child: check == null
                   ? (_error == null
                         ? const Center(child: CupertinoActivityIndicator())
-                        : Text(_error!, style: AppText.body(p.negative)))
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                _error!,
+                                key: const ValueKey('pay.failure'),
+                                style: AppText.body(p.negative),
+                              ),
+                              if (_stale)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: Space.m),
+                                  child: Center(
+                                    child: PillButton(
+                                      key: const ValueKey('pay.back'),
+                                      label: s.payBackToPayments,
+                                      icon: CupertinoIcons.back,
+                                      onPressed: () => context.pop(),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ))
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_needsPlacement)
-                          _SameDayChoice(
-                            question: s.sameDayQuestion(
-                              account?.name ?? '',
-                              check.operation.latestConfirmation == null
-                                  ? formatDate(_date)
-                                  : _when(check.operation.latestConfirmation!),
+                        // One question per account and its confirmation.
+                        ConfirmationQuestions(
+                          questions: check.operation.questions,
+                          given: _given,
+                          accounts: all,
+                          onAnswer: (q, included) {
+                            setState(
+                              () => _given[q.accountId] = ConfirmationAnswer(
+                                q.assertionId,
+                                included: included,
+                              ),
+                            );
+                            unawaited(_refresh());
+                          },
+                        ),
+                        if (check.figures case final f?)
+                          _YesNo(
+                            key: ValueKey('pay.figures.${f.figuresId}'),
+                            question: s.figuresQuestion(
+                              formatMoney(f.due),
+                              formatDate(f.enteredOn),
                             ),
-                            yes: s.sameDayYes,
-                            no: s.sameDayNo,
-                            onChoose: (inBalance) {
-                              setState(
-                                () => _placement = inBalance
-                                    ? SameDayPlacement.inConfirmedBalance
-                                    : SameDayPlacement.afterConfirmedBalance,
-                              );
-                              unawaited(_refresh());
-                            },
-                          )
-                        else if (check.operation.inConfirmedBalance &&
-                            check.operation.confirmedAt != null)
-                          Text(
-                            s.payAlreadyIn(
-                              account?.name ?? '',
-                              _when(check.operation.confirmedAt!),
-                            ),
-                            key: const ValueKey('pay.alreadyIn'),
-                            style: AppText.body(p.text),
-                          )
-                        else
+                            yes: s.figuresYes,
+                            no: s.figuresNo,
+                            value: _figures[f.figuresId],
+                            onChanged: (v) =>
+                                setState(() => _figures[f.figuresId] = v),
+                          ),
+                        if (!_needsAnswers)
                           for (final e in check.operation.balances.entries)
                             Text(
                               isDebt(e.key)
@@ -366,22 +427,6 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                               key: ValueKey('pay.change.${e.key}'),
                               style: AppText.body(p.text),
                             ),
-                        if (check.operation.askIncluded && !_needsPlacement)
-                          CupertinoButton(
-                            key: const ValueKey('pay.switch'),
-                            padding: const EdgeInsets.only(top: Space.s),
-                            alignment: Alignment.centerLeft,
-                            onPressed: () {
-                              setState(
-                                () => _placement = SameDayPlacement.auto,
-                              );
-                              unawaited(_refresh());
-                            },
-                            child: Text(
-                              s.periodChange,
-                              style: AppText.secondary(p.accent),
-                            ),
-                          ),
                       ],
                     ),
             ),
@@ -461,53 +506,107 @@ class _PayScreenState extends ConsumerState<PayScreen> {
   }
 }
 
-/// «Was it already in the balance you confirmed that day?» — no default:
-/// the person answers before anything can be written (R3 risk Р1).
-class _SameDayChoice extends StatelessWidget {
-  const _SameDayChoice({
+/// A yes/no question with no default answer: nothing can be written until
+/// the person chooses.
+class _YesNo extends StatelessWidget {
+  const _YesNo({
+    super.key,
     required this.question,
     required this.yes,
     required this.no,
-    required this.onChoose,
+    required this.value,
+    required this.onChanged,
   });
   final String question;
   final String yes;
   final String no;
-  final void Function(bool inBalance) onChoose;
+  final bool? value;
+  final ValueChanged<bool> onChanged;
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return Column(
-      key: const ValueKey('sameDay.choice'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(question, style: AppText.body(p.text)),
-        const SizedBox(height: Space.s),
-        Wrap(
-          spacing: Space.s,
-          runSpacing: Space.s,
-          children: [
-            PillButton(
-              key: const ValueKey('sameDay.yes'),
-              label: yes,
-              onPressed: () => onChoose(true),
-            ),
-            PillButton(
-              key: const ValueKey('sameDay.no'),
-              label: no,
-              onPressed: () => onChoose(false),
-            ),
-          ],
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(question, style: AppText.body(p.text)),
+          const SizedBox(height: Space.s),
+          CupertinoSlidingSegmentedControl<bool>(
+            groupValue: value,
+            onValueChanged: (v) {
+              if (v != null) onChanged(v);
+            },
+            children: {
+              true: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  yes,
+                  key: ValueKey('${(key as ValueKey<String>?)?.value}.yes'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              false: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  no,
+                  key: ValueKey('${(key as ValueKey<String>?)?.value}.no'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            },
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Shared with «Получено»: the same explicit same-day question.
-Widget sameDayChoice({
-  required String question,
-  required String yes,
-  required String no,
-  required void Function(bool inBalance) onChoose,
-}) => _SameDayChoice(question: question, yes: yes, no: no, onChoose: onChoose);
+/// «Was this operation already in the balance confirmed at …?» — asked
+/// separately for every affected account, naming the account and its
+/// confirmation. An answer about an older confirmation shows the question
+/// again. Shared by «Оплачено» and «Получено».
+class ConfirmationQuestions extends StatelessWidget {
+  const ConfirmationQuestions({
+    super.key,
+    required this.questions,
+    required this.given,
+    required this.accounts,
+    required this.onAnswer,
+  });
+  final List<ConfirmationQuestion> questions;
+  final Map<String, ConfirmationAnswer> given;
+  final List<AccountSummary> accounts;
+  final void Function(ConfirmationQuestion q, bool included) onAnswer;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final q in questions)
+          () {
+            final account = accounts
+                .where((a) => a.id == q.accountId)
+                .firstOrNull;
+            final name = account?.name ?? '';
+            final debt = account?.kind.isLiability ?? false;
+            final answer = given[q.accountId];
+            return _YesNo(
+              key: ValueKey('confirm.${q.accountId}'),
+              question: debt
+                  ? s.confirmDebtQuestion(name, _when(q.confirmedAt))
+                  : s.confirmBalanceQuestion(name, _when(q.confirmedAt)),
+              yes: s.confirmYes,
+              no: s.confirmNo,
+              value: answer?.assertionId == q.assertionId
+                  ? answer!.included
+                  : null,
+              onChanged: (v) => onAnswer(q, v),
+            );
+          }(),
+      ],
+    );
+  }
+}

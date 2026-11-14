@@ -1,6 +1,7 @@
 import '../../core/calendar_date.dart';
 import '../../core/money/money.dart';
-import '../operations/operations.dart' show OperationPreview, SameDayPlacement;
+import '../operations/operations.dart'
+    show ConfirmationAnswer, OperationPreview;
 
 enum FlowDirection { outflow, inflow }
 
@@ -217,21 +218,36 @@ final class SimilarOperation {
   final String? description;
 }
 
-/// A payment recorded after the account's last confirmed balance: when the
-/// balance is updated, the person says whether the bank already took it.
-final class PendingDebit {
-  const PendingDebit({
+/// One payment and one of its own accounts.
+typedef PendingKey = ({String paymentId, String accountId});
+
+/// One side of a recorded payment that is not yet in a confirmed balance of
+/// that account: the operation still changes it after the account's last
+/// confirmation. A transfer has a side per account (the debit and the card
+/// are confirmed separately); a payment for a purchase has one. At «Обновить
+/// остатки» the person answers only about the accounts being confirmed now:
+/// «Банк уже списал деньги?» ([incoming] false) or «Банк уже зачислил
+/// перевод?» ([incoming] true). No default (R3 review 3, 2026-11-14).
+final class PendingSide {
+  const PendingSide({
     required this.paymentId,
     required this.title,
     required this.amount,
     required this.accountId,
     required this.paidOn,
+    required this.incoming,
   });
   final String paymentId;
   final String title;
   final Money amount;
   final String accountId;
   final CalendarDate paidOn;
+
+  /// The money comes INTO this account (a credit to the card); otherwise
+  /// it leaves it.
+  final bool incoming;
+
+  PendingKey get key => (paymentId: paymentId, accountId: accountId);
 }
 
 enum UpcomingSource { flow, cardGrace }
@@ -411,29 +427,61 @@ abstract interface class PaymentsStore {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    SameDayPlacement placement,
+    Map<String, ConfirmationAnswer> answers,
   });
 
-  /// Books the payment as an operation and links it, atomically.
+  /// Books the payment as an operation and links it, atomically. Every
+  /// confirmation question must be answered ([answers], per account and
+  /// confirmation), and the figures question if it was asked.
   Future<void> pay(
     PayTarget target, {
     required Money amount,
     required String accountId,
     required CalendarDate date,
-    required SameDayPlacement placement,
+    required Map<String, ConfirmationAnswer> answers,
+    FiguresAnswer? figuresAnswer,
     bool confirmedNotDuplicate,
   });
 
   /// Reverses a payment recorded by mistake.
   Future<void> cancelObligationPayment(String paymentId);
 
-  /// Payments recorded after their account's last confirmed balance.
-  Future<List<PendingDebit>> pendingDebits();
+  /// Sides of payments not yet in a confirmed balance of their account.
+  Future<List<PendingSide>> pendingSides();
 }
 
 /// What paying will do, and similar operations already on the account.
 final class PaymentCheck {
-  const PaymentCheck(this.operation, this.similar);
+  const PaymentCheck(this.operation, this.similar, [this.figures]);
   final OperationPreview operation;
   final List<SimilarOperation> similar;
+
+  /// Asked when the payment goes to a credit card whose current bank
+  /// figures were entered on or after the payment's date.
+  final FiguresQuestion? figures;
+}
+
+/// The person's answer to a [FiguresQuestion], bound to that version of
+/// the bank figures: an answer about an older version is refused.
+final class FiguresAnswer {
+  const FiguresAnswer(this.figuresId, {required this.included});
+  final String figuresId;
+
+  /// The bank figure already includes this payment.
+  final bool included;
+}
+
+/// «Сумма {due}, введённая {enteredOn}, уже учитывает этот платёж?» — the
+/// answer is kept with the transfer and this version of the bank figures.
+final class FiguresQuestion {
+  const FiguresQuestion({
+    required this.figuresId,
+    required this.due,
+    required this.enteredOn,
+  });
+  final String figuresId;
+
+  /// The bank's amount to pay as entered (grace, or the minimum).
+  final Money due;
+  final CalendarDate enteredOn;
 }
